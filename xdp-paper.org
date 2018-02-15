@@ -1,0 +1,13 @@
+#+TITLE: Flexible Programmable Packet Processing with the eXpress Data Path
+#+DATE: \today
+#+AUTHOR: Toke Høiland-Jørgensen
+#+EMAIL: toke.hoiland-jorgensen@kau.se
+#+OPTIONS: H:4 toc:nil num:nil email:t
+#+LaTeX_HEADER: \bibliography{phd,bufferbloat,rfc}
+#+LaTeX_CLASS_OPTIONS: [english]
+
+
+
+
+* References
+#+LATEX: \printbibliography[heading=none]
