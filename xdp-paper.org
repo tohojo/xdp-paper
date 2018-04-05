@@ -6,6 +6,78 @@
 #+LaTeX_HEADER: \bibliography{phd,bufferbloat,rfc}
 #+LaTeX_CLASS_OPTIONS: [english]
 
+* Introduction
+High-performance packet processing in software has very tight bounds on the time
+spent processing each packet (~67 ns per packet at 10 Gbps). Network stacks in
+general purpose operating systems typically perform way too many operations per
+packet to be able to keep up with this packet rate, which has led to the
+introduction of special-purpose networking toolkits for software packet
+processing, such as DPDK and Netmap. However, these toolkits have the drawback
+that they are difficult to integrate with the existing networking stack, leading
+to the need to re-implement large parts of the stack.
+
+We present an alternative to previous approaches: A novel way to integrate
+programmable packet processing directly into the networking stack in a
+cooperative way, making it possible to perform high-speed packet processing that
+integrates seamlessly with existing applications. This framework, called the
+eXpress Data Path (XDP), works by defining a limited execution environment based
+on an extended version of the Berkeley Packet Filter bytecode language, which
+allows verified programs to run directly in kernel context before the normal
+packet processing in the networking stack.
+
+This makes it possible to implement applications that previously required their
+own appliance, such as DDOS protection and load balancing, directly on
+application servers. It also allows a hybrid approach, where certain fast path
+processing is offloaded to XDP while retaining normal network stack processing
+for other packets. This allows for exceptionally high throughput and low latency
+processing without sacrificing flexibility.
+
+We present the design of XDP and its capabilities and integration with the Linux
+kernel. We then present a performance evaluation that consists of
+micro-benchmarks showing packet processing scaling beyond 20 Mpps on a single
+core as well as two real-world use cases: inline DDOS protection and layer-3
+packet forwarding.
+
+* Related work
+* The design of XDP
+** The eBPF virtual machine
+- Diff to BPF ins set
+- Verifier
+** Interaction with other parts of the OS
+*** XDP kernel hooks
+- Metadata before packet header
+- Available in XDP and TC
+- TC hook can put this into skb->cb field
+- Shared maps (all BPF hooks)
+- Kprobes and tracepoints can trigger XDP actions (through maps)
+- XDP-specific tracepoints
+- AF_XDP - includes metadata
+- REDIRECT to KVM (already implemented to tuntap; macvlan in progress)
+*** Helpers and slow path
+*** Load only used code
+** Evolution of XDP
+- Add new helpers w/good use case
+** The XDP programming model
+- Program IDs
+- Map IDs
+- bpftool
+- XDP_REDIRECT vs XDP_REDIRECT_MAP
+** Offloading
+- Netronome - full XDP and TC offload
+- XDP as software offloading engine
+* Performance evaluation
+- Redirect for mellanox 3
+** Micro-benchmarks
+** Comparison with DPDK/netmap
+* Real-world use cases
+** DDOS mitigation
+** Packet forwarding layer 2/3
+- Helper functions into bridging / routing code
+- Layer 2 also useful for VMs
+** Load-balancer
+- XDP_TX
+- XDP_REDIRECT to CPU
+* Conclusions
 
 
 
