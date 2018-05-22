@@ -40,9 +40,169 @@ packet forwarding.
 
 * Related work
 * The design of XDP
+XDP is designed to integrate with the Linux networking stack, enhancing it with
+high-performance programmable hooks in strategic places. This makes it possible
+to take advantage of the extensive and robust features of the operating system,
+while adding custom packet processing as required. For this reason, XDP should
+not be seen as a monolithic system one injects a single program into, but rather
+a composition of individual parts that operate in concert to achieve the desired
+outcome.
+
+This section describes the various parts of the XDP system and how they fit
+together. The main parts of the system are the eBPF virtual machine and
+verifier, the XDP and TC packet processing hooks, shared data structures in the
+form of BPF maps, and kernel hooks in the form of kprobes and tracepoints. The
+following sections explain each of these concepts in turn, beginning with a
+high-level overview of the XDP programming model.
+
+** The XDP programming model
+The XDP system enables high-performance packet processing integrated tightly
+with the rest of the Linux networking stack. This makes XDP unique compared to
+other high-performance software packet processing frameworks, because it makes
+it possible to selectively leverage features already implemented in Linux, while
+writing custom programs to perform application-dependent processing, or to
+accelerate certain parts of the data path. This section gives a conceptual
+overview of the XDP programming model, explaining how the different parts fit
+together.
+
+The main entry point of an XDP program is the XDP driver hook itself. This hook
+executes a user-supplied eBPF program at the earliest possible moment in the
+device driver after packets are received from the hardware. That is, before the
+kernel allocates any data structures or performs any parsing of packet data.
+This allows for high performance, but the program has to parse raw packet data.
+The program being executed has access to a buffer of the raw packet data, along
+with metadata fields describing which interface and receive queue the packet
+came in on, etc.
+
+The eBPF virtual machine running the XDP program allows for arbitrary processing
+with some constrains (see the next section). In addition, an XDP program has
+access to two facilities to aid in its processing: Kernel helper functions, and
+maps.
+
+Kernel helpers are functions implemented in the kernel that an XDP program can
+call to make use of kernel functionality in its processing. These helpers range
+serve various purposes, ranging from simple checksum computation and hashing, to
+full access to the kernel routing table. The use of these helpers allows
+selective use of kernel facilities; for instance (as we will see in the use
+cases presented later), an XDP program can parse packet headers to extract the
+destination IP address, call a kernel helper function to get the destination,
+and immediately forward the packet out the right interface if the lookup
+succeeds (bypassing all kernel processing), and passing the packet on to the
+kernel stack if the lookup fails, allowing the network stack to perform
+neighbour resolution, thus allowing the next packet to be forwarded on the fast
+path.
+
+BPF maps are another facility available to an XDP program. These are key/value
+stores that are shared, both between different eBPF programs running at various
+places in the kernel, as well as between eBPF and userspace. The map types
+include generic hash maps, arrays and radix trees, as well as specialised types
+containing pointers to eBPF programs, or even recursive pointers to other maps.
+Maps serve several purposes: they are a persistent data store between
+invocations of the same eBPF program; a global coordination tool, where eBPF
+programs in one part of the kernel can update state that changes the behaviour
+in another; and a communication mechanism between userspace programs and the
+kernel eBPF programs, similar to the communication between control plane and
+data plane in other programmable package processing frameworks.
+
 ** The eBPF virtual machine
-- Diff to BPF ins set
-- Verifier
+The eBPF virtual machine is an evolution of the original BSD packet filter (BPF)
+[[cite:mccanne_bsd_1993]] which has seen extensive use in various packet filtering
+applications over the last decades. BPF uses a register-based virtual machine to
+describe filtering actions. This virtual machine has two 32-bit registers and
+understands 22 different instructions. This makes BPF well-suited for packet
+filtering operations, but limited as a general purpose virtual machine. eBPF
+extends the original BPF virtual machine to allow full general purpose execution
+and efficient just-in-time (JIT) compilation into native machine code.
+
+The code running in the virtual machine is executed directly in the kernel
+address space, which makes eBPF useful for a wide variety of tasks in the Linux
+kernel. The verifier (described in the next section) ensures that user-supplied
+programs cannot harm the running kernel, which enables a wide array of
+integrations between the running kernel and the XDP system.
+
+The eBPF modifies the BPF virtual machine as follows:
+
+#+CAPTION: eBPF to x86_64 register mapping.
+#+LABEL: tbl:reg-map
+| eBPF | x86_64 |
+|------+--------|
+| R0   | rax    |
+| R1   | rdi    |
+| R2   | rsi    |
+| R3   | rdx    |
+| R4   | rcx    |
+| R5   | r8     |
+| R6   | rbx    |
+| R7   | r13    |
+| R8   | r14    |
+| R9   | r15    |
+| R10  | rbp    |
+
+
+- The number of registers is increased to eleven, and register widths are
+  increased to 64 bits, with 32-bit sub-registers accessible through certain
+  instructions to provide compatibility with classic BPF programs. The 64-bit
+  registers map one-to-one to hardware registers on all 64-bit architectures
+  supported by the kernel, which eases JIT compilation. For instance, the x86_64
+  JIT compiler uses the mapping shown in Table [[tbl:reg-map]].
+
+- eBPF adds a /call/ instruction for function calls, and adopts the same calling
+  convention as the C language conventions used on the architectures supported
+  by the kernel. Along with the register mapping mentioned above, this makes it
+  possible to map a BPF call instruction to a single native call instruction,
+  enabling function calls to native kernel functions with close to zero
+  overhead. This facility is used by eBPF to support helpers that eBPF programs
+  can call to interact with the kernel while processing.
+
+  The eBPF calling convention is as follows:
+  - =R0= contains the function return value
+  - =R1=-=R5= contains function arguments
+  - =R6=-=R9= are callee saved registers that will be preserved across the call
+  - =R10= is a read-only frame pointer to the beginning of the eBPF stack space
+
+
+A BPF program starts its execution with =R1= containing a pointer to a /context/
+object, the contents of which varies with the type of program. For XDP, this
+points to a structure that allows the BPF program to access the packet data
+itself, as well as various items of metadata, including space for arbitrary data
+pthat is carried along with the packet and is accessible by other BPF programs
+that operate on the packet at later stages of processing.
+
+
+** The eBPF program verifier
+As mentioned in the previous section, eBPF code runs directly in the kernel
+address space, which means that it theoretically has full access to the running
+kernel and can either crash or compromise this. To avoid this unpleasant
+situation, the kernel enforces a single entry point for loading all BPF programs
+(through the =bpf()= system call). When loading a BPF program it is first
+analysed by the in-kernel /BPF verifier/, which ensures that the program
+performs no actions that are unsafe (such as reading arbitrary memory), and that
+the program will terminate by disallowing loops and limiting the maximum program
+size. The verifier works by first building a directed acyclic graph (DAG) of the
+control flow of the program. This DAG is then verified as follows:
+
+First, the verifier performs a depth-first search on the DAG to ensure it
+contains no loops (no backwards jumps) and that it contains no unsupported or
+unreachable instructions. Then, in a second pass, the verifier walks all
+possible paths of the DAG while tracking the state of all registers. The purpose
+of this second pass is to ensure that the program performs only safe memory
+accesses, and that any helper functions are called with the right argument
+types. Each register is marked with one of the states in Table [[tbl:reg-states]]
+
+#+CAPTION: eBPF verifier register states
+#+LABEL: tbl:reg-states
+| State                    | Meaning                      |
+|--------------------------+------------------------------|
+| NOT_INIT                 | Not initialised              |
+| SCALAR_VALUE             | Non-pointer value            |
+| PTR_TO_CTX               | Pointer to context           |
+| CONST_PTR_TO_MAP         | Pointer to BPF map           |
+| PTR_TO_MAP_VALUE         | Pointer to value in map      |
+| PTR_TO_MAP_VALUE_OR_NULL | Pointer to map value or NULL |
+| PTR_TO_STACK             | Frame pointer                |
+| PTR_TO_PACKET            | Packet data start            |
+| PTR_TO_PACKET_END        | Packet data end              |
+
 ** Interaction with other parts of the OS
 *** XDP kernel hooks
 - Metadata before packet header
