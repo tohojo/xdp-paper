@@ -2,9 +2,9 @@
 #+DATE: \today
 #+AUTHOR: Toke Høiland-Jørgensen
 #+EMAIL: toke.hoiland-jorgensen@kau.se
-#+OPTIONS: H:4 toc:nil num:nil email:t
+#+OPTIONS: H:4 toc:nil num:t email:t ^:nil
 #+LaTeX_HEADER: \bibliography{phd,bufferbloat,rfc}
-#+LaTeX_CLASS_OPTIONS: [english]
+#+LaTeX_CLASS_OPTIONS: [english,twocolumn,papertitle]
 
 * Introduction
 High-performance packet processing in software has very tight bounds on the time
@@ -49,11 +49,11 @@ a composition of individual parts that operate in concert to achieve the desired
 outcome.
 
 This section describes the various parts of the XDP system and how they fit
-together. The main parts of the system are the eBPF virtual machine and
-verifier, the XDP and TC packet processing hooks, shared data structures in the
-form of BPF maps, and kernel hooks in the form of kprobes and tracepoints. The
-following sections explain each of these concepts in turn, beginning with a
-high-level overview of the XDP programming model.
+together. We begin with a high-level overview of the XDP programming model and
+how various features of the kernel combine to form a powerful programmable data
+plane. Following this, we look in detail at the extended BSD Packer Filter
+(eBPF) virtual machine providing the execution model, and the in-kernel verifier
+that ensures the safety of loaded eBPF programs.
 
 ** The XDP programming model
 The XDP system enables high-performance packet processing integrated tightly
@@ -65,44 +65,81 @@ accelerate certain parts of the data path. This section gives a conceptual
 overview of the XDP programming model, explaining how the different parts fit
 together.
 
-The main entry point of an XDP program is the XDP driver hook itself. This hook
-executes a user-supplied eBPF program at the earliest possible moment in the
-device driver after packets are received from the hardware. That is, before the
-kernel allocates any data structures or performs any parsing of packet data.
-This allows for high performance, but the program has to parse raw packet data.
-The program being executed has access to a buffer of the raw packet data, along
-with metadata fields describing which interface and receive queue the packet
-came in on, etc.
+An XDP program is run in the eBPF virtual machine and is entirely event driven.
+An XDP program is executed directly in context of the device driver, without
+context switching to userspace. The program is executed at the earliest possible
+moment after a packet is received from the hardware, before the kernel allocates
+any data structures or performs any parsing of packet data. This allows for high
+performance, but the program has to parse raw packet data itself. The XDP
+program starts its execution with access to a buffer of the raw packet data,
+along with metadata fields describing which interface and receive queue the
+packet came in on, etc. The result of the program is a return code, instructing
+the kernel what to do with the packet. There are return codes to drop the
+packet, immediately re-transmit it out the same network interface, or to allow
+the packet to be processed by the kernel networking stack.
 
-The eBPF virtual machine running the XDP program allows for arbitrary processing
-with some constrains (see the next section). In addition, an XDP program has
-access to two facilities to aid in its processing: Kernel helper functions, and
-maps.
+In to these actions, the XDP program can /redirect/ the packet, which controls
+its further processing. Redirecting can be used to transmit the packet out a
+different network interface, to pass it to a different CPU to further
+processing, to pass it directly to a virtual machine running on the host, or to
+pass it directly to a special userspace socket without copying. Finally, an XDP
+program can end by passing control to a different XDP program, through a
+so-called /tail call/, which executes the target program and never returns to
+the caller. A special memory area is available for XDP to store arbitrary
+metadata that will be available to other XDP programs, as well as to userspace.
 
-Kernel helpers are functions implemented in the kernel that an XDP program can
-call to make use of kernel functionality in its processing. These helpers range
-serve various purposes, ranging from simple checksum computation and hashing, to
-full access to the kernel routing table. The use of these helpers allows
-selective use of kernel facilities; for instance (as we will see in the use
-cases presented later), an XDP program can parse packet headers to extract the
-destination IP address, call a kernel helper function to get the destination,
-and immediately forward the packet out the right interface if the lookup
-succeeds (bypassing all kernel processing), and passing the packet on to the
-kernel stack if the lookup fails, allowing the network stack to perform
-neighbour resolution, thus allowing the next packet to be forwarded on the fast
-path.
+During its execution, and XDP program also has access to kernel facilities to
+aid in its processing, through two mechanisms: helper functions and maps. Kernel
+helpers are functions implemented in the kernel that an XDP program can call to
+make use of kernel functionality in its processing. These helpers range serve
+various purposes, ranging from simple checksum computation and hashing, to full
+access to the kernel routing table. New helpers are actively been added by the
+kernel development community in response to user requests, continuously
+expanding the functionality that XDP programs don't have to re-implement
+themselves.
 
-BPF maps are another facility available to an XDP program. These are key/value
-stores that are shared, both between different eBPF programs running at various
-places in the kernel, as well as between eBPF and userspace. The map types
-include generic hash maps, arrays and radix trees, as well as specialised types
-containing pointers to eBPF programs, or even recursive pointers to other maps.
-Maps serve several purposes: they are a persistent data store between
-invocations of the same eBPF program; a global coordination tool, where eBPF
-programs in one part of the kernel can update state that changes the behaviour
-in another; and a communication mechanism between userspace programs and the
-kernel eBPF programs, similar to the communication between control plane and
-data plane in other programmable package processing frameworks.
+BPF maps are key/value stores that are shared, both between different eBPF
+programs running at various places in the kernel, as well as between eBPF and
+userspace. The map types include generic hash maps, arrays and radix trees, as
+well as specialised types containing pointers to eBPF programs, or even
+recursive pointers to other maps. Maps serve several purposes: they are a
+persistent data store between invocations of the same eBPF program; a global
+coordination tool, where eBPF programs in one part of the kernel can update
+state that changes the behaviour in another; and a communication mechanism
+between userspace programs and the kernel eBPF programs, similar to the
+communication between control plane and data plane in other programmable package
+processing frameworks.
+
+Another piece of the XDP picture is the ability to run eBPF programs in other
+parts of the kernel. These include packet processing in the Traffic Control (TC)
+subsystem, where eBPF programs can filter packets after they have been parsed by
+the kernel, or before they are passed to the hardware from applications. In
+addition, eBPF programs can be attached to various places in the kernel that are
+unrelated to networking. These include /cgroups/, which control resource usage
+for groups of processes (used for implementing containers on Linux, for
+instance), as well the /tracepoint/ and /kprobe/ introspection subsystems which
+allow attaching eBPF programs to arbitrary kernel functions. Because all eBPF
+programs can share the same set of maps, this makes it possible for XDP programs
+to react to arbitrary events in the kernel, for instance by dropping packets if
+processing load increases. Because of this integration, the XDP programming
+model is considerably more powerful than just the XDP programs itself.
+
+A final important feature of the XDP system is the ability to dynamically load
+eBPF programs. Because the kernel manages the life cycle of all eBPF programs,
+they can be dynamically loaded and reloaded at runtime. Combined with dynamic
+dispatch to other programs using tail calls, this makes it possible to limit the
+amount of processing actually performed on packets. A processing pipeline can
+simply split its processing into separate XDP programs and dynamically load and
+unload them as features are enabled or disabled through control plane
+configuration. This also makes it possible to dynamically compile programs with
+hard-coded values derived from configuration, avoiding expensive data structure
+lookups for common tasks.
+
+The various pieces of the XDP system outlined above combine to form a powerful
+programmable data plane, with integration into the Linux kernel aiding
+deployment on existing systems. The following sections describe the eBPF virtual
+machine itself, and the verifier that ensures that loaded programs are safe to
+run in kernel space.
 
 ** The eBPF virtual machine
 The eBPF virtual machine is an evolution of the original BSD packet filter (BPF)
@@ -112,7 +149,9 @@ describe filtering actions. This virtual machine has two 32-bit registers and
 understands 22 different instructions. This makes BPF well-suited for packet
 filtering operations, but limited as a general purpose virtual machine. eBPF
 extends the original BPF virtual machine to allow full general purpose execution
-and efficient just-in-time (JIT) compilation into native machine code.
+and efficient just-in-time (JIT) compilation into native machine code. Support
+for compiling (restricted) C code into eBPF is included in the LLVM compiler
+suite
 
 The code running in the virtual machine is executed directly in the kernel
 address space, which makes eBPF useful for a wide variety of tasks in the Linux
@@ -187,23 +226,27 @@ unreachable instructions. Then, in a second pass, the verifier walks all
 possible paths of the DAG while tracking the state of all registers. The purpose
 of this second pass is to ensure that the program performs only safe memory
 accesses, and that any helper functions are called with the right argument
-types. Each register is marked with one of the states in Table [[tbl:reg-states]]
+types. Each register is marked with one of the states in Table [[tbl:reg-states]].
+At the beginning of the program, =R1= contains a pointer to the execution
+context, and is of type =PTR_TO_CTX=; =R10= is =PTR_TO_SACK=, and all other
+registers are =NOT_INIT=. At each execution step, register states are updated
+based on the operations performed by the program.
 
 #+CAPTION: eBPF verifier register states
 #+LABEL: tbl:reg-states
-| State                    | Meaning                      |
-|--------------------------+------------------------------|
-| NOT_INIT                 | Not initialised              |
-| SCALAR_VALUE             | Non-pointer value            |
-| PTR_TO_CTX               | Pointer to context           |
-| CONST_PTR_TO_MAP         | Pointer to BPF map           |
-| PTR_TO_MAP_VALUE         | Pointer to value in map      |
-| PTR_TO_MAP_VALUE_OR_NULL | Pointer to map value or NULL |
-| PTR_TO_STACK             | Frame pointer                |
-| PTR_TO_PACKET            | Packet data start            |
-| PTR_TO_PACKET_END        | Packet data end              |
+| State                      | Meaning                      |
+|----------------------------+------------------------------|
+| =NOT_INIT=                 | Not initialised              |
+| =SCALAR_VALUE=             | Non-pointer value            |
+| =PTR_TO_CTX=               | Pointer to context           |
+| =CONST_PTR_TO_MAP=         | Pointer to BPF map           |
+| =PTR_TO_MAP_VALUE=         | Pointer to value in map      |
+| =PTR_TO_MAP_VALUE_OR_NULL= | Pointer to map value or NULL |
+| =PTR_TO_STACK=             | Frame pointer                |
+| =PTR_TO_PACKET=            | Packet data start            |
+| =PTR_TO_PACKET_END=        | Packet data end              |
 
-** Interaction with other parts of the OS
+** Interaction with other parts of the OS                         :noexport:
 *** XDP kernel hooks
 - Metadata before packet header
 - Available in XDP and TC
@@ -215,18 +258,17 @@ types. Each register is marked with one of the states in Table [[tbl:reg-states
 - REDIRECT to KVM (already implemented to tuntap; macvlan in progress)
 *** Helpers and slow path
 *** Load only used code
-** Evolution of XDP
+** Evolution of XDP                                               :noexport:
 - Add new helpers w/good use case
-** The XDP programming model
+** The XDP programming model                                      :noexport:
 - Program IDs
 - Map IDs
 - bpftool
 - XDP_REDIRECT vs XDP_REDIRECT_MAP
-** Offloading
+** Offloading                                                     :noexport:
 - Netronome - full XDP and TC offload
 - XDP as software offloading engine
 * Performance evaluation
-- Redirect for mellanox 3
 ** Micro-benchmarks
 ** Comparison with DPDK/netmap
 * Real-world use cases
@@ -235,8 +277,8 @@ types. Each register is marked with one of the states in Table [[tbl:reg-states
 - Helper functions into bridging / routing code
 - Layer 2 also useful for VMs
 ** Load-balancer
-- XDP_TX
-- XDP_REDIRECT to CPU
+- =XDP_TX=
+- =XDP_REDIRECT= to CPU/VM
 * Conclusions
 
 
