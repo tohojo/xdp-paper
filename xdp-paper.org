@@ -65,6 +65,11 @@ accelerate certain parts of the data path. This section gives a conceptual
 overview of the XDP programming model, explaining how the different parts fit
 together.
 
+#+CAPTION: Diagram of how XDP integrates into the Linux kernel. Blue boxes are part of the XDP system. Purple boxes are socket interfaces to userspace. Red boxes are regular applications or virtual machines. Brown boxes are the various processing steps in the regular Linux network stack.
+#+LABEL: fig:xdp-kernel
+#+ATTR_LaTeX: :width \linewidth :placement [t]
+[[file:figures/kernel-diagram.pdf]]
+
 An XDP program is run in the eBPF virtual machine and is entirely event driven.
 An XDP program is executed directly in context of the device driver, without
 context switching to userspace. The program is executed at the earliest possible
