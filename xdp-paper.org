@@ -1,4 +1,4 @@
-#+TITLE: Flexible Programmable Packet Processing with the eXpress Data Path
+#+TITLE: The eXpress Data Path: Programmable Packet Processing for the Linux Kernel
 #+DATE: \today
 #+AUTHOR: Toke Høiland-Jørgensen
 #+EMAIL: toke.hoiland-jorgensen@kau.se
