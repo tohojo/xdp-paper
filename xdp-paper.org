@@ -209,7 +209,7 @@ A BPF program starts its execution with =R1= containing a pointer to a /context/
 object, the contents of which varies with the type of program. For XDP, this
 points to a structure that allows the BPF program to access the packet data
 itself, as well as various items of metadata, including space for arbitrary data
-pthat is carried along with the packet and is accessible by other BPF programs
+that is carried along with the packet and is accessible by other BPF programs
 that operate on the packet at later stages of processing.
 
 
