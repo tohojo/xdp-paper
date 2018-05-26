@@ -231,25 +231,89 @@ unreachable instructions. Then, in a second pass, the verifier walks all
 possible paths of the DAG while tracking the state of all registers. The purpose
 of this second pass is to ensure that the program performs only safe memory
 accesses, and that any helper functions are called with the right argument
-types. Each register is marked with one of the states in Table [[tbl:reg-states]].
+types. This is ensured by rejecting programs that perform load or call
+instructions with invalid arguments. Argument validity is determined by tracking
+the state of all registers and stack variables through the execution of the
+program, as explained in the following.
+
+*** Register state tracking
+To track data access, the verifier assigns five state variables to each
+register, listed in Table [[tbl:vrf-state-vars]], with the possible types listed in
+Table [[tbl:reg-types]]. The fixed offset is used to track the result of pointer
+arithmetic with fixed values, while the ranges and /tnum/ are used to track
+variable offsets of pointers, as well as the ranges of scalar variables.
+
 At the beginning of the program, =R1= contains a pointer to the execution
 context, and is of type =PTR_TO_CTX=; =R10= is =PTR_TO_SACK=, and all other
 registers are =NOT_INIT=. At each execution step, register states are updated
-based on the operations performed by the program.
+based on the operations performed by the program. When a new value is stored to
+a register, it inherits the state variables of the source of the value.
+Arithmetic operations on scalar values will affect the value of the /tnum/ state
+variable, which tracks which bits in a register are known, and their value. The
+/tnum/ is a pair of /mask/, which contains the bits whose value is unknown, and
+a /value/ which contains the bits that are known to be set to 1. Load operations
+set these, for instance loading a byte from memory will result in the top 56
+bits being known to be zero, and the bottom 8 bits to be unknown. Arithmetic
+updates these values according to their operation.
 
-#+CAPTION: eBPF verifier register states
-#+LABEL: tbl:reg-states
-| State                      | Meaning                      |
-|----------------------------+------------------------------|
-| =NOT_INIT=                 | Not initialised              |
-| =SCALAR_VALUE=             | Non-pointer value            |
-| =PTR_TO_CTX=               | Pointer to context           |
-| =CONST_PTR_TO_MAP=         | Pointer to BPF map           |
-| =PTR_TO_MAP_VALUE=         | Pointer to value in map      |
-| =PTR_TO_MAP_VALUE_OR_NULL= | Pointer to map value or NULL |
-| =PTR_TO_STACK=             | Frame pointer                |
-| =PTR_TO_PACKET=            | Packet data start            |
-| =PTR_TO_PACKET_END=        | Packet data end              |
+Branches in the instruction tree will update the register state according to the
+logical operation contained in the branch. For example, a "$>10$" compare will
+set the maximum value to 10 in one branch, and the minimum value to 11 in the
+other. If a comparison is performed with a scalar value rather than a constant,
+the knowledge of which bits are set is used to compute the ranges for the
+branches (using the minimum and maximum possible values of unknown bits as
+appropriate). Finally, a branch that checks whether register of type
+=PTR_TO_MAP_VALUE_OR_NULL= is different from =NULL= will turn that register into
+a type =PTR_TO_MAP_VALUE= in the /true/ branch, which can in turn be accessed.
+
+Using the information contained in the state variables, it is possible for the
+verifier to predict the ranges of memory that it is possible for each load
+instruction to access. It uses this information to ensure that only safe memory
+accesses are performed. For pointers to context objects, the execution context
+of the eBPF program indicates allowed memory offsets for their context objects
+through a callback performed by the verifier. For map values, the map definition
+defines the size of the values, which is used to bound the allowed memory
+accesses. For pointers to stack values, only ranges previously stored on the
+stack are valid. And finally, for pointers to packet data, only ranges known to
+be less than the packet length (by appropriate compares against the packet end
+pointer) are allowed. Any eBPF program that makes memory accesses that the
+verifier cannot prove are safe are simply rejected at load time. The verifier
+also uses the range information to enforce aligned memory accesses.
+
+When pointers are copied to other registers, a bounds check on one copy can be
+used to infer the valid ranges of the other copies, even after the copy
+occurred. The /id/ state variable is used for this purpose for packet access and
+map value pointers. For packet access, all pointers with the same variable
+range will have the same /id/, even if their fixed offset differs. Thus, a range
+check on one copy will mark the same range (minus any differences in fixed
+offsets) as valid in the other copies. Similarly, for pointers to map values,
+all copies of a pointer returned from the same map lookup share their /id/, and
+a check against NULL will be valid for all of them.
+
+#+CAPTION: eBPF verifier state variables
+#+LABEL: tbl:vrf-state-vars
+| Variable         | Contains                                |
+|------------------+-----------------------------------------|
+| =type=           | One of the types in Table [[tbl:reg-types]] |
+| =id=             | ID for tracking copies of same variable |
+| =fixed_offset=   | Pointer offset (after arithmetic)       |
+| =range_unsigned= | Min and max values (unsigned)           |
+| =range_signed=   | Min and max values (signed)             |
+| =tnum=           | Mask and value of known bits            |
+
+#+CAPTION: eBPF verifier type annotations. The last column indicates whether pointer arithmetic is allowed for this type of pointer.
+#+LABEL: tbl:reg-types
+| Type                       | Meaning                      | Arithm? |
+|----------------------------+------------------------------+---------|
+| =NOT_INIT=                 | Not initialised              | -       |
+| =SCALAR_VALUE=             | Non-pointer value            | -       |
+| =PTR_TO_CTX=               | Pointer to context           | Yes     |
+| =CONST_PTR_TO_MAP=         | Pointer to BPF map           | No      |
+| =PTR_TO_MAP_VALUE=         | Pointer to value in map      | Yes     |
+| =PTR_TO_MAP_VALUE_OR_NULL= | Pointer to map value or NULL | No      |
+| =PTR_TO_STACK=             | Frame pointer                | Yes     |
+| =PTR_TO_PACKET=            | Packet data start            | Yes     |
+| =PTR_TO_PACKET_END=        | Packet data end              | No      |
 
 ** Interaction with other parts of the OS                         :noexport:
 *** XDP kernel hooks
