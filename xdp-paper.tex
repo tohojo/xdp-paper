@@ -50,6 +50,32 @@ Jesper Dangaard Brouer\\
 
 \maketitle
 
+\begin{abstract}
+  Programmable packet processing in software has become increasingly popular, as
+  increases in computational power has made it possible to run custom
+  programmable pipelines at high speeds. This is generally implemented by
+  so-called kernel bypass techniques, where a userspace application takes
+  complete control of the networking hardware to avoid expensive context
+  switches between kernel and user space.
+
+  However, this approach makes high-speed packet processing an all-or-nothing
+  proposition, where the processing application has to handle all network
+  traffic, reinventing a lot of functionality already present in the kernel.
+  Interoperability with other applications is also difficult, requiring
+  cumbersome re-injection of packets into the kernel.
+
+  In this paper, we present an alternative approach to programmable packet
+  processing, where the kernel provides a safe execution environment for custom
+  packet processing applications, executed directly in the context of the kernel
+  device driver. This system, called the eXpress Data Path (XDP), is part of the
+  mainline Linux kernel, and has been gradually expanded over the last several
+  releases. We describe the design of the system and how it integrates with the
+  rest of the kernel. Through a range of real-world examples we illustrate the
+  flexibility of this model and how it can be used to implement a wide range of
+  applications with performance measure in tens of millions of packets per
+  second.
+\end{abstract}
+
 \section{Introduction}
 \label{sec:introduction}
 High-performance packet processing in software has very tight bounds on the time
