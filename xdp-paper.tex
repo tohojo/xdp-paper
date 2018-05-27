@@ -121,20 +121,24 @@ not be seen as a monolithic system one injects a single program into, but rather
 a composition of individual parts that operate in concert to achieve the desired
 outcome.
 
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\linewidth]{figures/xdp-execution-diagram.pdf}
+\caption{\label{fig:xdp-execution} Execution diagram of a typical XDP program.
+  It starts by parsing packet headers to extract the information it will react
+  on, and combines this with information from one or more of the metadata
+  facilities to determine a final verdict for the packet. All processing steps
+  are optional except for the final verdict, which is given in the form of a
+  program return code. In a real program, packet parsing and metadata
+  manipulation will often be interleaved with each other.}
+\end{figure*}
+
 This section describes the various parts of the XDP system and how they fit
 together. We begin with a high-level overview of the XDP programming model and
 how various features of the kernel combine to form a powerful programmable data
 plane. Following this, we look in detail at the extended BSD Packer Filter
 (eBPF) virtual machine providing the execution model, and the in-kernel verifier
 that ensures the safety of loaded eBPF programs.
-
-\begin{figure}[t]
-\centering
-\includegraphics[width=\linewidth]{figures/kernel-diagram.pdf}
-\caption{\label{fig:xdp-kernel}
-Diagram of how XDP integrates into the Linux kernel. Blue boxes are part of the XDP system. Purple boxes are socket interfaces to userspace. Red boxes are regular applications or virtual machines. Brown boxes are the various processing steps in the regular Linux network stack.}
-\end{figure}
-
 
 \subsection{The XDP programming model}
 \label{sec:prog-model}
@@ -148,65 +152,85 @@ overview of the XDP programming model, explaining how the different parts fit
 together.
 
 An XDP program is run in the eBPF virtual machine and is entirely event driven.
-An XDP program is executed directly in context of the device driver, without
+The program is executed directly in context of the device driver, without
 context switching to userspace. The program is executed at the earliest possible
 moment after a packet is received from the hardware, before the kernel allocates
 any data structures or performs any parsing of packet data. This allows for high
-performance, but the program has to parse raw packet data itself. The XDP
-program starts its execution with access to a buffer of the raw packet data,
+performance, but the program has to parse raw packet data itself.
+
+Figure~\ref{fig:xdp-execution} gives a conceptual overview of the execution of a
+typical XDP program. The program starts its execution with access to a pointer
+to a context object. This object contains the buffer of the raw packet data,
 along with metadata fields describing which interface and receive queue the
-packet came in on, etc. The result of the program is a return code, instructing
-the kernel what to do with the packet. There are return codes to drop the
-packet, immediately re-transmit it out the same network interface, or to allow
-the packet to be processed by the kernel networking stack.
+packet came in on, etc. The program can read and write any parts of the packet
+data buffer, including expanding or shrinking the packet to add or remove
+headers. It can also pass control to a different XDP program, through a
+so-called \emph{tail call}, which executes the target program and never returns
+to the caller, thus splitting processing into logical sub-units (based on, say,
+IP header version). The context object also contains a pointer to a special
+memory area is available for XDP to store arbitrary metadata that will be
+available to other XDP programs, as well as to other parts of the kernel and
+userspace (under certain circumstances).
 
-\begin{figure*}[t]
+Similar to a regular userspace program, an XDP program ends its execution with a
+return code, instructing the kernel what to do with the packet. There are three
+simple return codes which either drop the packet, immediately re-transmit it out
+the same network interface, or allow the packet to be processed by the kernel
+networking stack. In addition to these simple actions, the XDP program can
+\emph{redirect} the packet, which controls its further processing. Redirecting
+can be used to transmit the packet out a different network interface, to pass it
+to a different CPU to further processing, to pass it to a virtual machine
+running on the host, or to pass it directly to a special userspace socket
+without copying.
+
+\begin{figure}[t]
 \centering
-\includegraphics[width=\linewidth]{figures/xdp-execution-diagram.pdf}
-\caption{\label{fig:xdp-execution}
-Execution diagram of a typical XDP program.}
-\end{figure*}
+\includegraphics[width=\linewidth]{figures/kernel-diagram.pdf}
+\caption{\label{fig:xdp-kernel} Diagram of how XDP integrates into the Linux
+  kernel network receive path. Blue boxes are part of the XDP system. Purple
+  boxes are socket interfaces to userspace. Red boxes are regular applications
+  or virtual machines. Brown boxes are the various processing steps in the
+  regular Linux network stack.}
+\end{figure}
 
-In to these actions, the XDP program can \emph{redirect} the packet, which controls
-its further processing. Redirecting can be used to transmit the packet out a
-different network interface, to pass it to a different CPU to further
-processing, to pass it directly to a virtual machine running on the host, or to
-pass it directly to a special userspace socket without copying. Finally, an XDP
-program can end by passing control to a different XDP program, through a
-so-called \emph{tail call}, which executes the target program and never returns to
-the caller. A special memory area is available for XDP to store arbitrary
-metadata that will be available to other XDP programs, as well as to userspace.
+During its execution, and XDP program also has access to kernel facilities that
+provide helper functions and additional metadata. Figure~\ref{fig:xdp-kernel}
+shows a diagram of how XDP integrates into the full system. The XDP hook in the
+driver is the first thing that is executed after a packet is received from the
+network hardware. This program can control how further packet processing is
+performed as described above (solid lines). In addition to this, the facilities
+given to interact with the kernel allow the XDP program to gather additional
+metadata (dotted lines), through helper functions and maps. Helper functions are
+callbacks implemented in the kernel that an XDP program can call to make use of
+kernel functionality in its processing. These helpers range serve various
+purposes, ranging from simple checksum computation and hashing, to full access
+to the kernel routing table. New helpers are actively been added by the kernel
+development community in response to user requests, continuously expanding the
+functionality that XDP programs don't have to re-implement themselves.
 
-During its execution, and XDP program also has access to kernel facilities to
-aid in its processing, through two mechanisms: helper functions and maps. Kernel
-helpers are functions implemented in the kernel that an XDP program can call to
-make use of kernel functionality in its processing. These helpers range serve
-various purposes, ranging from simple checksum computation and hashing, to full
-access to the kernel routing table. New helpers are actively been added by the
-kernel development community in response to user requests, continuously
-expanding the functionality that XDP programs don't have to re-implement
-themselves.
-
-BPF maps are key/value stores that are shared, both between different eBPF
-programs running at various places in the kernel, as well as between eBPF and
-userspace. The map types include generic hash maps, arrays and radix trees, as
-well as specialised types containing pointers to eBPF programs, or even
-recursive pointers to other maps. Maps serve several purposes: they are a
-persistent data store between invocations of the same eBPF program; a global
-coordination tool, where eBPF programs in one part of the kernel can update
-state that changes the behaviour in another; and a communication mechanism
-between userspace programs and the kernel eBPF programs, similar to the
-communication between control plane and data plane in other programmable package
-processing frameworks.
+Maps are key/value stores that are defined by the user before loading an XDP
+program, and can be referred to from within the eBPF code. Maps are shared, both
+between different eBPF programs running at various places in the kernel, as well
+as between eBPF and userspace. The map types include generic hash maps, arrays
+and radix trees, as well as specialised types containing pointers to eBPF
+programs, or even recursive pointers to other maps. Maps serve several purposes:
+they are a persistent data store between invocations of the same eBPF program; a
+global coordination tool, where eBPF programs in one part of the kernel can
+update state that changes the behaviour in another; and a communication
+mechanism between userspace programs and the kernel eBPF programs, similar to
+the communication between control plane and data plane in other programmable
+package processing frameworks. These different communication paths are marked
+with dotted lines in Figure~\ref{fig:xdp-kernel}.
 
 Another piece of the XDP picture is the ability to run eBPF programs in other
 parts of the kernel. These include packet processing in the Traffic Control (TC)
 subsystem, where eBPF programs can filter packets after they have been parsed by
-the kernel, or before they are passed to the hardware from applications. In
-addition, eBPF programs can be attached to various places in the kernel that are
-unrelated to networking. These include \emph{cgroups}, which control resource usage
-for groups of processes (used for implementing containers on Linux, for
-instance), as well the \emph{tracepoint} and \emph{kprobe} introspection subsystems which
+the kernel, or before they are passed to the hardware from applications. This is
+marked as ``TC BPF'' in the figure. In addition, eBPF programs can be attached
+to various places in the kernel that are unrelated to networking (not shown on
+the figure). These include \emph{cgroups}, which control resource usage for
+groups of processes (used for implementing containers on Linux, for instance),
+as well the \emph{tracepoint} and \emph{kprobe} introspection subsystems which
 allow attaching eBPF programs to arbitrary kernel functions. Because all eBPF
 programs can share the same set of maps, this makes it possible for XDP programs
 to react to arbitrary events in the kernel, for instance by dropping packets if
