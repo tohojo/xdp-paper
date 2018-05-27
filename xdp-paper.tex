@@ -366,27 +366,30 @@ arithmetic with fixed values, while the ranges and \emph{tnum} are used to track
 variable offsets of pointers, as well as the ranges of scalar variables.
 
 At the beginning of the program, \texttt{R1} contains a pointer to the execution
-context, and is of type \texttt{PTR\_TO\_CTX}; \texttt{R10} is \texttt{PTR\_TO\_SACK}, and all other
-registers are \texttt{NOT\_INIT}. At each execution step, register states are updated
-based on the operations performed by the program. When a new value is stored to
-a register, it inherits the state variables of the source of the value.
-Arithmetic operations on scalar values will affect the value of the \emph{tnum} state
-variable, which tracks which bits in a register are known, and their value. The
-\emph{tnum} is a pair of \emph{mask}, which contains the bits whose value is unknown, and
-a \emph{value} which contains the bits that are known to be set to 1. Load operations
-set these, for instance loading a byte from memory will result in the top 56
-bits being known to be zero, and the bottom 8 bits to be unknown. Arithmetic
-updates these values according to their operation.
+context, and its type is a \texttt{CTX} pointer; \texttt{R10} is a \texttt{STACK}
+pointer, and all other registers are \texttt{NOT\_INIT}. At each execution step,
+register states are updated based on the operations performed by the program.
+When a new value is stored to a register, it inherits the state variables of the
+source of the value. Arithmetic operations on scalar values will affect the
+value of the \emph{tnum} state variable, which tracks which bits in a register
+are known, and their value. The \emph{tnum} is a pair of \emph{mask}, which
+contains the bits whose value is unknown, and a \emph{value} which contains the
+bits that are known to be set to 1. Load operations set these, for instance
+loading a byte from memory will result in the top 56 bits being known to be
+zero, and the bottom 8 bits to be unknown. Arithmetic updates these values
+according to their operation.
 
 Branches in the instruction tree will update the register state according to the
-logical operation contained in the branch. For example, a "\(>10\)" compare will
-set the maximum value to 10 in one branch, and the minimum value to 11 in the
-other. If a comparison is performed with a scalar value rather than a constant,
-the knowledge of which bits are set is used to compute the ranges for the
-branches (using the minimum and maximum possible values of unknown bits as
-appropriate). Finally, a branch that checks whether register of type
-\texttt{PTR\_TO\_MAP\_VALUE\_OR\_NULL} is different from \texttt{NULL} will turn that register into
-a type \texttt{PTR\_TO\_MAP\_VALUE} in the \emph{true} branch, which can in turn be accessed.
+logical operation contained in the branch. For example, a comparison "\texttt{R1
+  > 10}" compare will set the maximum value of \texttt{R1} to 10 in one branch,
+and the minimum value to 11 in the other. If a comparison is performed with a
+scalar value rather than a constant, the knowledge of which bits are set is used
+to compute the ranges for the branches (using the minimum and maximum possible
+values of unknown bits as appropriate). Finally, a branch that checks whether
+register with a \texttt{MAP\_VALUE\_OR\_NULL} pointer is different from
+\texttt{NULL} will turn that register into a pointer with type
+\texttt{MAP\_VALUE} in the \emph{true} branch, which makes it possible to
+derefence the pointer.
 
 Using the information contained in the state variables, it is possible for the
 verifier to predict the ranges of memory that it is possible for each load
