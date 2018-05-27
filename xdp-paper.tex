@@ -128,6 +128,14 @@ plane. Following this, we look in detail at the extended BSD Packer Filter
 (eBPF) virtual machine providing the execution model, and the in-kernel verifier
 that ensures the safety of loaded eBPF programs.
 
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{figures/kernel-diagram.pdf}
+\caption{\label{fig:xdp-kernel}
+Diagram of how XDP integrates into the Linux kernel. Blue boxes are part of the XDP system. Purple boxes are socket interfaces to userspace. Red boxes are regular applications or virtual machines. Brown boxes are the various processing steps in the regular Linux network stack.}
+\end{figure}
+
+
 \subsection{The XDP programming model}
 \label{sec:prog-model}
 The XDP system enables high-performance packet processing integrated tightly
@@ -138,13 +146,6 @@ writing custom programs to perform application-dependent processing, or to
 accelerate certain parts of the data path. This section gives a conceptual
 overview of the XDP programming model, explaining how the different parts fit
 together.
-
-\begin{figure}[t]
-\centering
-\includegraphics[width=\linewidth]{figures/kernel-diagram.pdf}
-\caption{\label{fig:xdp-kernel}
-Diagram of how XDP integrates into the Linux kernel. Blue boxes are part of the XDP system. Purple boxes are socket interfaces to userspace. Red boxes are regular applications or virtual machines. Brown boxes are the various processing steps in the regular Linux network stack.}
-\end{figure}
 
 An XDP program is run in the eBPF virtual machine and is entirely event driven.
 An XDP program is executed directly in context of the device driver, without
@@ -158,6 +159,13 @@ packet came in on, etc. The result of the program is a return code, instructing
 the kernel what to do with the packet. There are return codes to drop the
 packet, immediately re-transmit it out the same network interface, or to allow
 the packet to be processed by the kernel networking stack.
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\linewidth]{figures/xdp-execution-diagram.pdf}
+\caption{\label{fig:xdp-execution}
+Execution diagram of a typical XDP program.}
+\end{figure*}
 
 In to these actions, the XDP program can \emph{redirect} the packet, which controls
 its further processing. Redirecting can be used to transmit the packet out a
