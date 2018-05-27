@@ -412,17 +412,22 @@ eBPF verifier type annotations. The last column indicates whether pointer arithm
 \centering
 \begin{tabular}{lll}
 \toprule
-Type & Meaning & Arithm?\\
+\multicolumn{3}{c}{Non-pointer types} \\
+Name & Meaning \\
 \midrule
-\texttt{NOT\_INIT} & Not initialised & -\\
-\texttt{SCALAR\_VALUE} & Non-pointer value & -\\
-\texttt{PTR\_TO\_CTX} & Pointer to context & Yes\\
-\texttt{CONST\_PTR\_TO\_MAP} & Pointer to BPF map & No\\
-\texttt{PTR\_TO\_MAP\_VALUE} & Pointer to value in map & Yes\\
-\texttt{PTR\_TO\_MAP\_VALUE\_OR\_NULL} & Pointer to map value or NULL & No\\
-\texttt{PTR\_TO\_STACK} & Frame pointer & Yes\\
-\texttt{PTR\_TO\_PACKET} & Packet data start & Yes\\
-\texttt{PTR\_TO\_PACKET\_END} & Packet data end & No\\
+\texttt{NOT\_INIT}            & Not initialised         \\
+\texttt{SCALAR\_VALUE}        & Any numerical value       \\
+\midrule
+\multicolumn{3}{c}{Pointer types} \\
+Name & Pointing to & Arithm\\
+\midrule
+\texttt{CTX}                  & Context              & Yes \\
+\texttt{MAP}                  & BPF map              & No  \\
+\texttt{MAP\_VALUE}           & Value in map         & Yes \\
+\texttt{MAP\_VALUE\_OR\_NULL} & Value in map or NULL & No  \\
+\texttt{STACK}                & Stack frame          & Yes \\
+\texttt{PACKET}               & Packet data start    & Yes \\
+\texttt{PACKET\_END}          & Packet data end      & No  \\
 \bottomrule
 \end{tabular}
 \end{table}
