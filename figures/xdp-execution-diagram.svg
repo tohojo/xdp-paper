@@ -525,11 +525,11 @@
      borderopacity="1.0"
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
-     inkscape:zoom="0.49497475"
-     inkscape:cx="827.51401"
-     inkscape:cy="398.07168"
+     inkscape:zoom="1.979899"
+     inkscape:cx="1813.4134"
+     inkscape:cy="61.428738"
      inkscape:document-units="mm"
-     inkscape:current-layer="layer1"
+     inkscape:current-layer="g16419"
      showgrid="false"
      inkscape:window-width="2560"
      inkscape:window-height="1416"
@@ -554,7 +554,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
+        <dc:title />
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -573,7 +573,7 @@
          id="tspan5482"
          x="12.93004"
          y="20.637363"
-         style="stroke-width:0.26458332px"></tspan></text>
+         style="stroke-width:0.26458332px" /></text>
     <rect
        style="opacity:1;fill:#f0f0f0;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:0.1322917;stroke-linecap:square;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
        id="rect4518-0-0-9"
@@ -877,7 +877,7 @@
         </g>
       </g>
       <g
-         transform="translate(325.98815,-83.835271)"
+         transform="translate(376.35123,-83.835271)"
          id="g7008">
         <rect
            style="opacity:1;fill:#b59dd6;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:0.13229169;stroke-linecap:square;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
@@ -929,7 +929,7 @@
              style="stroke-width:0.26458332px">CPU</tspan></text>
       </g>
       <g
-         transform="translate(327.72129,-83.023671)"
+         transform="translate(294.14589,-83.023671)"
          id="g7084">
         <rect
            style="opacity:1;fill:#96def1;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:0.13229169;stroke-linecap:square;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
@@ -955,7 +955,7 @@
              style="stroke-width:0.26458332px">Interface</tspan></text>
       </g>
       <g
-         transform="translate(322.77535,-82.834676)"
+         transform="translate(305.98767,-82.834676)"
          id="g7076">
         <rect
            style="opacity:1;fill:#d6cd9d;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:0.13229169;stroke-linecap:square;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
