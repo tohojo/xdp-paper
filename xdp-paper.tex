@@ -125,12 +125,12 @@ outcome.
 \centering
 \includegraphics[width=\linewidth]{figures/xdp-execution-diagram.pdf}
 \caption{\label{fig:xdp-execution} Execution diagram of a typical XDP program.
-  It starts by parsing packet headers to extract the information it will react
-  on, and combines this with information from one or more of the metadata
-  facilities to determine a final verdict for the packet. All processing steps
-  are optional except for the final verdict, which is given in the form of a
-  program return code. In a real program, packet parsing and metadata
-  manipulation will often be interleaved with each other.}
+  When a packet arrives, the program starts by parsing packet headers to extract
+  the information it will react on. Based on this, combined with information
+  from one or more of the metadata facilities, a packet can be rewritten and a
+  final verdict for the packet determined. The program can alternate between
+  packet parsing, metadata lookup and rewriting, all of which are optional. The
+  final verdict is given in the form of a program return code.}
 \end{figure*}
 
 This section describes the various parts of the XDP system and how they fit
