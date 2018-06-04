@@ -36,6 +36,7 @@
 
 
 \begin{abstract}
+  % FIXME: Abstract should be <= 200 words
   Programmable packet processing in software has become increasingly popular, as
   increases in computational power has made it possible to run custom
   programmable pipelines at high speeds. This is generally implemented by
@@ -66,40 +67,59 @@
 \keywords{XDP, Programmable Networking}
 \maketitle
 
-\section{Introduction}
+\section{Introduction}%
 \label{sec:introduction}
 High-performance packet processing in software has very tight bounds on the time
-spent processing each packet ($\simeq67$~ns per packet at 10 Gbps). Network
-stacks in general purpose operating systems typically perform way too many
+spent processing each packet ($\simeq17$~ns per packet at 40 Gbps). Network
+stacks in general purpose operating systems typically perform too many
 operations per packet to be able to keep up with this packet rate, which has led
-to the introduction of special-purpose networking toolkits for software packet
-processing, such as DPDK and Netmap. However, these toolkits have the drawback
-that they are difficult to integrate with the existing networking stack, leading
-to the need to re-implement large parts of the stack.
+to increased popularity of special-purpose networking toolkits for software
+packet processing, which either bypass the operating system completely, or
+modify it to better accommodate high-speed packet processing. Both of these
+approaches improve performance, but have the drawback that they are more
+difficult to integrate with the existing networking stack, sometimes even
+leading to the need to re-implement large parts of the stack. In the worst case,
+this leads to the need to operate two separate stacks; one to perform high-speed
+packet processing and one to run normal applications.
 
-We present an alternative to previous approaches: A novel way to integrate
-programmable packet processing directly into the networking stack in a
-cooperative way, making it possible to perform high-speed packet processing that
-integrates seamlessly with existing applications. This framework, called the
+In this work we present an alternative approach: A novel way to integrate
+programmable packet processing directly into the operating system networking
+stack in a cooperative way, making it possible to perform high-speed packet
+processing that integrates seamlessly with existing systems, while selective
+leveraging functionality in the operating system. This framework, called the
 eXpress Data Path (XDP), works by defining a limited execution environment based
-on an extended version of the Berkeley Packet Filter bytecode language, which
-allows verified programs to run directly in kernel context before the normal
-packet processing in the networking stack.
+on an extended version of the Berkeley Packet Filter virtual machine, which
+allows verified programs to run directly in the device driver context, before
+the kernel performs any other packet processing tasks.
 
-This makes it possible to implement applications that previously required their
-own appliance, such as DDOS protection and load balancing, directly on
-application servers. It also allows a hybrid approach, where certain fast path
-processing is offloaded to XDP while retaining normal network stack processing
-for other packets. This allows for exceptionally high throughput and low latency
-processing without sacrificing flexibility.
+XDP achieves extremely high packet processing performance on a single core,
+making it possible to implement applications that previously required their own
+appliance, such as DDOS protection and load balancing, directly on application
+servers. It also allows a hybrid approach, where certain fast path processing is
+offloaded to XDP while retaining normal network stack processing for other
+packets. This allows for high throughput and low latency processing without
+sacrificing flexibility.
 
-We present the design of XDP and its capabilities and integration with the Linux
-kernel. We then present a performance evaluation that consists of
-micro-benchmarks showing packet processing scaling beyond 20 Mpps on a single
-core as well as two real-world use cases: inline DDOS protection and layer-3
-packet forwarding.
+While XDP has been gradually integrated into the Linux kernel over the last
+several releases, no complete description of the system as a whole exists. In
+this work we remedy this, and present the design of XDP, its capabilities and
+integration with the rest of the Linux kernel. Our performance analysis shows
+raw packet processing performance on a single core exceeding 20 million packets
+per second, and scaling linearly with the number of cores. We supplement this
+with three examples of real-world use cases that can be straight-forwardly
+implemented in XDP:\,inline DDOS protection on a hypervisor host or application
+server; load balancing by rewriting packets and resubmitting them to the
+network; and a layer-3 software router implementation.
 
-\section{Related work}
+The rest of this paper is structured as follows: Section~\ref{sec:related-work}
+first outlines related work. Section~\ref{sec:design} then presents the design
+of XDP and Section~\ref{sec:perf-eval} presents the raw packet processing
+performance analysis. Section~\ref{sec:usecases} presents the real-world use
+cases and their performance. Finally, Section~\ref{sec:limitations} presents
+current limitations of XDP and future work, and Section~\ref{sec:conclusion}
+concludes.
+
+\section{Related work}%
 \label{sec:related-work}
 \section{The design of XDP}
 \label{sec:design}
@@ -452,7 +472,7 @@ Name & Pointing to & Arithm\\
 \subsection{Comparison with DPDK/netmap}
 \label{sec:org7f03063}
 \section{Real-world use cases}
-\label{sec:org60dd487}
+\label{sec:usecases}
 \subsection{DDOS mitigation}
 \label{sec:org5f83e1d}
 \subsection{Packet forwarding layer 2/3}
@@ -467,6 +487,11 @@ Name & Pointing to & Arithm\\
 \item \texttt{XDP\_TX}
 \item \texttt{XDP\_REDIRECT} to CPU/VM
 \end{itemize}
+
+\section{Limitations and future work}
+\label{sec:limitations}
+
+
 \section{Conclusions}
 \label{sec:conclusion}
 
