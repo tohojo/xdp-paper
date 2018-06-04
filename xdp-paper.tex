@@ -1,54 +1,39 @@
 % -*- TeX-engine: default; -*-
-\documentclass[10pt]{sig-alternate-05-2015}
-\usepackage{cite}
-\usepackage{array}
+\documentclass[10pt,sigconf]{acmart}
 \usepackage[font=footnotesize]{subcaption}
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
-\usepackage{fixltx2e}
 \usepackage{url}
-\usepackage{hyperref}
-\hypersetup{colorlinks=true, linkcolor=black, citecolor=black, filecolor=black, urlcolor=black, bookmarksdepth=subsection}
 \usepackage{booktabs}
 \usepackage{xcolor}
-\usepackage{pslatex}
-\setlength{\pdfpagewidth}{8.5in}
-\setlength{\pdfpageheight}{11in}
-\def\addauthorsection{}
 \usepackage{enumitem}
-\usepackage{acmcopyright}
 \usepackage{algorithm}
 \usepackage[noend]{algpseudocode}
-\numberofauthors{2}
-\author{
-\alignauthor
-Toke Høiland-Jørgensen\\
-       \affaddr{Dept of Computer Science}\\
-       \affaddr{Karlstad University, Sweden}\\
-       \email{toke.hoiland-jorgensen@kau.se}
-\alignauthor
-Jesper Dangaard Brouer\\
-       \affaddr{Red Hat}\\
-       \email{brouer@redhat.com}}
+
+\setcopyright{rightsretained}
+\acmYear{2018}
+\copyrightyear{2018}
+\acmConference[CoNEXT'18]{ACM CoNEXT 2018}{December 2018}{Heraklion/Crete, Greece}
+
+\begin{document}
+\title{The eXpress Data Path: Programmable Packet Processing for the Linux Kernel}
+\author{Toke Høiland-Jørgensen}
+\affiliation{%
+  \institution{Karlstad University}
+  \country{Sweden}}
+\email{toke.hoiland-jorgensen@kau.se}
+
+\author{Jesper Dangaard Brouer}
+\affiliation{%
+  \institution{Red Hat}
+  \country{Denmark}}
+\email{brouer@redhat.com}
+
+% \renewcommand{\shortauthors}{T. Høiland-Jørgensen et al.}
+\renewcommand{\shorttitle}{The eXpress Data Path}
 \captionsetup{font+=small}
 
-\date{\today}
-\title{The eXpress Data Path: Programmable Packet Processing for the Linux Kernel}
-\hypersetup{
- pdfauthor={Toke Høiland-Jørgensen and Jesper Dangaard Brouer},
- pdftitle={The eXpress Data Path: Programmable Packet Processing for the Linux Kernel},
- pdfkeywords={},
- pdfsubject={},
- pdfcreator={Emacs 26.1 (Org mode 9.1.13)},
- pdflang={English}}
-\begin{document}
-\CopyrightYear{2018}
-\setcopyright{rightsretained}
-%\conferenceinfo{CoNEXT '16}{December 12-15, 2016, Irvine, CA, USA}
-%\isbn{978-1-4503-4292-6/16/12}
-%\doi{http://dx.doi.org/10.1145/2999572.2999603}
 
-\maketitle
 
 \begin{abstract}
   Programmable packet processing in software has become increasingly popular, as
@@ -75,6 +60,11 @@ Jesper Dangaard Brouer\\
   applications with performance measure in tens of millions of packets per
   second.
 \end{abstract}
+
+% TODO: Add ccsxml tags and update keywords
+
+\keywords{XDP, Programmable Networking}
+\maketitle
 
 \section{Introduction}
 \label{sec:introduction}
@@ -484,7 +474,7 @@ Name & Pointing to & Arithm\\
 
 
 
-\bibliographystyle{abbrv}
+\bibliographystyle{ACM-Reference-Format}
 \bibliography{xdp}
 
 \end{document}
