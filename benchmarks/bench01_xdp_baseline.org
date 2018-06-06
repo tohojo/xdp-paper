@@ -1,0 +1,68 @@
+* XDP benchmark baseline
+  :PROPERTIES:
+  :CUSTOM_ID: xdp-benchmark-baseline
+  :END:
+
+Record some baseline benchmarks for XDP.
+
+And describe the hardware Toke and Jesper have.
+
+* What kind of benchmarks
+  :PROPERTIES:
+  :CUSTOM_ID: what-kind-of-benchmarks
+  :END:
+
+** XDP\_DROP
+   :PROPERTIES:
+   :CUSTOM_ID: xdp_drop
+   :END:
+
+-  Parameters: :: 
+
+   -  Different NICs
+   -  Touching reading data before drop vs not
+   -  Single RX-queue performance
+   -  Multi RX-queue performance scaling
+
+Q: Will a packet size test make sense?
+
+Q: Should we compare against 'iptables -t raw -j DROP' ?
+
+** XDP\_TX
+   :PROPERTIES:
+   :CUSTOM_ID: xdp_tx
+   :END:
+
+TODO: Desc in paper how XDP\_TX actually acheives bulking, by delaying
+the tail/doorbell (until driver exit it's NAPI call).
+
+** XDP\_PASS
+   :PROPERTIES:
+   :CUSTOM_ID: xdp_pass
+   :END:
+
+Idea: We could measure the overhead XDP introduce, by comparing against
+iptables-raw drop?
+
+** XDP\_REDIRECT
+   :PROPERTIES:
+   :CUSTOM_ID: xdp_redirect
+   :END:
+
+The redirect needs a separate benchmark document.
+
+* Hardware: Jesper
+  :PROPERTIES:
+  :CUSTOM_ID: hardware-jesper
+  :END:
+
+-  DUT (Device Under Test): :: 
+
+   -  CPU:
+
+Jesper have more types of NICs.
+
+* Benchmarks: Jesper
+  :PROPERTIES:
+  :CUSTOM_ID: benchmarks-jesper
+  :END:

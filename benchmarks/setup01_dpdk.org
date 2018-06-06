@@ -1,0 +1,100 @@
+* Notes for DPDK setup
+  :PROPERTIES:
+  :CUSTOM_ID: notes-for-dpdk-setup
+  :END:
+
+DPDK is needed for both comparison testing against XDP and for having a
+faster packet generator.
+
+Tariq reports that using DPDK based T-rex, he can send with 125Mpps
+(multi-TXq + CPU cores).
+
+* Fedora packages
+  :PROPERTIES:
+  :CUSTOM_ID: fedora-packages
+  :END:
+
+Fedora comes with DPDK packaged:
+
+#+BEGIN_EXAMPLE
+    dnf install dpdk dpdk-tools
+    dnf install dpdk-devel dpdk-doc
+    dnf install python-pyelftools
+#+END_EXAMPLE
+
+First run had issues with dependencies:
+
+#+BEGIN_EXAMPLE
+    $ sudo dpdk-pmdinfo
+    Traceback (most recent call last):
+     File "/bin/dpdk-pmdinfo", line 14, in <module>
+       from elftools.common.exceptions import ELFError
+    ImportError: No module named elftools.common.exceptions
+#+END_EXAMPLE
+
+Missing deps on python-pyelftools :
+
+#+BEGIN_EXAMPLE
+    sudo dnf install python-pyelftools
+#+END_EXAMPLE
+
+* Setup DPDK based trex
+  :PROPERTIES:
+  :CUSTOM_ID: setup-dpdk-based-trex
+  :END:
+
+It's possible to download binary version of trex, and install that from
+a tar.gz file, see instructions here:
+
+#+BEGIN_QUOTE
+  [[https://trex-tgn.cisco.com/trex/doc/trex_manual.html#_download_and_installation]]
+#+END_QUOTE
+
+Generate config:
+
+#+BEGIN_EXAMPLE
+    sudo ./dpdk_setup_ports.py -c 09:00.0 09:00.1 -o trex_cfg02.yaml
+    sudo ./dpdk_setup_ports.py -i
+#+END_EXAMPLE
+
+* Mellanox requires out-of-tree drivers
+  :PROPERTIES:
+  :CUSTOM_ID: mellanox-requires-out-of-tree-drivers
+  :END:
+
+[[http://www.mellanox.com/page/products_dyn?product_family=26&mtag=linux_sw_drivers]]
+
+-  Download for Fedora
+   27: :: [[http://www.mellanox.com/page/mlnx_ofed_eula?mtag=linux_sw_drivers&mrequest=downloads&mtype=ofed&mver=MLNX_OFED-4.3-1.0.1.0&mname=MLNX_OFED_LINUX-4.3-1.0.1.0-fc27-x86_64.tgz]]
+
+* What does Red Hat perf team use
+  :PROPERTIES:
+  :CUSTOM_ID: what-does-red-hat-perf-team-use
+  :END:
+
+From: Andrew Theurer
+<[[mailto:atheurer@redhat.com][atheurer@redhat.com]]> :
+
+#+BEGIN_EXAMPLE
+    We are using TRex, with our own scripts for the binary-search.  All of our
+    scripts are here: https://github.com/atheurer/trafficgen
+
+    First, install trex: install-trex.sh
+    Next, configure/launch trex: launch-trex.sh
+    Finally, run a test: binary-search.py
+
+    We recommend using Intel XL710 or XVV710 adapters to drive traffic.  Intel
+    Niantic will work, but it does not filter incoming packets reliably, so we
+    can't get per-stream stats.
+#+END_EXAMPLE
+
+** setup issues
+   :PROPERTIES:
+   :CUSTOM_ID: setup-issues
+   :END:
+
+Manually created file for trex and could start it with:
+
+#+BEGIN_QUOTE
+  sudo ./launch-trex.sh --yaml-file=/etc/trex\_cfg02-ixgbe.yaml
+#+END_QUOTE
