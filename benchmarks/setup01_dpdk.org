@@ -193,6 +193,8 @@ From: Andrew Theurer
     can't get per-stream stats.
 #+END_EXAMPLE
 
+It is nice they have a script for installing trex in /opt/.
+
 ** setup issues
    :PROPERTIES:
    :CUSTOM_ID: setup-issues
