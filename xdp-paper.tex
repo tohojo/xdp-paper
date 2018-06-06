@@ -60,6 +60,7 @@
   flexibility of this model and how it can be used to implement a wide range of
   applications with performance measure in tens of millions of packets per
   second.
+  % TODO: Be specific about use cases
 \end{abstract}
 
 % TODO: Add ccsxml tags and update keywords
@@ -200,6 +201,8 @@ without copying.
   kernel network receive path.}
 \end{figure}
 
+% FIXME: We switch between figures 1 and 2 here; move fig 2 to the beginning and
+% refer to both at once
 During its execution, and XDP program also has access to kernel facilities that
 provide helper functions and additional metadata. Figure~\ref{fig:xdp-kernel}
 shows a diagram of how XDP integrates into the full system. The XDP hook in the
