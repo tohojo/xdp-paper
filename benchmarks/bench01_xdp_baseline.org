@@ -66,3 +66,385 @@ Jesper have more types of NICs.
   :PROPERTIES:
   :CUSTOM_ID: benchmarks-jesper
   :END:
+
+** t-res single stream
+
+(Kernel: 4.17.0-rc6-bpf-next-rm-ndo-flush+ #24 SMP PREEMPT)
+
+trex-console command:
+
+: start -f stl/udp_for_benchmarks.py -t packet_len=64 --port 0 -m 100%
+
+#+BEGIN_EXAMPLE
+-Per port stats table 
+      ports |               0 |               1 
+ -----------------------------------------------------------------------------------------
+   opackets |    111670205505 |               0 
+     obytes |   7146893156880 |               0 
+   ipackets |             184 |             116 
+     ibytes |           38924 |            7564 
+    ierrors |               0 |               0 
+    oerrors |               0 |               0 
+      Tx Bw |      50.64 Gbps |       0.00  bps 
+
+-Global stats enabled 
+ Cpu Utilization : 99.4  %  17.0 Gb/core 
+ Platform_factor : 1.0  
+ Total-Tx        :      50.64 Gbps  
+ Total-Rx        :       0.00  bps  
+ Total-PPS       :      98.92 Mpps  
+ Total-CPS       :       0.00  cps  
+
+ Expected-PPS    :       0.00  pps  
+ Expected-CPS    :       0.00  cps  
+ Expected-BPS    :       0.00  bps  
+
+ Active-flows    :        0  Clients :        0   Socket-util : 0.0000 %    
+ Open-flows      :        0  Servers :        0   Socket :        0 Socket/Clients :  -nan 
+ Total_queue_full : 658688774         
+ drop-rate       :      50.64 Gbps   
+ current time    : 1922.0 sec  
+ test duration   : 0.0 sec  
+#+END_EXAMPLE
+
+Max XDP_DROP dropping speed single RX queue.
+
+#+BEGIN_EXAMPLE
+[jbrouer@broadwell kernel-bpf-samples]
+$ sudo ./xdp_rxq_info --dev mlx5p1 --action XDP_DROP --sec 3
+
+Running XDP on dev:mlx5p1 (ifindex:8) action:XDP_DROP
+XDP stats       CPU     pps         issue-pps  
+XDP-RX CPU      3       25,928,270  0          
+XDP-RX CPU      total   25,928,270 
+
+RXQ stats       RXQ:CPU pps         issue-pps  
+rx_queue_index    3:3   25,928,274  0          
+rx_queue_index    3:sum 25,928,274 
+#+END_EXAMPLE
+
+
+** t-rex testing many streams "clients"
+
+(Kernel: 4.17.0-rc6-bpf-next-rm-ndo-flush+ #24 SMP PREEMPT)
+
+trex-console command:
+
+: start -f stl/udp_1pkt_range_clients.py -t packet_len=64 --port 0 -m 100%
+
+Trex performance 88.20 Mpps
+
+#+BEGIN_EXAMPLE
+-Per port stats table 
+      ports |               0 |               1 
+ -----------------------------------------------------------------------------------------
+   opackets |    130357779874 |               0 
+     obytes |   8342897911936 |               0 
+   ipackets |             234 |             143 
+     ibytes |           49960 |            9292 
+    ierrors |               0 |               0 
+    oerrors |               0 |               0 
+      Tx Bw |      45.16 Gbps |       0.00  bps 
+
+-Global stats enabled 
+ Cpu Utilization : 100.0  %  15.1 Gb/core 
+ Platform_factor : 1.0  
+ Total-Tx        :      45.16 Gbps  
+ Total-Rx        :       1.35 Kbps  
+ Total-PPS       :      88.20 Mpps  
+ Total-CPS       :       0.00  cps  
+
+ Expected-PPS    :       0.00  pps  
+ Expected-CPS    :       0.00  cps  
+ Expected-BPS    :       0.00  bps  
+
+ Active-flows    :        0  Clients :        0   Socket-util : 0.0000 %    
+ Open-flows      :        0  Servers :        0   Socket :        0 Socket/Clients :  -nan 
+ Total_queue_full : 1091860676         
+ drop-rate       :      45.16 Gbps   
+ current time    : 2248.9 sec  
+ test duration   : 0.0 sec  
+#+END_EXAMPLE
+
+XDP_DROP results: total 75,297,461 pps, and approx 12Mpps per RX queue.
+
+#+BEGIN_EXAMPLE
+[jbrouer@broadwell kernel-bpf-samples]$ sudo ./xdp_rxq_info --dev mlx5p1 --action XDP_DROP --sec 3
+
+Running XDP on dev:mlx5p1 (ifindex:8) action:XDP_DROP
+XDP stats       CPU     pps         issue-pps  
+XDP-RX CPU      0       12,617,796  0          
+XDP-RX CPU      1       13,106,530  0          
+XDP-RX CPU      2       12,499,630  0          
+XDP-RX CPU      3       12,276,195  0          
+XDP-RX CPU      4       12,528,915  0          
+XDP-RX CPU      5       12,268,394  0          
+XDP-RX CPU      total   75,297,461 
+
+RXQ stats       RXQ:CPU pps         issue-pps  
+rx_queue_index    0:0   12,617,796  0          
+rx_queue_index    0:sum 12,617,796 
+rx_queue_index    1:1   13,106,511  0          
+rx_queue_index    1:sum 13,106,511 
+rx_queue_index    2:2   12,499,589  0          
+rx_queue_index    2:sum 12,499,589 
+rx_queue_index    3:3   12,276,230  0          
+rx_queue_index    3:sum 12,276,230 
+rx_queue_index    4:4   12,528,917  0          
+rx_queue_index    4:sum 12,528,917 
+rx_queue_index    5:5   12,268,394  0          
+rx_queue_index    5:sum 12,268,394 
+#+END_EXAMPLE
+
+Issue is that the CPU have approx 40% idle cycles.
+
+#+BEGIN_EXAMPLE
+Show adapter(s) (ixgbe1 ixgbe2 mlx5p1 i40e1 i40e2) statistics (ONLY that changed!)
+Ethtool(mlx5p1  ) stat:            0 (              0) <= outbound_pci_stalled_wr /sec
+Ethtool(mlx5p1  ) stat:     12413351 (     12,413,351) <= rx0_cache_reuse /sec
+Ethtool(mlx5p1  ) stat:     12413330 (     12,413,330) <= rx0_xdp_drop /sec
+Ethtool(mlx5p1  ) stat:     12936295 (     12,936,295) <= rx1_cache_reuse /sec
+Ethtool(mlx5p1  ) stat:     12936306 (     12,936,306) <= rx1_xdp_drop /sec
+Ethtool(mlx5p1  ) stat:     12331680 (     12,331,680) <= rx2_cache_reuse /sec
+Ethtool(mlx5p1  ) stat:     12331690 (     12,331,690) <= rx2_xdp_drop /sec
+Ethtool(mlx5p1  ) stat:     12089538 (     12,089,538) <= rx3_cache_reuse /sec
+Ethtool(mlx5p1  ) stat:     12089538 (     12,089,538) <= rx3_xdp_drop /sec
+Ethtool(mlx5p1  ) stat:     12359246 (     12,359,246) <= rx4_cache_reuse /sec
+Ethtool(mlx5p1  ) stat:     12359234 (     12,359,234) <= rx4_xdp_drop /sec
+Ethtool(mlx5p1  ) stat:     12065542 (     12,065,542) <= rx5_cache_reuse /sec
+Ethtool(mlx5p1  ) stat:     12065542 (     12,065,542) <= rx5_xdp_drop /sec
+Ethtool(mlx5p1  ) stat:     88048303 (     88,048,303) <= rx_64_bytes_phy /sec
+Ethtool(mlx5p1  ) stat:   5635163922 (  5,635,163,922) <= rx_bytes_phy /sec
+Ethtool(mlx5p1  ) stat:     74194562 (     74,194,562) <= rx_cache_reuse /sec
+Ethtool(mlx5p1  ) stat:     13760980 (     13,760,980) <= rx_discards_phy /sec
+Ethtool(mlx5p1  ) stat:        93624 (         93,624) <= rx_out_of_buffer /sec
+Ethtool(mlx5p1  ) stat:     88049446 (     88,049,446) <= rx_packets_phy /sec
+Ethtool(mlx5p1  ) stat:   5635015858 (  5,635,015,858) <= rx_prio0_bytes /sec
+Ethtool(mlx5p1  ) stat:     74287687 (     74,287,687) <= rx_prio0_packets /sec
+Ethtool(mlx5p1  ) stat:   4457316248 (  4,457,316,248) <= rx_vport_unicast_bytes /sec
+Ethtool(mlx5p1  ) stat:     74288600 (     74,288,600) <= rx_vport_unicast_packets /sec
+Ethtool(mlx5p1  ) stat:     74194573 (     74,194,573) <= rx_xdp_drop /sec
+
+10:26:26 PM  CPU    %usr   %nice    %sys %iowait    %irq   %soft    %idle
+10:26:28 PM  all    0.00    0.00    0.08    0.00    1.26   59.61    39.04
+10:26:28 PM    0    0.00    0.00    0.00    0.00    1.52   59.60    38.89
+10:26:28 PM    1    0.00    0.00    0.00    0.00    1.50   61.50    37.00
+10:26:28 PM    2    0.00    0.00    0.00    0.00    1.02   59.90    39.09
+10:26:28 PM    3    0.00    0.00    0.00    0.00    1.51   58.29    40.20
+10:26:28 PM    4    0.00    0.00    0.00    0.00    1.02   59.90    39.09
+10:26:28 PM    5    0.00    0.00    0.00    0.00    1.02   59.18    39.80
+
+10:26:26 PM  CPU    intr/s
+10:26:28 PM  all 224677.50
+10:26:28 PM    0 246317.00
+10:26:28 PM    1 254161.00
+10:26:28 PM    2 244789.50
+10:26:28 PM    3 241976.00
+10:26:28 PM    4 244768.50
+10:26:28 PM    5 240606.00
+#+END_EXAMPLE
+
+Looking at the NAPI bulking, it is clear that sometimes the NAPI
+completes with less that 64 packets.
+
+#+BEGIN_EXAMPLE
+[jbrouer@broadwell prototype-kernel-bpf]$ sudo ./napi_monitor
+
+NAPI RX bulking (measurement period: 2.000216)
+bulk[00]	614	(           0 pps)
+bulk[01]	775	(         387 pps)
+bulk[02]	1361	(       1,361 pps)
+bulk[03]	1353	(       2,029 pps)
+bulk[04]	1794	(       3,588 pps)
+bulk[05]	1965	(       4,912 pps)
+bulk[06]	3681	(      11,042 pps)
+bulk[07]	2607	(       9,124 pps)
+bulk[08]	5051	(      20,202 pps)
+bulk[09]	3222	(      14,497 pps)
+bulk[10]	3556	(      17,778 pps)
+bulk[11]	3586	(      19,721 pps)
+bulk[12]	4118	(      24,705 pps)
+bulk[13]	4024	(      26,153 pps)
+bulk[14]	8025	(      56,169 pps)
+bulk[15]	4744	(      35,576 pps)
+bulk[16]	6937	(      55,490 pps)
+bulk[17]	5301	(      45,054 pps)
+bulk[18]	5841	(      52,563 pps)
+bulk[19]	5457	(      51,836 pps)
+bulk[20]	9812	(      98,109 pps)
+bulk[21]	5502	(      57,765 pps)
+bulk[22]	11503	(     126,519 pps)
+bulk[23]	5710	(      65,658 pps)
+bulk[24]	6488	(      77,848 pps)
+bulk[25]	5735	(      71,680 pps)
+bulk[26]	6745	(      87,676 pps)
+bulk[27]	5805	(      78,359 pps)
+bulk[28]	13623	(     190,701 pps)
+bulk[29]	6440	(      93,370 pps)
+bulk[30]	11199	(     167,967 pps)
+bulk[31]	6804	(     105,451 pps)
+bulk[32]	7566	(     121,043 pps)
+bulk[33]	7002	(     115,521 pps)
+bulk[34]	11034	(     187,558 pps)
+bulk[35]	7053	(     123,414 pps)
+bulk[36]	13220	(     237,934 pps)
+bulk[37]	7036	(     130,152 pps)
+bulk[38]	7932	(     150,692 pps)
+bulk[39]	7220	(     140,775 pps)
+bulk[40]	8610	(     172,181 pps)
+bulk[41]	7374	(     151,151 pps)
+bulk[42]	17750	(     372,710 pps)
+bulk[43]	7703	(     165,597 pps)
+bulk[44]	15153	(     333,330 pps)
+bulk[45]	7931	(     178,428 pps)
+bulk[46]	8739	(     200,975 pps)
+bulk[47]	7923	(     186,170 pps)
+bulk[48]	10461	(     251,037 pps)
+bulk[49]	7989	(     195,709 pps)
+bulk[50]	13136	(     328,365 pps)
+bulk[51]	7983	(     203,545 pps)
+bulk[52]	8710	(     226,436 pps)
+bulk[53]	7980	(     211,447 pps)
+bulk[54]	9153	(     247,104 pps)
+bulk[55]	7931	(     218,079 pps)
+bulk[56]	18446	(     516,432 pps)
+bulk[57]	7919	(     225,667 pps)
+bulk[58]	16643	(     482,595 pps)
+bulk[59]	7759	(     228,866 pps)
+bulk[60]	8778	(     263,312 pps)
+bulk[61]	7735	(     235,892 pps)
+bulk[62]	9413	(     291,772 pps)
+bulk[63]	7707	(     242,744 pps)
+bulk[64]	2077468	(  66,471,811 pps)
+NAPI-from-idle,	2529350	average bulk	59.00	(  74,768,110 pps) bulk0=600
+NAPI-ksoftirqd,	24485	average bulk	58.00	(     713,623 pps) bulk0=14
+
+System global SOFTIRQ stats:
+ SOFTIRQ_NET_RX/sec	enter:1276773/s	exit:1276773/s	raise:1276770/s
+ SOFTIRQ_NET_TX/sec	enter:0/s	exit:0/s	raise:0/s
+ SOFTIRQ_TIMER/sec	enter:3856/s	exit:3856/s	raise:3795/s
+#+END_EXAMPLE
+
+I captures an ethtool stats snap-shot with an unusual but small
+counter called "outbound_pci_stalled_wr".  The PHY counters show what
+the generator is MAX outputting.
+
+#+BEGIN_EXAMPLE
+Show adapter(s) (mlx5p1) statistics (ONLY that changed!)
+Ethtool(mlx5p1  ) stat:            4 (              4) <= outbound_pci_stalled_wr /sec
+Ethtool(mlx5p1  ) stat:     12602448 (     12,602,448) <= rx0_cache_reuse /sec
+Ethtool(mlx5p1  ) stat:     12602431 (     12,602,431) <= rx0_xdp_drop /sec
+Ethtool(mlx5p1  ) stat:     13091898 (     13,091,898) <= rx1_cache_reuse /sec
+Ethtool(mlx5p1  ) stat:     13091898 (     13,091,898) <= rx1_xdp_drop /sec
+Ethtool(mlx5p1  ) stat:     12485274 (     12,485,274) <= rx2_cache_reuse /sec
+Ethtool(mlx5p1  ) stat:     12485388 (     12,485,388) <= rx2_xdp_drop /sec
+Ethtool(mlx5p1  ) stat:     12267209 (     12,267,209) <= rx3_cache_reuse /sec
+Ethtool(mlx5p1  ) stat:     12267201 (     12,267,201) <= rx3_xdp_drop /sec
+Ethtool(mlx5p1  ) stat:     12506807 (     12,506,807) <= rx4_cache_reuse /sec
+Ethtool(mlx5p1  ) stat:     12507044 (     12,507,044) <= rx4_xdp_drop /sec
+Ethtool(mlx5p1  ) stat:     12252285 (     12,252,285) <= rx5_cache_reuse /sec
+Ethtool(mlx5p1  ) stat:     12252221 (     12,252,221) <= rx5_xdp_drop /sec
+Ethtool(mlx5p1  ) stat:     88295187 (     88,295,187) <= rx_64_bytes_phy /sec
+Ethtool(mlx5p1  ) stat:   5650856237 (  5,650,856,237) <= rx_bytes_phy /sec
+Ethtool(mlx5p1  ) stat:     75214073 (     75,214,073) <= rx_cache_reuse /sec
+Ethtool(mlx5p1  ) stat:     13066088 (     13,066,088) <= rx_discards_phy /sec
+Ethtool(mlx5p1  ) stat:        10106 (         10,106) <= rx_out_of_buffer /sec
+Ethtool(mlx5p1  ) stat:     88294650 (     88,294,650) <= rx_packets_phy /sec
+Ethtool(mlx5p1  ) stat:   5650511306 (  5,650,511,306) <= rx_prio0_bytes /sec
+Ethtool(mlx5p1  ) stat:     75224002 (     75,224,002) <= rx_prio0_packets /sec
+Ethtool(mlx5p1  ) stat:   4513478678 (  4,513,478,678) <= rx_vport_unicast_bytes /sec
+Ethtool(mlx5p1  ) stat:     75224475 (     75,224,475) <= rx_vport_unicast_packets /sec
+Ethtool(mlx5p1  ) stat:     75214086 (     75,214,086) <= rx_xdp_drop /sec
+#+END_EXAMPLE
+
+
+** REDIRECT t-rex many streams "clients"
+
+(Kernel: 4.17.0-rc6-bpf-next-rm-ndo-flush+ #24 SMP PREEMPT)
+
+Redirect: ingress mlx5p1 redirect egress i40e1:  30,493,921 pps
+
+#+BEGIN_EXAMPLE
+$ sudo ./xdp_redirect_map $(</sys/class/net/mlx5p1/ifindex) $(</sys/class/net/i40e1//ifindex)
+input: 8 output: 4
+map[0] (vports) = 4, map[1] (map) = 5, map[2] (count) = 0
+ifindex 4:   40192251 pkt/s
+ifindex 4:   30493614 pkt/s
+ifindex 4:   30493921 pkt/s
+ifindex 4:   30490341 pkt/s
+ifindex 4:   30495391 pkt/s
+ifindex 4:   30498160 pkt/s
+#+END_EXAMPLE
+
+#+BEGIN_EXAMPLE
+XDP-event       CPU:to  pps          drop-pps     extra-info
+XDP_REDIRECT    total   0            0            Error
+cpumap-kthread  total   0            0            0          
+devmap-xmit     0       4,927,675    0            16.00      bulk-average 
+devmap-xmit     1       4,986,185    0            16.00      bulk-average 
+devmap-xmit     2       5,044,664    0            16.00      bulk-average 
+devmap-xmit     3       4,994,976    0            16.00      bulk-average 
+devmap-xmit     4       4,983,994    0            16.00      bulk-average 
+devmap-xmit     5       5,014,333    0            16.00      bulk-average 
+devmap-xmit     total   29,951,825   0            16.00      bulk-average 
+#+END_EXAMPLE
+
+Forgot this was with rx_cqe_compress=on
+
+: ethtool --set-priv-flags mlx5p1 rx_cqe_compress on
+
+#+BEGIN_EXAMPLE
+Show adapter(s) (mlx5p1) statistics (ONLY that changed!)
+Ethtool(mlx5p1  ) stat:      5073293 (      5,073,293) <= rx0_cache_empty /sec
+Ethtool(mlx5p1  ) stat:       219224 (        219,224) <= rx0_cqe_compress_blks /sec
+Ethtool(mlx5p1  ) stat:      1329666 (      1,329,666) <= rx0_cqe_compress_pkts /sec
+Ethtool(mlx5p1  ) stat:      5051573 (      5,051,573) <= rx1_cache_empty /sec
+Ethtool(mlx5p1  ) stat:       222439 (        222,439) <= rx1_cqe_compress_blks /sec
+Ethtool(mlx5p1  ) stat:      1380038 (      1,380,038) <= rx1_cqe_compress_pkts /sec
+Ethtool(mlx5p1  ) stat:      5067505 (      5,067,505) <= rx2_cache_empty /sec
+Ethtool(mlx5p1  ) stat:       220519 (        220,519) <= rx2_cqe_compress_blks /sec
+Ethtool(mlx5p1  ) stat:      1315711 (      1,315,711) <= rx2_cqe_compress_pkts /sec
+Ethtool(mlx5p1  ) stat:      5043176 (      5,043,176) <= rx3_cache_empty /sec
+Ethtool(mlx5p1  ) stat:       223895 (        223,895) <= rx3_cqe_compress_blks /sec
+Ethtool(mlx5p1  ) stat:      1349297 (      1,349,297) <= rx3_cqe_compress_pkts /sec
+Ethtool(mlx5p1  ) stat:      5032563 (      5,032,563) <= rx4_cache_empty /sec
+Ethtool(mlx5p1  ) stat:       222138 (        222,138) <= rx4_cqe_compress_blks /sec
+Ethtool(mlx5p1  ) stat:      1301549 (      1,301,549) <= rx4_cqe_compress_pkts /sec
+Ethtool(mlx5p1  ) stat:      5093823 (      5,093,823) <= rx5_cache_empty /sec
+Ethtool(mlx5p1  ) stat:       214919 (        214,919) <= rx5_cqe_compress_blks /sec
+Ethtool(mlx5p1  ) stat:      1273362 (      1,273,362) <= rx5_cqe_compress_pkts /sec
+Ethtool(mlx5p1  ) stat:     88243413 (     88,243,413) <= rx_64_bytes_phy /sec
+Ethtool(mlx5p1  ) stat:   5647560737 (  5,647,560,737) <= rx_bytes_phy /sec
+Ethtool(mlx5p1  ) stat:     30362207 (     30,362,207) <= rx_cache_empty /sec
+Ethtool(mlx5p1  ) stat:      1323158 (      1,323,158) <= rx_cqe_compress_blks /sec
+Ethtool(mlx5p1  ) stat:      7949743 (      7,949,743) <= rx_cqe_compress_pkts /sec
+Ethtool(mlx5p1  ) stat:     14635008 (     14,635,008) <= rx_discards_phy /sec
+Ethtool(mlx5p1  ) stat:     43246222 (     43,246,222) <= rx_out_of_buffer /sec
+Ethtool(mlx5p1  ) stat:     88243138 (     88,243,138) <= rx_packets_phy /sec
+Ethtool(mlx5p1  ) stat:   5647524379 (  5,647,524,379) <= rx_prio0_bytes /sec
+Ethtool(mlx5p1  ) stat:     73608194 (     73,608,194) <= rx_prio0_packets /sec
+Ethtool(mlx5p1  ) stat:   4416504322 (  4,416,504,322) <= rx_vport_unicast_bytes /sec
+Ethtool(mlx5p1  ) stat:     73608402 (     73,608,402) <= rx_vport_unicast_packets /sec
+#+END_EXAMPLE
+
+Disabling rx_cqe_compress didn't change performance, but stats changed:
+
+#+BEGIN_EXAMPLE
+Show adapter(s) (mlx5p1) statistics (ONLY that changed!)
+Ethtool(mlx5p1  ) stat:      5133804 (      5,133,804) <= rx0_cache_empty /sec
+Ethtool(mlx5p1  ) stat:      5119036 (      5,119,036) <= rx1_cache_empty /sec
+Ethtool(mlx5p1  ) stat:      5110855 (      5,110,855) <= rx2_cache_empty /sec
+Ethtool(mlx5p1  ) stat:      5168146 (      5,168,146) <= rx3_cache_empty /sec
+Ethtool(mlx5p1  ) stat:      5111374 (      5,111,374) <= rx4_cache_empty /sec
+Ethtool(mlx5p1  ) stat:      5137363 (      5,137,363) <= rx5_cache_empty /sec
+Ethtool(mlx5p1  ) stat:     88164618 (     88,164,618) <= rx_64_bytes_phy /sec
+Ethtool(mlx5p1  ) stat:   5642515995 (  5,642,515,995) <= rx_bytes_phy /sec
+Ethtool(mlx5p1  ) stat:     30780489 (     30,780,489) <= rx_cache_empty /sec
+Ethtool(mlx5p1  ) stat:     13169863 (     13,169,863) <= rx_discards_phy /sec
+Ethtool(mlx5p1  ) stat:     44213842 (     44,213,842) <= rx_out_of_buffer /sec
+Ethtool(mlx5p1  ) stat:     88164306 (     88,164,306) <= rx_packets_phy /sec
+Ethtool(mlx5p1  ) stat:   5642429004 (  5,642,429,004) <= rx_prio0_bytes /sec
+Ethtool(mlx5p1  ) stat:     74992720 (     74,992,720) <= rx_prio0_packets /sec
+Ethtool(mlx5p1  ) stat:   4499667608 (  4,499,667,608) <= rx_vport_unicast_bytes /sec
+Ethtool(mlx5p1  ) stat:     74994463 (     74,994,463) <= rx_vport_unicast_packets /sec
+#+END_EXAMPLE
