@@ -72,6 +72,106 @@ Installing:
 
 : sudo ./mlnxofedinstall --with-mft --with-mstflint --dpdk --upstream-libs --without-dkms --user-space-only
 
+** Fedora 27 install experience
+
+The recent F27 kernel is too new.
+
+#+BEGIN_EXAMPLE
+$ sudo ./mlnxofedinstall
+Logs dir: /tmp/MLNX_OFED_LINUX.1498.logs
+General log file: /tmp/MLNX_OFED_LINUX.1498.logs/general.log
+The 4.16.13-200.fc27.x86_64 kernel is installed, MLNX_OFED_LINUX does not have drivers available for this kernel.
+You can run mlnx_add_kernel_support.sh in order to to generate an MLNX_OFED_LINUX package with drivers for this kernel.
+Or, you can provide '--add-kernel-support' flag to generate an MLNX_OFED_LINUX package and automatically start the installation.
+#+END_EXAMPLE
+
+Not much success with ./mlnx_add_kernel_support.sh script.  Note that
+create_mlnx_ofed_installers.pl IS located in same directory.
+
+#+BEGIN_EXAMPLE
+$ sudo ./mlnx_add_kernel_support.sh --kernel `uname -r`
+WARNING: create_mlnx_ofed_installers.pl is missing, cannot build a repository.
+ERROR: Path to MLNX_OFED/mlnx-en directory is not defined.
+#+END_EXAMPLE
+
+Install RPM tool dependencies:
+
+#+BEGIN_EXAMPLE
+  sudo dnf install createrepo
+  sudo dnf install python2-devel redhat-rpm-config rpm-build
+#+END_EXAMPLE
+
+Try using mlnxofedinstall --add-kernel-support option:
+
+#+BEGIN_EXAMPLE
+ $ sudo ./mlnxofedinstall --add-kernel-support
+Note: This program will create MLNX_OFED_LINUX TGZ for fc27 under /tmp/MLNX_OFED_LINUX-4.3-1.0.1.0-4.16.13-200.fc27.x86_64 directory.
+See log file /tmp/MLNX_OFED_LINUX-4.3-1.0.1.0-4.16.13-200.fc27.x86_64/mlnx_ofed_iso.5306.log
+
+Checking if all needed packages are installed...
+Building MLNX_OFED_LINUX RPMS . Please wait...
+
+ERROR: Failed executing "MLNX_OFED_SRC-4.3-1.0.1.0/install.pl --tmpdir /tmp/MLNX_OFED_LINUX-4.3-1.0.1.0-4.16.13-200.fc27.x86_64 --kernel-only --kernel 4.16.13-200.fc27.x86_64 --kernel-sources /lib/modules/4.16.13-200.fc27.x86_64/build --builddir /tmp/MLNX_OFED_LINUX-4.3-1.0.1.0-4.16.13-200.fc27.x86_64/mlnx_iso.5306 --disable-kmp --build-only --distro fc27"
+ERROR: See /tmp/MLNX_OFED_LINUX-4.3-1.0.1.0-4.16.13-200.fc27.x86_64/mlnx_ofed_iso.5306.log
+Failed to build MLNX_OFED_LINUX for 4.16.13-200.fc27.x86_64
+#+END_EXAMPLE
+
+Digging throug the RPM build errors, this compile error is the cause:
+
+#+BEGIN_EXAMPLE
+  CC [M]  /tmp/MLNX_OFED_LINUX-4.3-1.0.1.0-4.16.13-200.fc27.x86_64/mlnx_iso.5306/OFED_topdir/BUILD/mlnx-ofa_kernel-4.3/obj/default/drivers/net/ethernet/mellanox/mlx5/core/ipo
+ib/ipoib_vlan.o
+/tmp/MLNX_OFED_LINUX-4.3-1.0.1.0-4.16.13-200.fc27.x86_64/mlnx_iso.5306/OFED_topdir/BUILD/mlnx-ofa_kernel-4.3/obj/default/drivers/net/ethernet/mellanox/mlx5/core/en_tc.c: In f
+unction 'parse_tc_fdb_actions':
+/tmp/MLNX_OFED_LINUX-4.3-1.0.1.0-4.16.13-200.fc27.x86_64/mlnx_iso.5306/OFED_topdir/BUILD/mlnx-ofa_kernel-4.3/obj/default/drivers/net/ethernet/mellanox/mlx5/core/en_tc.c:2173:
+18: error: implicit declaration of function 'tcf_mirred_ifindex'; did you mean 'tcf_mirred_dev'? [-Werror=implicit-function-declaration]
+    int ifindex = tcf_mirred_ifindex(a);
+                  ^~~~~~~~~~~~~~~~~~
+                  tcf_mirred_dev
+#+END_EXAMPLE
+
+Install package 'tk' due to dependency (weird).
+
+Try with Toke's command:
+
+#+BEGIN_EXAMPLE
+$ sudo ./mlnxofedinstall --with-mft --with-mstflint --dpdk --upstream-libs --without-dkms --user-space-only
+Logs dir: /tmp/MLNX_OFED_LINUX.11926.logs/general.log
+General log file: /tmp/MLNX_OFED_LINUX.10238.logs/general.log
+Unsupported package: dkms
+This program will install the MLNX_OFED_LINUX package on your machine.
+Note that all other Mellanox, OEM, OFED, RDMA or Distribution IB packages will be removed.
+Those packages are removed due to conflicts with MLNX_OFED_LINUX, do not reinstall them.
+#+END_EXAMPLE
+
+It auto updates firmware:
+
+#+BEGIN_EXAMPLE
+  Device Type:      ConnectX5
+  Part Number:      MCX556A-EDA_Ax
+  Description:      ConnectX-5 Ex VPI adapter card; EDR IB (100Gb/s) and 100GbE; dual-port QSFP28; PCIe4.0 x16; tall bracket; ROHS R6
+  PSID:             MT_0000000009
+  PCI Device Name:  01:00.0
+  Base MAC:         ec0d9adb11bc
+  Versions:         Current        Available     
+     FW             16.20.1010     16.22.1002    
+     PXE            3.5.0210       3.5.0403      
+     UEFI           N/A            14.15.0019    
+
+ [...]
+  Device Type:      ConnectX3Pro
+  Part Number:      MCX354A-FCC_Ax
+  Description:      ConnectX-3 Pro VPI adapter card; dual-port QSFP; FDR IB (56Gb/s) and 40GigE;PCIe3.0 x8 8GT/s;RoHS R6
+  PSID:             MT_1090111019
+  PCI Device Name:  02:00.0
+  Port1 MAC:        f452147a58f1
+  Port2 GUID:       f4521403007a58f2
+  Versions:         Current        Available     
+     FW             2.36.5000      2.42.5000     
+     PXE            3.4.0718       3.4.0752      
+#+END_EXAMPLE
+
+
 * What does Red Hat perf team use
   :PROPERTIES:
   :CUSTOM_ID: what-does-red-hat-perf-team-use
