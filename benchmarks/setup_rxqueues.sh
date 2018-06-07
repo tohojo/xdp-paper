@@ -1,5 +1,13 @@
-#!/bin/sh
-IFACE=ens3f1
+#!/bin/bash
+DOC="Script to setup ethtool filter steering to RX-queues"
+
+if [ -z "$1" ]; then
+    echo $DOC
+    echo "Usage: $0 DEVICE"
+    exit 1
+fi
+IFACE=$1
+
 START_PORT=12
 NUM_RINGS=$(ethtool -n $IFACE| egrep '[0-9]+ RX rings available' | cut -f 1 -d ' ')
 
