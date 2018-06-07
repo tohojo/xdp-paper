@@ -1,0 +1,26 @@
+#+OPTIONS: ^:nil
+
+* DDOS protection test
+The idea is to use one or more netperf TCP_RR flows as a baseline load, and
+test what happens under DOS.
+
+* Baseline:
+
+- Run TCP_RR with no other load and record how many trans/sec we get. Single
+  instance, up to num_cores.
+
+* DDOS test
+
+- From a separate source machine, run a flood attack (simple UDP is probably
+  easiest), and measure its impact on the legitimate TCP_RR traffic (i.e.,
+  trans/sec should go down, or be interrupted completely).
+
+- Enable an XDP program that drops the attack packets immediately upon
+  reception, and cpumap REDIRECTs everything else to a different CPU. Then
+  measure TCP_RR with this enabled.
+
+In both these cases, we probably want to scale up the attack traffic and show
+performance as a function of attack volume.
+
+We also install flow rules to redirect all traffic to a single RXQ and perform
+the disambiguation there.
