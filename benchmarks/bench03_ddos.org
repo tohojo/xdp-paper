@@ -22,5 +22,413 @@ test what happens under DOS.
 In both these cases, we probably want to scale up the attack traffic and show
 performance as a function of attack volume.
 
-We also install flow rules to redirect all traffic to a single RXQ and perform
-the disambiguation there.
+We also install flow rules to redirect all traffic to a single RXQ and
+perform the disambiguation there.
+
+Two other ways exist to only use a single RXQ or single CPU.
+
+1. Change number of RXQs to 1
+
+: ethtool -L mlx5p1 combined 1
+
+2: Change IRQ smp affinity to all point to a single CPU
+
+
+* DDoS test tool
+
+** sample: xdp_ddos01_blacklist
+
+We can use the xdp_ddos01_blacklist example from prototype-kernel
+github repo.  It also supports matching on the UDP port number.
+
+The BPF code should be large enough, that we can claim that it does a
+lot of different tests, to simulate a reasonable DDoS BPF program.
+
+Notice: xdp_ddos01_blacklist is missing CPU redirect feature.
+
+** sample: xdp_redirect_cpu
+
+The xdp_redirect_cpu tool have --prognum 4, which is a DDoS test.
+See: xdp_prognum4_ddos_filter_pktgen
+
+Setup:
+ - DUT is running netserver (NIC CX5)
+ - Generator T-rex is attacking with UDP packets (NIC CX5)
+ - Another machine is a client running netperf (NIC CX4)
+ - All machines are connected to same 100G switch
+
+Baseline 1-core performance of xdp_redirect_cpu: 20,654,039 pps.
+
+When first parsing the packet, and then figuring out it needs to be
+dropped, in the subprogram 'xdp_prognum4_ddos_filter_pktgen'.
+
+#+BEGIN_EXAMPLE
+Running XDP/eBPF prog_num:4
+XDP-cpumap      CPU:to  pps            drop-pps    extra-info
+XDP-RX          0       20,654,039     20,654,039  0          
+XDP-RX          total   20,654,039     20,654,039 
+cpumap_kthread  total   0              0           0          
+redirect_err    total   0              0          
+xdp_exception   total   0              0          
+#+END_EXAMPLE
+
+Good traffic latency test with netperf TCP_RR.
+
+: netperf -t TCP_RR -H 198.18.1.1 -D1 -l 12000 -T 2,2
+
+Baseline without XDP and without DDoS traffic: 23459.80 TCP-Trans/sec
+
+#+BEGIN_EXAMPLE
+$ netperf -t TCP_RR -H 198.18.1.1 -D1 -l 60 -T 2,2
+MIGRATED TCP REQUEST/RESPONSE TEST from 0.0.0.0 (0.0.0.0) port 0 AF_INET to 198.18.1.1 () port 0 AF_INET : histogram : demo : first burst 0 : cpu bind
+Interim result: 23536.68 Trans/s over 1.001 seconds ending at 1528397951.239
+Interim result: 23242.63 Trans/s over 1.013 seconds ending at 1528397952.251
+[...]
+Local /Remote
+Socket Size   Request  Resp.   Elapsed  Trans.
+Send   Recv   Size     Size    Time     Rate         
+bytes  Bytes  bytes    bytes   secs.    per sec   
+
+16384  87380  1        1       60.00    23459.80   
+16384  87380
+#+END_EXAMPLE
+
+Baseline with XDP but without DDoS traffic: 25408.50 TCP-Trans/sec
+
+The XDP program cmdline, which place TCP traffic on CPU-2, and netperf
+is also requested to run on CPU-2.  This cause several advantages,
+which is the NIC driver code runs on CPU-0, and the SKB is created on
+CPU-2.  Plus the socket kernel side enqueue and userspace dequeue
+happens on the same CPU-2.
+
+#+BEGIN_EXAMPLE
+sudo ./xdp_redirect_cpu --dev mlx5p1 --prog 4  --cpu 2 --cpu 3 --cpu 4
+[...]
+Running XDP/eBPF prog_num:4
+XDP-cpumap      CPU:to  pps            drop-pps    extra-info
+XDP-RX          0       25,476         0           0          
+XDP-RX          total   25,476         0          
+cpumap-enqueue    0:2   25,476         0           1.00       bulk-average
+cpumap-enqueue  sum:2   25,476         0           1.00       bulk-average
+cpumap_kthread  2       25,476         0           25,476     sched
+cpumap_kthread  total   25,476         0           25,476     sched-sum
+redirect_err    total   0              0          
+xdp_exception   total   0              0          
+
+$ netperf -t TCP_RR -H 198.18.1.1 -D1 -l 60 -T 2,2
+MIGRATED TCP REQUEST/RESPONSE TEST from 0.0.0.0 (0.0.0.0) port 0 AF_INET to 198.18.1.1 () port 0 AF_INET : histogram : demo : first burst 0 : cpu bind
+Interim result: 25142.32 Trans/s over 1.000 seconds ending at 1528398689.904
+Interim result: 25525.54 Trans/s over 1.000 seconds ending at 1528398690.904
+Interim result: 25220.16 Trans/s over 1.012 seconds ending at 1528398691.916
+[...]
+Local /Remote
+Socket Size   Request  Resp.   Elapsed  Trans.
+Send   Recv   Size     Size    Time     Rate         
+bytes  Bytes  bytes    bytes   secs.    per sec   
+
+16384  87380  1        1       60.00    25408.50   
+16384  87380 
+#+END_EXAMPLE
+
+What happens when the DDoS attack is use another RXQ (and thus CPU)
+than netperf traffic is using. Below show, that the netperf traffic is
+basically unaffected.
+
+#+BEGIN_EXAMPLE
+Interim result: 25942.94 Trans/s over 1.000 seconds ending at 1528397465.716
+
+Running XDP/eBPF prog_num:4
+XDP-cpumap      CPU:to  pps            drop-pps    extra-info
+XDP-RX          0       20,615,531     20,615,532  0          
+XDP-RX          1       25,984         0           0          
+XDP-RX          total   20,641,516     20,615,532 
+cpumap-enqueue    1:2   25,984         0           1.00       bulk-average
+cpumap-enqueue  sum:2   25,984         0           1.00       bulk-average
+cpumap_kthread  2       25,984         0           25,984     sched
+cpumap_kthread  total   25,984         0           25,984     sched-sum
+redirect_err    total   0              0          
+xdp_exception   total   0              0          
+#+END_EXAMPLE
+
+Single CPU-core test, by changing the avail RXQs to 1, via ethtool cmd:
+
+: ethtool -L mlx5p1 combined 1
+: ethtool --set-channels mlx5p1 combined 1
+
+When god and bad traffic share same RXQ, and RXQ capacity is
+exceeded. Then the DDoS attack is basically successful.
+
+Generator speed 98.80 Mpps, 1 TCP-Trans/sec
+
+#+BEGIN_EXAMPLE
+Running XDP/eBPF prog_num:4
+XDP-cpumap      CPU:to  pps            drop-pps    extra-info
+XDP-RX          0       20,752,606     20,752,604  0          
+XDP-RX          total   20,752,606     20,752,604 
+cpumap-enqueue    0:2   1              0           1.00       bulk-average
+cpumap-enqueue  sum:2   1              0           1.00       bulk-average
+cpumap_kthread  2       1              0           1          sched
+cpumap_kthread  total   1              0           1          sched-sum
+redirect_err    total   0              0          
+xdp_exception   total   0              0          
+#+END_EXAMPLE
+
+Generator speed 25.07 Mpps, 30 TCP-Trans/sec
+
+#+BEGIN_EXAMPLE
+Running XDP/eBPF prog_num:4
+XDP-cpumap      CPU:to  pps            drop-pps    extra-info
+XDP-RX          0       20,833,328     20,833,297  0          
+XDP-RX          total   20,833,328     20,833,297 
+cpumap-enqueue    0:2   30             0           1.00       bulk-average
+cpumap-enqueue  sum:2   30             0           1.00       bulk-average
+cpumap_kthread  2       30             0           30         sched
+cpumap_kthread  total   30             0           30         sched-sum
+redirect_err    total   0              0          
+xdp_exception   total   0              0          
+#+END_EXAMPLE
+
+Generator speed 21.06 Mpps, 308 TCP-Trans/sec
+
+#+BEGIN_EXAMPLE
+Running XDP/eBPF prog_num:4
+XDP-cpumap      CPU:to  pps            drop-pps    extra-info
+XDP-RX          0       20,850,796     20,850,488  0          
+XDP-RX          total   20,850,796     20,850,488 
+cpumap-enqueue    0:2   308            0           1.00       bulk-average
+cpumap-enqueue  sum:2   308            0           1.00       bulk-average
+cpumap_kthread  2       308            0           308        sched
+cpumap_kthread  total   308            0           308        sched-sum
+redirect_err    total   0              0          
+xdp_exception   total   0              0          
+#+END_EXAMPLE
+
+Generator speed 20 Mpps, 16,710 TCP-Trans/sec
+
+#+BEGIN_EXAMPLE
+Running XDP/eBPF prog_num:4
+XDP-cpumap      CPU:to  pps            drop-pps    extra-info
+XDP-RX          0       20,056,253     20,039,543  0          
+XDP-RX          total   20,056,253     20,039,543 
+cpumap-enqueue    0:2   16,710         0           1.00       bulk-average
+cpumap-enqueue  sum:2   16,710         0           1.00       bulk-average
+cpumap_kthread  2       16,710         0           16,710     sched
+cpumap_kthread  total   16,710         0           16,710     sched-sum
+redirect_err    total   0              0          
+xdp_exception   total   0              0          
+
+#+END_EXAMPLE
+
+Generator speed 19.5 Mpps, 18,946 TCP-Trans/sec
+
+#+BEGIN_EXAMPLE
+Running XDP/eBPF prog_num:4
+XDP-cpumap      CPU:to  pps            drop-pps    extra-info
+XDP-RX          0       19,556,174     19,537,229  0          
+XDP-RX          total   19,556,174     19,537,229 
+cpumap-enqueue    0:2   18,946         0           1.00       bulk-average
+cpumap-enqueue  sum:2   18,946         0           1.00       bulk-average
+cpumap_kthread  2       18,946         0           18,946     sched
+cpumap_kthread  total   18,946         0           18,946     sched-sum
+redirect_err    total   0              0          
+xdp_exception   total   0              0          
+#+END_EXAMPLE
+
+Generator speed 19 Mpps, 19,977 TCP-Trans/sec
+
+#+BEGIN_EXAMPLE
+Running XDP/eBPF prog_num:4
+XDP-cpumap      CPU:to  pps            drop-pps    extra-info
+XDP-RX          0       19,057,402     19,037,424  0          
+XDP-RX          total   19,057,402     19,037,424 
+cpumap-enqueue    0:2   19,977         0           1.00       bulk-average
+cpumap-enqueue  sum:2   19,977         0           1.00       bulk-average
+cpumap_kthread  2       19,976         0           19,976     sched
+cpumap_kthread  total   19,976         0           19,976     sched-sum
+redirect_err    total   0              0          
+xdp_exception   total   0              0          
+
+
+#+END_EXAMPLE
+
+Generator speed 18 Mpps, 20,908 TCP-Trans/sec
+
+#+BEGIN_EXAMPLE
+Running XDP/eBPF prog_num:4
+XDP-cpumap      CPU:to  pps            drop-pps    extra-info
+XDP-RX          0       18,056,361     18,035,452  0          
+XDP-RX          total   18,056,361     18,035,452 
+cpumap-enqueue    0:2   20,908         0           1.00       bulk-average
+cpumap-enqueue  sum:2   20,908         0           1.00       bulk-average
+cpumap_kthread  2       20,908         0           20,908     sched
+cpumap_kthread  total   20,908         0           20,908     sched-sum
+redirect_err    total   0              0          
+xdp_exception   total   0              0          
+
+#+END_EXAMPLE
+
+Generator speed 17 Mpps, 21,188 TCP-Trans/sec
+
+#+BEGIN_EXAMPLE
+Running XDP/eBPF prog_num:4
+XDP-cpumap      CPU:to  pps            drop-pps    extra-info
+XDP-RX          0       17,053,635     17,032,447  0          
+XDP-RX          total   17,053,635     17,032,447 
+cpumap-enqueue    0:2   21,188         0           1.00       bulk-average
+cpumap-enqueue  sum:2   21,188         0           1.00       bulk-average
+cpumap_kthread  2       21,188         0           21,188     sched
+cpumap_kthread  total   21,188         0           21,188     sched-sum
+redirect_err    total   0              0          
+xdp_exception   total   0              0          
+
+#+END_EXAMPLE
+
+Generator speed 16 Mpps, 21,993 TCP-Trans/sec
+
+#+BEGIN_EXAMPLE
+Running XDP/eBPF prog_num:4
+XDP-cpumap      CPU:to  pps            drop-pps    extra-info
+XDP-RX          0       16,052,396     16,030,402  0          
+XDP-RX          total   16,052,396     16,030,402 
+cpumap-enqueue    0:2   21,993         0           1.00       bulk-average
+cpumap-enqueue  sum:2   21,993         0           1.00       bulk-average
+cpumap_kthread  2       21,993         0           21,993     sched
+cpumap_kthread  total   21,993         0           21,993     sched-sum
+redirect_err    total   0              0          
+xdp_exception   total   0              0          
+#+END_EXAMPLE
+
+Generator speed 13 Mpps, 22,679 TCP-Trans/sec
+
+#+BEGIN_EXAMPLE
+Running XDP/eBPF prog_num:4
+XDP-cpumap      CPU:to  pps            drop-pps    extra-info
+XDP-RX          0       13,048,136     13,025,457  0          
+XDP-RX          total   13,048,136     13,025,457 
+cpumap-enqueue    0:2   22,679         0           1.00       bulk-average
+cpumap-enqueue  sum:2   22,679         0           1.00       bulk-average
+cpumap_kthread  2       22,679         0           22,679     sched
+cpumap_kthread  total   22,679         0           22,679     sched-sum
+redirect_err    total   0              0          
+xdp_exception   total   0              0          
+#+END_EXAMPLE
+
+Generator speed 10 Mpps, 22,135 TCP-Trans/sec
+
+#+BEGIN_EXAMPLE
+Running XDP/eBPF prog_num:4
+XDP-cpumap      CPU:to  pps            drop-pps    extra-info
+XDP-RX          0       10,040,481     10,018,346  0          
+XDP-RX          total   10,040,481     10,018,346 
+cpumap-enqueue    0:2   22,135         0           1.00       bulk-average
+cpumap-enqueue  sum:2   22,135         0           1.00       bulk-average
+cpumap_kthread  2       22,135         0           22,135     sched
+cpumap_kthread  total   22,135         0           22,135     sched-sum
+redirect_err    total   0              0          
+xdp_exception   total   0              0          
+#+END_EXAMPLE
+
+Generator speed 7 Mpps, 21,066 TCP-Trans/sec
+
+#+BEGIN_EXAMPLE
+Running XDP/eBPF prog_num:4
+XDP-cpumap      CPU:to  pps            drop-pps    extra-info
+XDP-RX          0       7,035,145      7,014,079   0          
+XDP-RX          total   7,035,145      7,014,079  
+cpumap-enqueue    0:2   21,066         0           1.00       bulk-average
+cpumap-enqueue  sum:2   21,066         0           1.00       bulk-average
+cpumap_kthread  2       21,066         0           21,066     sched
+cpumap_kthread  total   21,066         0           21,066     sched-sum
+redirect_err    total   0              0          
+xdp_exception   total   0              0          
+#+END_EXAMPLE
+
+Generator speed 5 Mpps, 20,701 TCP-Trans/sec
+
+#+BEGIN_EXAMPLE
+unning XDP/eBPF prog_num:4
+XDP-cpumap      CPU:to  pps            drop-pps    extra-info
+XDP-RX          0       5,030,775      5,010,073   0          
+XDP-RX          total   5,030,775      5,010,073  
+cpumap-enqueue    0:2   20,701         0           1.00       bulk-average
+cpumap-enqueue  sum:2   20,701         0           1.00       bulk-average
+cpumap_kthread  2       20,701         0           20,701     sched
+cpumap_kthread  total   20,701         0           20,701     sched-sum
+redirect_err    total   0              0          
+xdp_exception   total   0              0          
+#+END_EXAMPLE
+
+Generator speed 3 Mpps, 21,736 TCP-Trans/sec
+
+#+BEGIN_EXAMPLE
+Running XDP/eBPF prog_num:4
+XDP-cpumap      CPU:to  pps            drop-pps    extra-info
+XDP-RX          0       3,027,777      3,006,040   0          
+XDP-RX          total   3,027,777      3,006,040  
+cpumap-enqueue    0:2   21,736         0           1.00       bulk-average
+cpumap-enqueue  sum:2   21,736         0           1.00       bulk-average
+cpumap_kthread  2       21,736         0           21,736     sched
+cpumap_kthread  total   21,736         0           21,736     sched-sum
+redirect_err    total   0              0          
+xdp_exception   total   0              0          
+#+END_EXAMPLE
+
+Generator speed 2 Mpps, 22,439 TCP-Trans/sec
+
+#+BEGIN_EXAMPLE
+Running XDP/eBPF prog_num:4
+XDP-cpumap      CPU:to  pps            drop-pps    extra-info
+XDP-RX          0       2,026,459      2,004,020   0          
+XDP-RX          total   2,026,459      2,004,020  
+cpumap-enqueue    0:2   22,439         0           1.00       bulk-average
+cpumap-enqueue  sum:2   22,439         0           1.00       bulk-average
+cpumap_kthread  2       22,439         0           22,439     sched
+cpumap_kthread  total   22,439         0           22,439     sched-sum
+redirect_err    total   0              0          
+xdp_exception   total   0              0          
+#+END_EXAMPLE
+
+Generator speed 1 Mpps, 23,869 TCP-Trans/sec
+
+#+BEGIN_EXAMPLE
+Running XDP/eBPF prog_num:4
+XDP-cpumap      CPU:to  pps            drop-pps    extra-info
+XDP-RX          0       1,025,911      1,002,041   0          
+XDP-RX          total   1,025,911      1,002,041  
+cpumap-enqueue    0:2   23,869         0           1.00       bulk-average
+cpumap-enqueue  sum:2   23,869         0           1.00       bulk-average
+cpumap_kthread  2       23,869         0           23,869     sched
+cpumap_kthread  total   23,869         0           23,869     sched-sum
+redirect_err    total   0              0          
+xdp_exception   total   0              0          
+#+END_EXAMPLE
+
+Generator speed 0.5 Mpps == 500 Kpps, 24,311 TCP-Trans/sec
+
+#+BEGIN_EXAMPLE
+Running XDP/eBPF prog_num:4
+XDP-cpumap      CPU:to  pps            drop-pps    extra-info
+XDP-RX          0       525,341        501,029     0          
+XDP-RX          total   525,341        501,029    
+cpumap-enqueue    0:2   24,311         0           1.00       bulk-average
+cpumap-enqueue  sum:2   24,311         0           1.00       bulk-average
+cpumap_kthread  2       24,310         0           24,310     sched
+cpumap_kthread  total   24,310         0           24,310     sched-sum
+redirect_err    total   0              0          
+xdp_exception   total   0              0          
+#+END_EXAMPLE
+
+Generator speed 256 Kpps, 24,530 TCP-Trans/sec
+
+#+BEGIN_EXAMPLE
+Running XDP/eBPF prog_num:4
+XDP-cpumap      CPU:to  pps            drop-pps    extra-info
+XDP-RX          0       275,019        250,489     0          
+XDP-RX          total   275,019        250,489    
+cpumap-enqueue    0:2   24,530         0           1.00       bulk-average
+cpumap-enqueue  sum:2   24,530         0           1.00       bulk-average
+cpumap_kthread  2       24,530         0           24,530     sched
+cpumap_kthread  total   24,530         0           24,530     sched-sum
+redirect_err    total   0              0          
+xdp_exception   total   0              0          
+#+END_EXAMPLE
