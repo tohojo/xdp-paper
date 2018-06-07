@@ -60,6 +60,11 @@ clarify DaveM's position for stable backports").
 Kernel version: 4.17.0-rc7-bpf-next-xdp-paper01-02308-g75d4e704fa8d
 
 Issue: the mlx5 redirect patches does not apply to bpf-next.
+Update <2018-06-07 Thu>: Fixed up mlx5 redirect patches.
+
+Created a kernel.org git branch named: xdp_paper01
+https://git.kernel.org/pub/scm/linux/kernel/git/hawk/net-next-xdp.git/?h=xdp_paper01
+
 
 ** NIC: mlx5 - ConnectX-5
 
@@ -333,3 +338,88 @@ stream_count=X XDP_DROP total:
 #+END_EXAMPLE
 
 
+**** Possible PCIe limit?
+
+
+Tariq expect seeing rx_discards_phy when PCI causes backpressure.
+
+#+BEGIN_EXAMPLE
+Running XDP on dev:mlx5p1 (ifindex:8) action:XDP_DROP
+XDP stats       CPU     pps         issue-pps  
+XDP-RX CPU      0       14,417,582  0          
+XDP-RX CPU      1       14,431,145  0          
+XDP-RX CPU      2       14,434,436  0          
+XDP-RX CPU      3       14,417,894  0          
+XDP-RX CPU      4       14,417,705  0          
+XDP-RX CPU      5       14,419,834  0          
+XDP-RX CPU      total   86,538,599 
+
+RXQ stats       RXQ:CPU pps         issue-pps  
+rx_queue_index    0:0   14,417,582  0          
+rx_queue_index    0:sum 14,417,582 
+rx_queue_index    1:1   14,431,116  0          
+rx_queue_index    1:sum 14,431,116 
+rx_queue_index    2:2   14,434,409  0          
+rx_queue_index    2:sum 14,434,409 
+rx_queue_index    3:3   14,417,894  0          
+rx_queue_index    3:sum 14,417,894 
+rx_queue_index    4:4   14,417,702  0          
+rx_queue_index    4:sum 14,417,702 
+rx_queue_index    5:5   14,419,839  0          
+rx_queue_index    5:sum 14,419,839 
+#+END_EXAMPLE
+
+Notice:
+ Ethtool(mlx5p1  ) stat: 98233252 (  98,233,252) <= rx_packets_phy /sec
+ Ethtool(mlx5p1  ) stat: 12048409 (  12,048,409) <= rx_discards_phy /sec
+ Ethtool(mlx5p1  ) stat: 86188489 (  86,188,489) <= rx_prio0_packets /sec
+ 98233252 - 12048409  =  86184843 (  86,184,843)
+
+#+BEGIN_EXAMPLE
+Show adapter(s) (mlx5p1) statistics (ONLY that changed!)
+Ethtool(mlx5p1  ) stat:        34585 (         34,585) <= ch0_arm /sec
+Ethtool(mlx5p1  ) stat:        34585 (         34,585) <= ch0_events /sec
+Ethtool(mlx5p1  ) stat:       238494 (        238,494) <= ch0_poll /sec
+Ethtool(mlx5p1  ) stat:        33807 (         33,807) <= ch1_arm /sec
+Ethtool(mlx5p1  ) stat:        33807 (         33,807) <= ch1_events /sec
+Ethtool(mlx5p1  ) stat:       237339 (        237,339) <= ch1_poll /sec
+Ethtool(mlx5p1  ) stat:        34512 (         34,512) <= ch2_arm /sec
+Ethtool(mlx5p1  ) stat:        34512 (         34,512) <= ch2_events /sec
+Ethtool(mlx5p1  ) stat:       238103 (        238,103) <= ch2_poll /sec
+Ethtool(mlx5p1  ) stat:        34668 (         34,668) <= ch3_arm /sec
+Ethtool(mlx5p1  ) stat:        34668 (         34,668) <= ch3_events /sec
+Ethtool(mlx5p1  ) stat:       238448 (        238,448) <= ch3_poll /sec
+Ethtool(mlx5p1  ) stat:        34585 (         34,585) <= ch4_arm /sec
+Ethtool(mlx5p1  ) stat:        34585 (         34,585) <= ch4_events /sec
+Ethtool(mlx5p1  ) stat:       238680 (        238,680) <= ch4_poll /sec
+Ethtool(mlx5p1  ) stat:        33943 (         33,943) <= ch5_arm /sec
+Ethtool(mlx5p1  ) stat:        33944 (         33,944) <= ch5_events /sec
+Ethtool(mlx5p1  ) stat:       237098 (        237,098) <= ch5_poll /sec
+Ethtool(mlx5p1  ) stat:       206103 (        206,103) <= ch_arm /sec
+Ethtool(mlx5p1  ) stat:       206103 (        206,103) <= ch_events /sec
+Ethtool(mlx5p1  ) stat:      1428189 (      1,428,189) <= ch_poll /sec
+Ethtool(mlx5p1  ) stat:            1 (              1) <= outbound_pci_stalled_wr_events /sec
+Ethtool(mlx5p1  ) stat:     14334364 (     14,334,364) <= rx0_cache_reuse /sec
+Ethtool(mlx5p1  ) stat:     14334335 (     14,334,335) <= rx0_xdp_drop /sec
+Ethtool(mlx5p1  ) stat:     14362141 (     14,362,141) <= rx1_cache_reuse /sec
+Ethtool(mlx5p1  ) stat:     14362141 (     14,362,141) <= rx1_xdp_drop /sec
+Ethtool(mlx5p1  ) stat:     14362118 (     14,362,118) <= rx2_cache_reuse /sec
+Ethtool(mlx5p1  ) stat:     14362118 (     14,362,118) <= rx2_xdp_drop /sec
+Ethtool(mlx5p1  ) stat:     14338843 (     14,338,843) <= rx3_cache_reuse /sec
+Ethtool(mlx5p1  ) stat:     14338841 (     14,338,841) <= rx3_xdp_drop /sec
+Ethtool(mlx5p1  ) stat:     14356201 (     14,356,201) <= rx4_cache_reuse /sec
+Ethtool(mlx5p1  ) stat:     14356183 (     14,356,183) <= rx4_xdp_drop /sec
+Ethtool(mlx5p1  ) stat:     14359375 (     14,359,375) <= rx5_cache_reuse /sec
+Ethtool(mlx5p1  ) stat:     14359405 (     14,359,405) <= rx5_xdp_drop /sec
+Ethtool(mlx5p1  ) stat:     98233801 (     98,233,801) <= rx_64_bytes_phy /sec
+Ethtool(mlx5p1  ) stat:   6286927774 (  6,286,927,774) <= rx_bytes_phy /sec
+Ethtool(mlx5p1  ) stat:     86114457 (     86,114,457) <= rx_cache_reuse /sec
+Ethtool(mlx5p1  ) stat:     12048409 (     12,048,409) <= rx_discards_phy /sec
+Ethtool(mlx5p1  ) stat:        69718 (         69,718) <= rx_out_of_buffer /sec
+Ethtool(mlx5p1  ) stat:     98233252 (     98,233,252) <= rx_packets_phy /sec
+Ethtool(mlx5p1  ) stat:   6287027905 (  6,287,027,905) <= rx_prio0_bytes /sec
+Ethtool(mlx5p1  ) stat:     86188489 (     86,188,489) <= rx_prio0_packets /sec
+Ethtool(mlx5p1  ) stat:   5171087787 (  5,171,087,787) <= rx_vport_unicast_bytes /sec
+Ethtool(mlx5p1  ) stat:     86184793 (     86,184,793) <= rx_vport_unicast_packets /sec
+Ethtool(mlx5p1  ) stat:     86114444 (     86,114,444) <= rx_xdp_drop /sec
+#+END_EXAMPLE
