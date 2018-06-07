@@ -1,0 +1,69 @@
+* XDP benchmark DROP
+  :PROPERTIES:
+  :CUSTOM_ID: xdp-benchmark-drop
+  :END:
+
+Establish what XDP_DROP test tool we use?
+
+** Tool: xdp1 is way too simple (and annoying)
+
+This xdp1 tool is the most low-overhead tool avail, but it is annoying
+to use.  Both the form of output format and parameters.  The parameter
+is the ifindex (and not the interface name).
+
+A cmdline hack can be used for looking up the ifindex by name:
+
+#+BEGIN_EXAMPLE
+  sudo ./xdp1 $(</sys/class/net/mlx5p2/ifindex)
+#+END_EXAMPLE
+
+** Tool: xdp_rxq_info with --action XDP_DROP
+
+The xdp_rxq_info tool is avail in kernel.
+
+It have the advantage of showing stats per CPU and RX-queue, which is
+very practical for the multi-flow multi-CPU tests.  As it allow us to
+quickly identify if the flow RSS hash distribution is off/wrong.
+
+The name 'xdp_rxq_info' is misleading, for a drop test, but it have a
+parameter --action that allows us to turn this into a XDP_DROP test.
+
+** Tool: xdp_bench01_mem_access_cost
+
+The xdp_bench01_mem_access_cost tool is part of my github repo
+prototype-kernel.
+
+It is specifically written for benchmarking the different XDP-modes
+via --action parameter. Plus, it have the ability to make sure data is
+"read".
+
+https://github.com/netoptimizer/prototype-kernel/tree/master/kernel/samples/bpf
+
+It's implementation of XDP_TX action is also more correct than
+xdp_rxq_info, as it can do a --swapmac.
+
+
+* Jesper01: XDP benchmark drop
+
+Choosing a kernel version or git-tree.  Timing is that kernel v4.18
+have not been released yet. Today <2018-06-07 Thu> we are at the
+beginning of the merge window for v4.18.  The git tree net-next, have
+just been merged by Linus torvalds.
+
+Thus, Linus'es tree is in merge flux at the moment, but net-next and
+bpf-next are "closed", and thus in are more stable state (which is
+unusual).
+
+Base kernel compile on bpf-next at commit 75d4e704fa8d ("netdev-FAQ:
+clarify DaveM's position for stable backports").
+
+Kernel version: 4.17.0-rc7-bpf-next-xdp-paper01-02308-g75d4e704fa8d
+
+Issue: the mlx5 redirect patches does not apply to bpf-next.
+
+** NIC: mlx5 - ConnectX-5
+
+*** mlx5: single core
+
+*** mlx5: multi core
+
