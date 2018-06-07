@@ -432,3 +432,48 @@ cpumap_kthread  total   24,530         0           24,530     sched-sum
 redirect_err    total   0              0          
 xdp_exception   total   0              0          
 #+END_EXAMPLE
+
+** Data: XDP DDOs sample
+
+#+BEGIN_SRC ipython :session :exports both :results silent
+from matplotlib import pyplot as plt
+import numpy as np
+#+END_SRC
+
+
+#+NAME: xdp_ddos
+| DDOS Mpps | TCP RR/s |
+|-----------+----------|
+|         0 |    25408 |
+|     0.256 |    24530 |
+|       0.5 |    24311 |
+|         1 |    23869 |
+|         2 |    22439 |
+|         3 |    21736 |
+|         5 |    20701 |
+|         7 |    21066 |
+|        10 |    22135 |
+|        13 |    22679 |
+|        16 |    21993 |
+|        17 |    21188 |
+|        18 |    20908 |
+|        19 |    19977 |
+|      19.5 |    18946 |
+|        20 |    16710 |
+|     21.06 |      308 |
+|     25.07 |       30 |
+
+
+#+BEGIN_SRC ipython :session :exports both :results raw drawer :var data=xdp_ddos
+d = np.array(data)
+plt.plot(d[:,0], d[:,1]/1000, marker='o')
+plt.xlabel("Mpps")
+plt.ylabel("TCP Ktrans/s")
+#+END_SRC
+
+#+RESULTS:
+:results:
+# Out[89]:
+: Text(0,0.5,'TCP Ktrans/s')
+[[file:./obipy-resources/ZPrrsv.svg]]
+:end:
