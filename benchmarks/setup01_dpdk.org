@@ -43,6 +43,10 @@ Missing deps on python-pyelftools :
   :CUSTOM_ID: setup-dpdk-based-trex
   :END:
 
+The advantage with T-rex is that is contains its own copy of
+DPDK. Thus, you don't need to install DPDK (in the correct version) on
+your system.
+
 It's possible to download binary version of trex, and install that from
 a tar.gz file, see instructions here:
 
@@ -62,17 +66,35 @@ Generate config:
   :CUSTOM_ID: mellanox-requires-out-of-tree-drivers
   :END:
 
+It turns out that out-of-tree kernel drivers might not be needed.  It
+seems that Mellanox uses the infiniband drivers and userspace
+libraries for their DPDK driver.
+
+Load kernel modules ib_uverbs and mlx5_ib:
+
+#+BEGIN_EXAMPLE
+ sudo modprobe ib_uverbs
+ sudo modprobe mlx5_ib
+#+END_EXAMPLE
+
+To get all the different userspace tools and library dependencies
+right, the easiest/only option seems to be via Mellanox OpenFabrics
+Enterprise Distribution (MLNX_OFED).
+
+Get MLNX_OFED here:
 [[http://www.mellanox.com/page/products_dyn?product_family=26&mtag=linux_sw_drivers]]
 
--  Download for Fedora
-   27: ::
-  [[http://www.mellanox.com/page/mlnx_ofed_eula?mtag=linux_sw_drivers&mrequest=downloads&mtype=ofed&mver=MLNX_OFED-4.3-1.0.1.0&mname=MLNX_OFED_LINUX-4.3-1.0.1.0-fc27-x86_64.tgz]]
+When installing it is possible to skip the kernel modules via
+parameter --user-space-only.
 
 Installing:
 
 : sudo ./mlnxofedinstall --with-mft --with-mstflint --dpdk --upstream-libs --without-dkms --user-space-only
 
 ** Fedora 27 install experience
+
+Download for Fedora 27:
+[[http://www.mellanox.com/page/mlnx_ofed_eula?mtag=linux_sw_drivers&mrequest=downloads&mtype=ofed&mver=MLNX_OFED-4.3-1.0.1.0&mname=MLNX_OFED_LINUX-4.3-1.0.1.0-fc27-x86_64.tgz]]
 
 The recent F27 kernel is too new.
 
