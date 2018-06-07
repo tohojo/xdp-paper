@@ -58,7 +58,7 @@ The redirect needs a separate benchmark document.
 
 -  DUT (Device Under Test): :: 
 
-   -  CPU:
+   -  CPU: E5-1650 v4 @ 3.60GHz
 
 Jesper have more types of NICs.
 
