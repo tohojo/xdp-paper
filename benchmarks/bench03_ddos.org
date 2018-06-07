@@ -101,6 +101,9 @@ which is the NIC driver code runs on CPU-0, and the SKB is created on
 CPU-2.  Plus the socket kernel side enqueue and userspace dequeue
 happens on the same CPU-2.
 
+Note: some of this can also be caused by XDP disable GRO, and in this
+case no GRO-aggregation happen, in which case GRO is just overhead.
+
 #+BEGIN_EXAMPLE
 sudo ./xdp_redirect_cpu --dev mlx5p1 --prog 4  --cpu 2 --cpu 3 --cpu 4
 [...]
