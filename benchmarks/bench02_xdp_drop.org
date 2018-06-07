@@ -65,5 +65,271 @@ Issue: the mlx5 redirect patches does not apply to bpf-next.
 
 *** mlx5: single core
 
+#+BEGIN_EXAMPLE
+Running XDP on dev:mlx5p1 (ifindex:8) action:XDP_DROP
+XDP stats       CPU     pps         issue-pps  
+XDP-RX CPU      0       25,583,300  0          
+XDP-RX CPU      total   25,583,300 
+
+RXQ stats       RXQ:CPU pps         issue-pps  
+rx_queue_index    4:0   25,583,303  0          
+rx_queue_index    4:sum 25,583,303 
+#+END_EXAMPLE
+
 *** mlx5: multi core
+
+**** setup notes
+
+$uname -a
+Linux broadwell 4.17.0-rc7-bpf-next-xdp-paper01-02308-g75d4e704fa8d #26 SMP PREEMPT
+
+$ ethtool --show-priv-flags mlx5p1
+Private flags for mlx5p1:
+rx_cqe_moder   : on
+tx_cqe_moder   : off
+rx_cqe_compress: off
+rx_striding_rq : off
+
+
+**** t-rex setup
+
+t-rex script:
+
+ ~/git/xdp-paper/benchmarks/udp_for_benchmarks.py
+
+t-rex cmdline:
+
+: start -f /home/jbrouer/git/xdp-paper/benchmarks/udp_for_benchmarks.py -t packet_len=60,stream_count=XX --port 0 -m 100mpps
+
+
+**** bench
+
+stream_count=12 XDP_DROP total: 86,338,684
+
+#+BEGIN_EXAMPLE
+Running XDP on dev:mlx5p1 (ifindex:8) action:XDP_DROP
+XDP stats       CPU     pps         issue-pps  
+XDP-RX CPU      0       14,390,053  0          
+XDP-RX CPU      1       14,390,081  0          
+XDP-RX CPU      2       14,389,045  0          
+XDP-RX CPU      3       14,390,277  0          
+XDP-RX CPU      4       14,390,219  0          
+XDP-RX CPU      5       14,389,006  0          
+XDP-RX CPU      total   86,338,684 
+
+RXQ stats       RXQ:CPU pps         issue-pps  
+rx_queue_index    0:0   14,390,090  0          
+rx_queue_index    0:sum 14,390,090 
+rx_queue_index    1:1   14,390,095  0          
+rx_queue_index    1:sum 14,390,095 
+rx_queue_index    2:2   14,389,054  0          
+rx_queue_index    2:sum 14,389,054 
+rx_queue_index    3:3   14,390,270  0          
+rx_queue_index    3:sum 14,390,270 
+rx_queue_index    4:4   14,390,166  0          
+rx_queue_index    4:sum 14,390,166 
+rx_queue_index    5:5   14,389,022  0          
+rx_queue_index    5:sum 14,389,022 
+#+END_EXAMPLE
+
+Changing number cores receiving traffic by adjusting stream_count.
+
+stream_count=1 XDP_DROP total: 25,572,977
+
+#+BEGIN_EXAMPLE
+Running XDP on dev:mlx5p1 (ifindex:8) action:XDP_DROP
+XDP stats       CPU     pps         issue-pps  
+XDP-RX CPU      0       25,572,977  0          
+XDP-RX CPU      total   25,572,977 
+
+RXQ stats       RXQ:CPU pps         issue-pps  
+rx_queue_index    0:0   25,572,974  0          
+rx_queue_index    0:sum 25,572,974 
+#+END_EXAMPLE
+
+stream_count=2 XDP_DROP total: 51,907,348
+
+#+BEGIN_EXAMPLE
+Running XDP on dev:mlx5p1 (ifindex:8) action:XDP_DROP
+XDP stats       CPU     pps         issue-pps  
+XDP-RX CPU      0       25,359,525  0          
+XDP-RX CPU      1       26,547,822  0          
+XDP-RX CPU      total   51,907,348 
+
+RXQ stats       RXQ:CPU pps         issue-pps  
+rx_queue_index    0:0   25,359,524  0          
+rx_queue_index    0:sum 25,359,524 
+rx_queue_index    1:1   26,547,829  0          
+rx_queue_index    1:sum 26,547,829 
+#+END_EXAMPLE
+
+stream_count=3 XDP_DROP total: 75,530,250
+
+#+BEGIN_EXAMPLE
+Running XDP on dev:mlx5p1 (ifindex:8) action:XDP_DROP
+XDP stats       CPU     pps         issue-pps  
+XDP-RX CPU      0       25,041,439  0          
+XDP-RX CPU      1       25,243,786  0          
+XDP-RX CPU      2       25,245,025  0          
+XDP-RX CPU      total   75,530,250 
+
+RXQ stats       RXQ:CPU pps         issue-pps  
+rx_queue_index    0:0   25,041,446  0          
+rx_queue_index    0:sum 25,041,446 
+rx_queue_index    1:1   25,243,788  0          
+rx_queue_index    1:sum 25,243,788 
+rx_queue_index    2:2   25,245,037  0          
+rx_queue_index    2:sum 25,245,037 
+#+END_EXAMPLE
+
+stream_count=4 XDP_DROP total: 86,521,177
+
+Notice at stream_count=4, CPUs start to have idle cycles.
+
+#+BEGIN_EXAMPLE
+Running XDP on dev:mlx5p1 (ifindex:8) action:XDP_DROP
+XDP stats       CPU     pps         issue-pps  
+XDP-RX CPU      0       21,627,817  0          
+XDP-RX CPU      1       21,630,688  0          
+XDP-RX CPU      2       21,631,349  0          
+XDP-RX CPU      3       21,631,321  0          
+XDP-RX CPU      total   86,521,177 
+
+RXQ stats       RXQ:CPU pps         issue-pps  
+rx_queue_index    0:0   21,627,817  0          
+rx_queue_index    0:sum 21,627,817 
+rx_queue_index    1:1   21,630,690  0          
+rx_queue_index    1:sum 21,630,690 
+rx_queue_index    2:2   21,631,359  0          
+rx_queue_index    2:sum 21,631,359 
+rx_queue_index    3:3   21,631,227  0          
+rx_queue_index    3:sum 21,631,227 
+#+END_EXAMPLE
+
+stream_count=5 XDP_DROP total: 86,837,876
+
+With more idle cycles.
+
+#+BEGIN_EXAMPLE
+Running XDP on dev:mlx5p1 (ifindex:8) action:XDP_DROP
+XDP stats       CPU     pps         issue-pps  
+XDP-RX CPU      0       17,364,174  0          
+XDP-RX CPU      1       17,368,545  0          
+XDP-RX CPU      2       17,368,884  0          
+XDP-RX CPU      3       17,368,908  0          
+XDP-RX CPU      4       17,367,363  0          
+XDP-RX CPU      total   86,837,876 
+
+RXQ stats       RXQ:CPU pps         issue-pps  
+rx_queue_index    0:0   17,364,143  0          
+rx_queue_index    0:sum 17,364,143 
+rx_queue_index    1:1   17,368,530  0          
+rx_queue_index    1:sum 17,368,530 
+rx_queue_index    2:2   17,368,816  0          
+rx_queue_index    2:sum 17,368,816 
+rx_queue_index    3:3   17,368,884  0          
+rx_queue_index    3:sum 17,368,884 
+rx_queue_index    4:4   17,367,366  0          
+rx_queue_index    4:sum 17,367,366 
+#+END_EXAMPLE
+
+stream_count=6 XDP_DROP total: 86,809,556
+
+With more idle cycles.
+
+#+BEGIN_EXAMPLE
+Running XDP on dev:mlx5p1 (ifindex:8) action:XDP_DROP
+XDP stats       CPU     pps         issue-pps  
+XDP-RX CPU      0       14,468,490  0          
+XDP-RX CPU      1       14,468,507  0          
+XDP-RX CPU      2       14,468,888  0          
+XDP-RX CPU      3       14,468,750  0          
+XDP-RX CPU      4       14,467,744  0          
+XDP-RX CPU      5       14,467,175  0          
+XDP-RX CPU      total   86,809,556 
+
+RXQ stats       RXQ:CPU pps         issue-pps  
+rx_queue_index    0:0   14,468,463  0          
+rx_queue_index    0:sum 14,468,463 
+rx_queue_index    1:1   14,468,470  0          
+rx_queue_index    1:sum 14,468,470 
+rx_queue_index    2:2   14,468,916  0          
+rx_queue_index    2:sum 14,468,916 
+rx_queue_index    3:3   14,468,746  0          
+rx_queue_index    3:sum 14,468,746 
+rx_queue_index    4:4   14,467,752  0          
+rx_queue_index    4:sum 14,467,752 
+rx_queue_index    5:5   14,467,191  0          
+rx_queue_index    5:sum 14,467,191 
+#+END_EXAMPLE
+
+stream_count=7 XDP_DROP total: 85,095,736
+
+Now we are running out of CPUs (6), as we have disabled HT. In this
+example, CPU2 gets extra traffic and actually don't have any idle
+cycles, and handle/drop 24,313,750 pps.
+
+#+BEGIN_EXAMPLE
+Running XDP on dev:mlx5p1 (ifindex:8) action:XDP_DROP
+XDP stats       CPU     pps         issue-pps  
+XDP-RX CPU      0       12,156,595  0          
+XDP-RX CPU      1       12,154,906  0          
+XDP-RX CPU      2       24,313,750  0          
+XDP-RX CPU      3       12,155,349  0          
+XDP-RX CPU      4       12,158,029  0          
+XDP-RX CPU      5       12,157,106  0          
+XDP-RX CPU      total   85,095,736 
+
+RXQ stats       RXQ:CPU pps         issue-pps  
+rx_queue_index    0:0   12,156,625  0          
+rx_queue_index    0:sum 12,156,625 
+rx_queue_index    1:1   12,154,888  0          
+rx_queue_index    1:sum 12,154,888 
+rx_queue_index    2:2   24,313,738  0          
+rx_queue_index    2:sum 24,313,738 
+rx_queue_index    3:3   12,155,287  0          
+rx_queue_index    3:sum 12,155,287 
+rx_queue_index    4:4   12,158,076  0          
+rx_queue_index    4:sum 12,158,076 
+rx_queue_index    5:5   12,157,174  0          
+rx_queue_index    5:sum 12,157,174 
+#+END_EXAMPLE
+
+stream_count=8 XDP_DROP total: 86,484,755
+
+All CPUs have idle cycles, but some less than others, e.g CPU-2 have
+6.8% idle, and CPU-3 have 10.2% idle.
+
+#+BEGIN_EXAMPLE
+Running XDP on dev:mlx5p1 (ifindex:8) action:XDP_DROP
+XDP stats       CPU     pps         issue-pps  
+XDP-RX CPU      0       10,811,300  0          
+XDP-RX CPU      1       10,811,547  0          
+XDP-RX CPU      2       21,623,304  0          
+XDP-RX CPU      3       21,622,057  0          
+XDP-RX CPU      4       10,805,394  0          
+XDP-RX CPU      5       10,811,152  0          
+XDP-RX CPU      total   86,484,755 
+
+RXQ stats       RXQ:CPU pps         issue-pps  
+rx_queue_index    0:0   10,811,291  0          
+rx_queue_index    0:sum 10,811,291 
+rx_queue_index    1:1   10,811,570  0          
+rx_queue_index    1:sum 10,811,570 
+rx_queue_index    2:2   21,623,306  0          
+rx_queue_index    2:sum 21,623,306 
+rx_queue_index    3:3   21,622,064  0          
+rx_queue_index    3:sum 21,622,064 
+rx_queue_index    4:4   10,805,406  0          
+rx_queue_index    4:sum 10,805,406 
+rx_queue_index    5:5   10,811,027  0          
+rx_queue_index    5:sum 10,811,027 
+#+END_EXAMPLE
+
+
+stream_count=X XDP_DROP total:
+
+#+BEGIN_EXAMPLE
+#+END_EXAMPLE
+
 
