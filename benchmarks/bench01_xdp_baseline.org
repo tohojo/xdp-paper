@@ -26,7 +26,11 @@ And describe the hardware Toke and Jesper have.
 
 Q: Will a packet size test make sense?
 
+Since we are already saturating the PCI bus I don't think this is needed.
+
 Q: Should we compare against 'iptables -t raw -j DROP' ?
+
+Yes, this makes sense; and against DPDK.
 
 ** XDP\_TX
    :PROPERTIES:
@@ -43,6 +47,8 @@ the tail/doorbell (until driver exit it's NAPI call).
 
 Idea: We could measure the overhead XDP introduce, by comparing against
 iptables-raw drop?
+
+Yes, this makes sense: touch packet in XDP, pass to iptables-raw.
 
 ** XDP\_REDIRECT
    :PROPERTIES:
@@ -62,6 +68,9 @@ The redirect needs a separate benchmark document.
 
 Jesper have more types of NICs.
 
+* Hardware: Toke
+- DUT:
+  - model name	: Intel(R) Xeon(R) CPU E5-1650 v4 @ 3.60GHz
 * Benchmarks: Jesper
   :PROPERTIES:
   :CUSTOM_ID: benchmarks-jesper
