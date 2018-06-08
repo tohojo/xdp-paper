@@ -457,3 +457,40 @@ Ethtool(mlx5p1  ) stat:     74992720 (     74,992,720) <= rx_prio0_packets /sec
 Ethtool(mlx5p1  ) stat:   4499667608 (  4,499,667,608) <= rx_vport_unicast_bytes /sec
 Ethtool(mlx5p1  ) stat:     74994463 (     74,994,463) <= rx_vport_unicast_packets /sec
 #+END_EXAMPLE
+* Data and graphs
+#+BEGIN_SRC ipython :session :exports both :results silent
+from matplotlib import pyplot as plt
+import numpy as np
+#+END_SRC
+
+** TODO Get real results for XDP_DROP 2-5 cores
+
+** XDP_DROP per number of queues
+
+These are from Jesper's initial runs.
+
+#+NAME: xdp_base_data
+| RXQs | XDP_DROP | XDP_REDIRECT |
+|------+----------+--------------|
+|    1 | 25928270 |      7909103 |
+|    2 | 50000000 |     14964733 |
+|    3 | 60000000 |     17586052 |
+|    4 | 70000000 |     20167875 |
+|    5 | 72000000 |     23863927 |
+|    6 | 75297461 |     28376755 |
+
+#+BEGIN_SRC ipython :session :exports both :results raw drawer :var data=xdp_base_data
+d = np.array(data)
+plt.plot(d[:,0], d[:,1]/10**6, marker='o', label="XDP_DROP")
+plt.plot(d[:,0], d[:,2]/10**6, marker='o', label="XDP_REDIRECT")
+plt.xlabel("Number of cores")
+plt.ylabel("Mpps")
+plt.legend()
+#+END_SRC
+
+#+RESULTS:
+:results:
+# Out[77]:
+: <matplotlib.legend.Legend at 0x7f2fa3945a90>
+[[file:./obipy-resources/gU6OqG.svg]]
+:end:
