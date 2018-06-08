@@ -490,7 +490,7 @@ plt.legend()
 
 #+RESULTS:
 :results:
-# Out[77]:
-: <matplotlib.legend.Legend at 0x7f2fa3945a90>
-[[file:./obipy-resources/gU6OqG.svg]]
+# Out[94]:
+: <matplotlib.legend.Legend at 0x7f2fa3466b38>
+[[file:./obipy-resources/4cm34n.svg]]
 :end:
