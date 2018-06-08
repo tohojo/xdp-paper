@@ -498,6 +498,15 @@ This means that netperf/netserver process is running on CPU-2, and the
 DDoS only "attack" kernels ability to insert/enqueue packets into the
 sockets (which is dequeue on CPU-2).
 
+DDoS test were with T-rex cmdline:
+
+: start -f /home/jbrouer/git/xdp-paper/benchmarks/udp_for_benchmarks02.py -t packet_len=64,stream_count=1 --port 0 -m 2900kpps
+
+Note the script udp_for_benchmarks02.py were modified to send to the
+destination IP-address of the DUT.  And the DUT didn't have any UDP
+socket open of the ports, thus the Linux stack simply drops the
+packets (as UdpNoPorts).
+
 (Linux nstat reports max at approx 2869798 pps.)
 
 No protection
@@ -516,6 +525,4 @@ No protection
 |      2.91 |    76.87 |
 |         3 |        0 |
 |         5 |        0 |
-
-
 
