@@ -463,21 +463,34 @@ from matplotlib import pyplot as plt
 import numpy as np
 #+END_SRC
 
-** TODO Get real results for XDP_DROP 2-5 cores
+** DONE Get real results for XDP_DROP 2-5 cores
+:LOGBOOK:
+- State "DONE"       from "TODO"       [2018-06-09 Sat 20:59]
+:END:
+
+** Initial data from Jesper's runs
+|---+----------+----------|
+| 1 | 25928270 |  7909103 |
+| 2 |          | 14964733 |
+| 3 |          | 17586052 |
+| 4 |          | 20167875 |
+| 5 |          | 23863927 |
+| 6 | 75297461 | 28376755 |
 
 ** XDP_DROP per number of queues
 
-These are from Jesper's initial runs.
+These are from Toke's test run. Note that REDIRECT throughput drops *by 5 Mpps*
+(on a single core) when running xdp_monitor at the same time!
 
 #+NAME: xdp_base_data
 | RXQs | XDP_DROP | XDP_REDIRECT |
 |------+----------+--------------|
-|    1 | 25928270 |      7909103 |
-|    2 | 50000000 |     14964733 |
-|    3 | 60000000 |     17586052 |
-|    4 | 70000000 |     20167875 |
-|    5 | 72000000 |     23863927 |
-|    6 | 75297461 |     28376755 |
+|    1 | 25928270 |     13735034 |
+|    2 | 51349744 |     27227069 |
+|    3 | 76578241 |     33556194 |
+|    4 | 82782450 |     35075662 |
+|    5 | 82294143 |     38239118 |
+|    6 | 80444303 |     43191983 |
 
 #+BEGIN_SRC ipython :session :exports both :results raw drawer :var data=xdp_base_data
 d = np.array(data)
@@ -486,11 +499,11 @@ plt.plot(d[:,0], d[:,2]/10**6, marker='o', label="XDP_REDIRECT")
 plt.xlabel("Number of cores")
 plt.ylabel("Mpps")
 plt.legend()
+plt.show()
 #+END_SRC
 
 #+RESULTS:
 :results:
-# Out[94]:
-: <matplotlib.legend.Legend at 0x7f2fa3466b38>
-[[file:./obipy-resources/4cm34n.svg]]
+# Out[6]:
+[[file:./obipy-resources/yxxa1q.svg]]
 :end:
