@@ -1,0 +1,42 @@
+* DPDK baseline tests:
+
+Test invocation for RX test:
+
+: sudo ./testpmd -l 0-5 -- -i --nb-cores=1 --forward-mode=rxonly --auto-start --portmask=0x2
+
+To get multiple cores working, we need to enable multiple rxqs *and* txqs, and
+also enable UDP RSS:
+
+: sudo ./testpmd -l 0-5 -n 4 -- -i --nb-cores=2 --forward-mode=rxonly --auto-start --portmask=0x2 --rxq 2 --txq 2 --rss-udp
+
+Or instead of interactive mode, use stats reporting mode:
+
+: sudo ./testpmd -l 0-5 -n 4 -- --nb-cores=5 --forward-mode=rxonly --auto-start --portmask=0x2 --rxq 5 --txq 5 --rss-udp --stats-period=1
+
+#+NAME: dpdk_test
+| Cores |   RX PPS | Forward PPS |
+|-------+----------+-------------|
+|     1 | 43527279 |             |
+|     2 | 70499318 |             |
+|     3 | 82695730 |             |
+|     4 | 82937531 |             |
+|     5 | 80575187 |             |
+
+From 3-5 this is actually bounded by the traffic generator, it would seem.
+
+#+BEGIN_SRC ipython :session :exports both :results raw drawer :var data=dpdk_test[,0:1]
+d = np.array(data)
+plt.plot(d[:,0], d[:,1]/10**6, marker='o', label="rxonly")
+#plt.plot(d[:,0], d[:,2]/10**6, marker='o', label="XDP_REDIRECT")
+plt.xlabel("Number of cores")
+plt.ylabel("Mpps")
+plt.legend()
+plt.show()
+#+END_SRC
+
+#+RESULTS:
+:results:
+# Out[29]:
+[[file:./obipy-resources/rygLrn.svg]]
+:end:
+
