@@ -470,17 +470,19 @@ import numpy as np
 #+BEGIN_SRC ipython :session :exports both :results raw drawer :var data=xdp_ddos :var no_prot=no_protection
 d = np.array(data)
 nprot = np.array(no_prot)
-plt.plot(d[:,0], d[:,1]/1000, marker='o')
-plt.plot(nprot[:,0], nprot[:,1]/1000, marker='o')
+plt.plot(d[:,0], d[:,1]/1000, marker='o', label="XDP")
+plt.plot(nprot[:,0], nprot[:,1]/1000, marker='o', label="No XDP")
 plt.xlabel("Mpps")
 plt.ylabel("TCP Ktrans/s")
+plt.legend()
+plt.plot()
 #+END_SRC
 
 #+RESULTS:
 :results:
-# Out[93]:
-: Text(0,0.5,'TCP Ktrans/s')
-[[file:./obipy-resources/wQLoUM.svg]]
+# Out[7]:
+: []
+[[file:./obipy-resources/mFtVeW.svg]]
 :end:
 
 
