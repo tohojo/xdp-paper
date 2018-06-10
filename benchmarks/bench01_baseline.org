@@ -578,8 +578,8 @@ plt.show()
 
 #+RESULTS: drop-test
 :results:
-# Out[63]:
-[[file:./obipy-resources/YyYHah.svg]]
+# Out[5]:
+[[file:./obipy-resources/uYTlho.svg]]
 :end:
 
 ** REDIRECT test
@@ -601,6 +601,6 @@ plt.show()
 
 #+RESULTS: redirect-test
 :results:
-# Out[64]:
-[[file:./obipy-resources/UzNQ51.svg]]
+# Out[4]:
+[[file:./obipy-resources/RoLI7t.svg]]
 :end:

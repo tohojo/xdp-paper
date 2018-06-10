@@ -482,8 +482,8 @@ plt.show()
 
 #+RESULTS:
 :results:
-# Out[66]:
-[[file:./obipy-resources/rs2jRq.svg]]
+# Out[3]:
+[[file:./obipy-resources/O6xgfr.svg]]
 :end:
 
 
