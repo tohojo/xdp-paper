@@ -471,18 +471,19 @@ import numpy as np
 d = np.array(data)
 nprot = np.array(no_prot)
 plt.plot(d[:,0], d[:,1]/1000, marker='o', label="XDP")
-plt.plot(nprot[:,0], nprot[:,1]/1000, marker='o', label="No XDP")
-plt.xlabel("Mpps")
+plt.plot(nprot[:,0], nprot[:,1]/1000, marker='s', label="No XDP")
+plt.xlabel("Mpps DOS traffic")
 plt.ylabel("TCP Ktrans/s")
 plt.legend()
 plt.plot()
+plt.savefig(BASEDIR+"/figures/ddos-test.pdf")
+plt.show()
 #+END_SRC
 
 #+RESULTS:
 :results:
-# Out[7]:
-: []
-[[file:./obipy-resources/mFtVeW.svg]]
+# Out[66]:
+[[file:./obipy-resources/rs2jRq.svg]]
 :end:
 
 
