@@ -461,12 +461,19 @@ Ethtool(mlx5p1  ) stat:     74994463 (     74,994,463) <= rx_vport_unicast_packe
 #+BEGIN_SRC ipython :session :exports both :results silent
 from matplotlib import pyplot as plt
 import numpy as np
+import os
+BASEDIR=os.getenv("XDP_PAPER_BASEDIR")
 #+END_SRC
 
 ** DONE Get real results for XDP_DROP 2-5 cores
 :LOGBOOK:
 - State "DONE"       from "TODO"       [2018-06-09 Sat 20:59]
 :END:
+
+** TODO Try to fix the dip in performance at higher numbers of flows
+Maybe running the traffic generator with 6 flows from the beginning, and just
+varying the flow rules on RX is better? That way we wouldn't get the weird dips
+at higher # of cores.
 
 ** Initial data from Jesper's runs
 |---+----------+----------|
@@ -546,7 +553,54 @@ plt.show()
 
 #+RESULTS:
 :results:
-# Out[29]:
-[[file:./obipy-resources/rygLrn.svg]]
+# Out[36]:
+[[file:./obipy-resources/beY3Mq.svg]]
 :end:
 
+* Graphs used in the paper
+
+** DROP test
+
+#+NAME: drop-test
+#+BEGIN_SRC ipython :session :exports both :results raw drawer :var dpdk_data=dpdk_test[,0:1] :var xdp_data=xdp_base_data[,0:1]
+dpdk = np.array(dpdk_data)
+xdp = np.array(xdp_data)
+plt.plot(dpdk[:,0], dpdk[:,1]/10**6, marker='o', label="DPDK")
+plt.plot(xdp[:,0], xdp[:,1]/10**6, marker='s', label="XDP")
+#plt.plot(d[:,0], d[:,2]/10**6, marker='o', label="XDP_REDIRECT")
+plt.xlabel("Number of cores")
+plt.ylabel("Mpps")
+plt.legend()
+plt.ylim(0,90)
+plt.savefig(BASEDIR+"/figures/drop-test.pdf")
+plt.show()
+#+END_SRC
+
+#+RESULTS: drop-test
+:results:
+# Out[63]:
+[[file:./obipy-resources/YyYHah.svg]]
+:end:
+
+** REDIRECT test
+
+#+NAME: redirect-test
+#+BEGIN_SRC ipython :session :exports both :results raw drawer :var dpdk_data=dpdk_test[,0:1] :var xdp_data=xdp_base_data
+#dpdk = np.array(dpdk_data)
+xdp = np.array(xdp_data)
+#plt.plot(dpdk[:,0], dpdk[:,1]/10**6, marker='o', label="DPDK")
+plt.plot(xdp[:,0], xdp[:,2]/10**6, marker='s', label="XDP")
+#plt.plot(d[:,0], d[:,2]/10**6, marker='o', label="XDP_REDIRECT")
+plt.xlabel("Number of cores")
+plt.ylabel("Mpps")
+plt.legend()
+plt.ylim(0,90)
+plt.savefig(BASEDIR+"/figures/redirect-test.pdf")
+plt.show()
+#+END_SRC
+
+#+RESULTS: redirect-test
+:results:
+# Out[64]:
+[[file:./obipy-resources/UzNQ51.svg]]
+:end:
