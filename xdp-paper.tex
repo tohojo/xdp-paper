@@ -356,6 +356,24 @@ the program will terminate by disallowing loops and limiting the maximum program
 size. The verifier works by first building a directed acyclic graph (DAG) of the
 control flow of the program. This DAG is then verified as follows:
 
+\begin{table}[tbp]
+\caption{\label{tbl:vrf-state-vars}
+eBPF verifier state variables}
+\centering
+\begin{tabular}{ll}
+\toprule
+Variable & Contains\\
+\midrule
+\texttt{type} & One of the types in Table \ref{tbl:reg-types}\\
+\texttt{id} & ID for tracking copies of same variable\\
+\texttt{fixed\_offset} & Pointer offset (after arithmetic)\\
+\texttt{range\_unsigned} & Min and max values (unsigned)\\
+\texttt{range\_signed} & Min and max values (signed)\\
+\texttt{tnum} & Mask and value of known bits\\
+\bottomrule
+\end{tabular}
+\end{table}
+
 First, the verifier performs a depth-first search on the DAG to ensure it
 contains no loops (no backwards jumps) and that it contains no unsupported or
 unreachable instructions. Then, in a second pass, the verifier walks all
@@ -374,6 +392,32 @@ register, listed in Table \ref{tbl:vrf-state-vars}, with the possible types lis
 Table \ref{tbl:reg-types}. The fixed offset is used to track the result of pointer
 arithmetic with fixed values, while the ranges and \emph{tnum} are used to track
 variable offsets of pointers, as well as the ranges of scalar variables.
+
+\begin{table}[tbp]
+\caption{\label{tbl:reg-types}
+eBPF verifier type annotations. The last column indicates whether pointer arithmetic is allowed for this type of pointer.}
+\centering
+\begin{tabular}{lll}
+\toprule
+\multicolumn{3}{c}{\textbf{Non-pointer types}} \\
+Name & Meaning \\
+\midrule
+\texttt{NOT\_INIT}            & Not initialised         \\
+\texttt{SCALAR\_VALUE}        & Any numerical value       \\
+\midrule
+\multicolumn{3}{c}{\textbf{Pointer types}} \\
+Name & Pointing to & Arithm\\
+\midrule
+\texttt{CTX}                  & Context              & Yes \\
+\texttt{MAP}                  & BPF map              & No  \\
+\texttt{MAP\_VALUE}           & Value in map         & Yes \\
+\texttt{MAP\_VALUE\_OR\_NULL} & Value in map or NULL & No  \\
+\texttt{STACK}                & Stack frame          & Yes \\
+\texttt{PACKET}               & Packet data start    & Yes \\
+\texttt{PACKET\_END}          & Packet data end      & No  \\
+\bottomrule
+\end{tabular}
+\end{table}
 
 At the beginning of the program, \texttt{R1} contains a pointer to the execution
 context, and its type is a \texttt{CTX} pointer; \texttt{R10} is a \texttt{STACK}
@@ -425,61 +469,33 @@ offsets) as valid in the other copies. Similarly, for pointers to map values,
 all copies of a pointer returned from the same map lookup share their \emph{id}, and
 a check against NULL will be valid for all of them.
 
-\begin{table}[htbp]
-\caption{\label{tbl:vrf-state-vars}
-eBPF verifier state variables}
-\centering
-\begin{tabular}{ll}
-\toprule
-Variable & Contains\\
-\midrule
-\texttt{type} & One of the types in Table \ref{tbl:reg-types}\\
-\texttt{id} & ID for tracking copies of same variable\\
-\texttt{fixed\_offset} & Pointer offset (after arithmetic)\\
-\texttt{range\_unsigned} & Min and max values (unsigned)\\
-\texttt{range\_signed} & Min and max values (signed)\\
-\texttt{tnum} & Mask and value of known bits\\
-\bottomrule
-\end{tabular}
-\end{table}
 
-\begin{table}[htbp]
-\caption{\label{tbl:reg-types}
-eBPF verifier type annotations. The last column indicates whether pointer arithmetic is allowed for this type of pointer.}
-\centering
-\begin{tabular}{lll}
-\toprule
-\multicolumn{3}{c}{\textbf{Non-pointer types}} \\
-Name & Meaning \\
-\midrule
-\texttt{NOT\_INIT}            & Not initialised         \\
-\texttt{SCALAR\_VALUE}        & Any numerical value       \\
-\midrule
-\multicolumn{3}{c}{\textbf{Pointer types}} \\
-Name & Pointing to & Arithm\\
-\midrule
-\texttt{CTX}                  & Context              & Yes \\
-\texttt{MAP}                  & BPF map              & No  \\
-\texttt{MAP\_VALUE}           & Value in map         & Yes \\
-\texttt{MAP\_VALUE\_OR\_NULL} & Value in map or NULL & No  \\
-\texttt{STACK}                & Stack frame          & Yes \\
-\texttt{PACKET}               & Packet data start    & Yes \\
-\texttt{PACKET\_END}          & Packet data end      & No  \\
-\bottomrule
-\end{tabular}
-\end{table}
 \section{Performance evaluation}
 \label{sec:perf-eval}
-\subsection{Micro-benchmarks}
+In this section we present our performance evaluation of XDP, using synthetic
+benchmarks to look at specific aspects of the packet processing capabilities. In
+the next section, we supplement this with a description and evaluation of a
+series of real-world use cases.
+
+For all benchmarks, we use a machine equipped with a hexa-core Intel Xeon
+E5-1650 v4 CPU running at 3.60GHz, and memory modules installed in all four
+memory slots, to get the full available memory bandwidth. This CPU supports
+Intel's Data Direct I/O (DDIO) technology, which makes it possible for the
+networking hardware using Direct Memory Access (DMA) to place data directly into
+the processor cache, which eliminates cache misses on subsequent processing of
+the data. The test machine is equipped with two Mellanox ConnectX-5 dual-port
+100Gbps network adapters, installed in PCI Express v3 16-lane slots, which
+ensures that the PCI bus has enough nominal bandwidth available to match the
+network adapter speed for a single port on each card. However, even so, in some
+of our tests the performance is bottlenecked at the PCI bus, as we will see
+below.
+
 \begin{figure}[t]
 \centering
 \includegraphics[width=\linewidth]{figures/xdp-baseline.pdf}
 \caption{\label{fig:xdp-baseline} Baseline XDP performance.}
 \end{figure}
 
-\label{sec:org72788e2}
-\subsection{Comparison with DPDK/netmap}
-\label{sec:org7f03063}
 \section{Real-world use cases}
 \label{sec:usecases}
 \subsection{DDOS mitigation}
