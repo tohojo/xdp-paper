@@ -549,7 +549,7 @@ beyond these limits given a suitable traffic source. \textbf{FIXME: Is this
 The reason the performance dips at five and six cores is because dividing the
 traffic over several cores requires using the Receive Side Scaling (RSS)
 features of the hardware, which can divide up traffic between hardware receive
-queues (each of which are bound to separate cores) based on packet header
+queues (each of which is bound to a separate core) based on packet header
 information. Using this requires the traffic generator to generate the traffic
 as separate flows, which means its maximum throughput drops.
 
@@ -576,13 +576,88 @@ sub-linear performance increases as more cores are added. We attribute this to
 
 \section{Real-world use cases}
 \label{sec:usecases}
-\subsection{DDOS mitigation}
-\label{sec:org5f83e1d}
+In this section we describe and evaluate three real-world use cases that
+showcase various ways in which XDP can used to implement useful applications or
+features. These use cases have all seen real-world deployment in one form or
+another, although we use simplified versions in our evaluation so as to be able
+to make the code available.
+
+The three use cases are inline Denial of Service (DoS) mitigation, a software
+layer-3 router, and an application load-balancer, and are described in turn in
+each of the following subsections.
+
+\subsection{Inline DoS Mitigation}
+\label{sec:dos-usecase}
+DoS attacks continue to plague the internet, typically in the form of
+distributed attacks (DDoS attacks) from compromised devices attached to the
+internet. There are various ways to mitigate them, but having some kind of
+service that protects critical infrastructure is typically at least a component
+of DDoS mitigation \textbf{FIXME: citation needed}. This can be done by
+filtering all traffic through a device that distinguish legitimate traffic from
+attacks, and drop the attack packets before they reach the application server.
+
+The obvious problem with protecting against a DDoS attack is the sheer scale of
+the traffic that needs to be dropped, which leads to the use of expensive
+appliances to handle the dropping. However, with XDP we have another option:
+installing the traffic filter directly on the application server in the form of
+an XDP program, which is possible without any other modifications to the server.
+In the case of a virtual machine deployment, the filter can even be installed on
+the hypervisor, and thus protect all virtual machines running on the host.
+
+How to identify attack traffic is not our focus here, but rather the mechanism
+that drops the unwanted traffic. We simply assume that there exists \emph{some}
+way of identifying which traffic is legitimate and which isn't. Because of the
+dynamic nature of XDP, there are many options available: BPF maps could be used
+for while-listing or black-listing, the packet payload could be inspected, etc.
+It is even possible to load new XDP programs especially tailored towards
+dropping a particular kind of attack traffic as the need arises. However, in our
+example, we simply assume that a server hosts a TCP-based service, and so
+consider all UDP traffic as unwanted.
+
+To test the performance of such a solution, we use the Netperf benchmarking
+tool~\cite{netperf}. This is equipped with a TCP-based round-trip benchmark,
+which opens a TCP connection and sends a small payload which is echoed back from
+the server, repeating as soon as a reply is received. The output is the number
+of transactions per second, which is a good proxy for an interactive TCP
+session, such as small remote procedure calls.
+
+We first measure the baseline performance of this test, and see that we are able
+to perform around 25.000 transactions per second with no competing traffic. We
+then, from a separate machine, offer an increasing load of small UDP packets,
+which simulates the DoS attack, and measure how the TCP application is affected.
+The network interface is configured to redirect all traffic to a single receive
+queue, so all packets are processed by the same CPU core. This is important in
+this use case, because the machine will be running other applications on the
+remaining cores, and so we don't want to dedicate too many resources to just
+packet processing\footnote{The actual number of cores dedicated to packet
+  processing will of course have to depend on the volume of traffic the filter
+  should be able to process.}.
+
 \begin{figure}[t]
 \centering
 \includegraphics[width=\linewidth]{figures/ddos-test.pdf}
-\caption{\label{fig:ddos-results} DDOS performance.}
+\caption{\label{fig:ddos-results} DDOS performance. Number of TCP transactions
+  per second with different levels of UDP packet floods being sent to the
+  server.}
 \end{figure}
+
+The results of this is shown in Figure~\ref{fig:ddos-results}. It is clearly
+seen that without the XDP filter, performance drops significantly, being halved
+at 2.5 Mpps and effectively zero at just below 3 Mpps. However, with the XDP
+filter in place, performance is kept above 20.000 transactions per second up to
+19 Mpps, after which it drops rapidly. The small increase in baseline
+performance (from 24,500 to 25,500 transactions per second) is because the XDP
+program uses the \emph{redirect} feature to move the network stack processing of
+the application traffic to a separate CPU core, to make sure the application
+performance is not impacted by handling of the DoS traffic.
+
+As these results show, it is quite feasible to perform this kind of filtering in
+XDP, and comfortably handle packet rates above 10\,Gbps of DoS traffic (with
+minimum packet sizes) on a single CPU core. Deploying DoS mitigation this way
+leads to increased flexibility, both because of the programmability offered by
+XDP, but also because it eliminates the need for at separate appliance to scrub
+the traffic.
+
 \subsection{Packet forwarding layer 2/3}
 \label{sec:org3681460}
 \begin{itemize}
