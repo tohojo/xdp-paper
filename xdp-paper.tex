@@ -285,25 +285,18 @@ integrations between the running kernel and the XDP system.
 
 The eBPF modifies the BPF virtual machine as follows:
 
-\begin{table}[htbp]
+\begin{table}[tbp]
 \caption{\label{tbl:reg-map}
 eBPF to x86\_64 register mapping.}
 \centering
-\begin{tabular}{ll}
+\begin{tabular}{ll|ll|ll}
 \toprule
-eBPF & x86\_64\\
+eBPF & x86\_64 & eBPF & x86\_64 & eBPF & x86\_64\\
 \midrule
-R0 & rax\\
-R1 & rdi\\
-R2 & rsi\\
-R3 & rdx\\
-R4 & rcx\\
-R5 & r8\\
-R6 & rbx\\
-R7 & r13\\
-R8 & r14\\
-R9 & r15\\
-R10 & rbp\\
+R0 & rax & R4 & rcx & R8 & r14\\
+R1 & rdi & R5 & r8 &  R9 & r15\\
+R2 & rsi & R6 & rbx & R10 & rbp\\
+R3 & rdx & R7 & r13\\
 \bottomrule
 \end{tabular}
 \end{table}
