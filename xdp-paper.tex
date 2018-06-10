@@ -681,6 +681,21 @@ performed yet), the XDP program can instead pass the packet to the networking
 stack, which will perform the neighbour lookup, allowing subsequent packets to
 be forwarded by the XDP fast path.
 
+To show the performance of the software router use case, we use the XDP routing
+example that is included in the Linux kernel source and compare its performance
+to the native Linux networking stack routing. The example simply parses the IP
+header of an incoming packet, does a routing table lookup, and immediately
+forwards the packet if a match is found, or passes it up to the network stack if
+not. We perform two tests: one with a single route installed in the routing
+table and all packets set to the same destination address. And another where we
+import a full dump of the global BGP routing table from \url{routeviews.org},
+where we set all next-hop addresses to the same value, but vary the source
+addresses of the packets being routed. In the first test we compare the
+performance with the layer-3 forwarding example included with the DPDK source
+code; but because this example only supports a fixed routing table, we do not
+perform the full BGP table comparison with DPDK.
+
+The performance of this use case is seen in Figure~\textbf{FIXME}.
 
 \subsection{Load-balancer}
 \label{sec:org685e28c}
