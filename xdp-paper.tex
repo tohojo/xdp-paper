@@ -658,9 +658,28 @@ leads to increased flexibility, both because of the programmability offered by
 XDP, but also because it eliminates the need for at separate appliance to scrub
 the traffic.
 
-\subsection{Packet forwarding layer 2/3}
+\subsection{Software Router}
 \label{sec:fwd-usecase}
+The second use case is that of a software router. The Linux kernel already
+contains a full-featured routing table, which includes support for policy
+routing, source-specific routing, equal-cost multipath load balancing, and more.
+And routing daemons such as Bird or FRR implement a variety of routing control
+plane protocols, which makes it quite feasible to turn a Linux system into a
+full-featured software router. However, thus far the data plane forwarding
+performance has kept this from being feasible at very high rates.
 
+Because of the rich ecosystem for routing on Linux, improving performance of the
+kernel data plane is desirable, as re-implementing the routing stack in another
+data processing framework carries a high cost. Thus, XDP is particularly suited
+for this task. This is also the reason why one of the first kernel helpers
+introduced to XDP is a routing table lookup function. This function makes it
+possible to perform full routing table lookups directly from XDP. The result of
+the lookup is an egress interface and a next-hop MAC address, which makes it
+possible for the XDP program to immediately forward the packet if the lookup
+succeeds. If no next-hop MAC is known (because neighbour lookup hasn't been
+performed yet), the XDP program can instead pass the packet to the networking
+stack, which will perform the neighbour lookup, allowing subsequent packets to
+be forwarded by the XDP fast path.
 
 
 \subsection{Load-balancer}
