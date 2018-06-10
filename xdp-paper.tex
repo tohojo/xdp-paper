@@ -490,6 +490,41 @@ network adapter speed for a single port on each card. However, even so, in some
 of our tests the performance is bottlenecked at the PCI bus, as we will see
 below.
 
+We use the TRex packet generator~\cite{cisco18:_trex_traff_gener} to produce the
+test traffic. The test machine runs a version of the Linux kernel that will
+be released as v4.18. We make details of our setup, links to source code and the
+raw test data available in an online repository~\cite{test-data}.
+
+To show the performance achievable with XDP, we perform the following
+measurements, which correspond to the four different return codes shown in
+Figure~\ref{fig:xdp-execution} above:
+
+\begin{itemize}
+\item Maximum packet processing performance. We install a simple XDP program
+  that drops packets after receiving them.
+
+\item Packet mirroring performance. Here we measure the performance of sending
+  packets out the same network interface that they arrived on.
+
+\item Packet forwarding performance. Here we install a simple XDP program that
+  redirects packets out a different interface as they arrive.
+
+\item Inline packet processing. We install an XDP program that allows the
+  packets to proceed to the kernel networking stack, to measure the overhead
+  that XDP processing introduces in the kernel receive path.
+\end{itemize}
+
+For all of these tests, we measure the maximum how many packets per second the
+system can process, as well as the CPU usage required for processing different
+offered loads. We compare the performance with the \texttt{testpmd} example
+application shipped with DPDK framework, and with the regular Linux kernel
+network stack (except for the inline processing use case, which is specific to
+XDP). For all tests, we use minimum-sized (64 bytes) packets, since processing a
+high number of packets per second is the most challenging, and using larger
+packets only exacerbates the PCI bus bottleneck.
+
+
+
 \begin{figure}[t]
 \centering
 \includegraphics[width=\linewidth]{figures/xdp-baseline.pdf}
