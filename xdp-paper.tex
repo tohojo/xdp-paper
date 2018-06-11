@@ -523,11 +523,11 @@ memory slots, to get the full available memory bandwidth. This CPU supports
 Intel's Data Direct I/O (DDIO) technology, which makes it possible for the
 networking hardware using Direct Memory Access (DMA) to place data directly into
 the processor cache, which eliminates cache misses on subsequent processing of
-the data. The test machine is equipped with two Mellanox ConnectX-5 dual-port
-100Gbps network adapters, installed in PCI Express v3 16-lane slots, which
-ensures that the PCI bus has enough nominal bandwidth available to match the
-network adapter speed for a single port on each card. However, even so, in some
-of our tests the performance is bottlenecked at the PCI bus, as we will see
+the data. The test machine is equipped with two Mellanox ConnectX-5 Ex VPI
+dual-port 100Gbps network adapters, installed in PCI Express v3 16-lane slots,
+which ensures that the PCI bus has enough nominal bandwidth available to match
+the network adapter speed for a single port on each card. However, even so, in
+some of our tests the performance is bottlenecked at the PCI bus, as we will see
 below.
 
 We use the TRex packet generator~\cite{cisco18:_trex_traff_gener} to produce the
