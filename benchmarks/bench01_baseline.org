@@ -458,13 +458,6 @@ Ethtool(mlx5p1  ) stat:   4499667608 (  4,499,667,608) <= rx_vport_unicast_bytes
 Ethtool(mlx5p1  ) stat:     74994463 (     74,994,463) <= rx_vport_unicast_packets /sec
 #+END_EXAMPLE
 * Data and graphs
-#+BEGIN_SRC ipython :session :exports both :results silent
-from matplotlib import pyplot as plt
-import numpy as np
-import os
-BASEDIR=os.getenv("XDP_PAPER_BASEDIR")
-#+END_SRC
-
 ** DONE Get real results for XDP_DROP 2-5 cores
 :LOGBOOK:
 - State "DONE"       from "TODO"       [2018-06-09 Sat 20:59]
@@ -558,6 +551,57 @@ plt.show()
 :end:
 
 * Graphs used in the paper
+
+** Figure style
+Evaluate this section to get the right figure styles:
+
+#+BEGIN_SRC ipython :session :exports both :results silent
+%config InlineBackend.figure_format = 'svg'
+from matplotlib import pyplot as plt
+import numpy as np
+import os
+BASEDIR=os.getenv("XDP_PAPER_BASEDIR") # or set manually
+
+mpl.rcParams.update({
+    'axes.axisbelow': True,
+    'axes.edgecolor': 'white',
+    'axes.facecolor': '#E6E6E6',
+    'axes.formatter.useoffset': False,
+    'axes.grid': True,
+    'axes.labelcolor': 'black',
+    'axes.linewidth': 0.0,
+    'axes.prop_cycle': mpl.cycler('color', ["#1b9e77", "#d95f02", "#7570b3",
+                                            "#e7298a", "#66a61e", "#e6ab02",
+                                            "#a6761d", "#666666"]),
+    'figure.edgecolor': 'white',
+    'figure.facecolor': 'white',
+    'figure.figsize': (8.0, 5.0),
+    'figure.frameon': False,
+    'figure.subplot.bottom': 0.125,
+    'font.size': 16,
+    'grid.color': 'white',
+    'grid.linestyle': '-',
+    'grid.linewidth': 1,
+    'image.cmap': 'Greys',
+    'legend.frameon': False,
+    'legend.numpoints': 1,
+    'legend.scatterpoints': 1,
+    'lines.color': 'black',
+    'lines.linewidth': 1,
+    'lines.solid_capstyle': 'round',
+    'pdf.fonttype': 42,
+    'savefig.dpi': 100,
+    'text.color': 'black',
+    'xtick.color': 'black',
+    'xtick.direction': 'out',
+    'xtick.major.size': 0.0,
+    'xtick.minor.size': 0.0,
+    'ytick.color': 'black',
+    'ytick.direction': 'out',
+    'ytick.major.size': 0.0,
+    'ytick.minor.size': 0.0})
+#+END_SRC
+
 
 ** DROP test
 
