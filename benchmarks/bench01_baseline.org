@@ -684,7 +684,7 @@ mpl.rcParams.update({
 ** DROP test
 
 #+NAME: drop-test
-#+BEGIN_SRC ipython :session :exports both :results raw drawer :var dpdk_data=dpdk_test[,0:1] :var xdp_data=xdp_base_data[,0:1]
+#+BEGIN_SRC ipython :session :exports both :results raw drawer :var dpdk_data=dpdk_test2[,0:1] :var xdp_data=xdp_base_data[,0:1]
 dpdk = np.array(dpdk_data)
 xdp = np.array(xdp_data)
 plt.plot(dpdk[:,0], dpdk[:,1]/10**6, marker='o', label="DPDK")
@@ -693,15 +693,15 @@ plt.plot(xdp[:,0], xdp[:,1]/10**6, marker='s', label="XDP")
 plt.xlabel("Number of cores")
 plt.ylabel("Mpps")
 plt.legend()
-plt.ylim(0,90)
+plt.ylim(0,130)
 plt.savefig(BASEDIR+"/figures/drop-test.pdf")
 plt.show()
 #+END_SRC
 
 #+RESULTS: drop-test
 :results:
-# Out[5]:
-[[file:./obipy-resources/uYTlho.svg]]
+# Out[24]:
+[[file:./obipy-resources/lHDMuO.svg]]
 :end:
 
 ** REDIRECT test
