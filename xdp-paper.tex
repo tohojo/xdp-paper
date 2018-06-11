@@ -32,31 +32,25 @@
 
 
 \begin{abstract}
-  % FIXME: Abstract should be <= 200 words
   Programmable packet processing in software has become increasingly popular, as
   increases in computational power has made it possible to run custom
-  programmable pipelines at high speeds. This is generally implemented by
-  so-called kernel bypass techniques, where a userspace application takes
-  complete control of the networking hardware to avoid expensive context
-  switches between kernel and user space.
-
-  However, this approach makes high-speed packet processing an all-or-nothing
-  proposition, where the processing application has to handle all network
-  traffic, reinventing a lot of functionality already present in the kernel.
-  Interoperability with other applications is also difficult, requiring
-  cumbersome re-injection of packets into the kernel.
+  programmable pipelines at high speeds. Often, this is implemented by so-called
+  kernel bypass techniques, where a userspace application takes complete control
+  of the networking hardware to avoid expensive context switches between kernel
+  and user space. However, this approach makes high-speed packet processing an
+  all-or-nothing proposition, where the processing application has to either
+  handle all network traffic itself, or perform cumbersome re-injection of
+  packets into the kernel.
 
   In this paper, we present an alternative approach to programmable packet
   processing, where the kernel provides a safe execution environment for custom
-  packet processing applications, executed directly in the context of the kernel
-  device driver. This system, called the eXpress Data Path (XDP), is part of the
+  packet processing applications, executed in the context of the kernel device
+  driver. This system, called the eXpress Data Path (XDP), is part of the
   mainline Linux kernel, and has been gradually expanded over the last several
-  releases. We describe the design of the system and how it integrates with the
-  rest of the kernel. Through a range of real-world examples we illustrate the
-  flexibility of this model and how it can be used to implement a wide range of
-  applications with performance measure in tens of millions of packets per
-  second.
-  % TODO: Be specific about use cases
+  releases. We show that XDP achieves a maximum packet processing performance of
+  25 million packets per second on a single core, and illustrate the flexibility
+  of the programming model through three example use cases: inline DDOS
+  protection, layer-3 routing and layer-4 load balancing.
 \end{abstract}
 
 % TODO: Add ccsxml tags and update keywords
@@ -505,6 +499,9 @@ be used to batch packets from subsequent calls, and defer the actual
 transmission out of the destination interface until the end of the NAPI poll
 sequence. Using the map structure to achieve this makes it transparent to the
 calling program and even the device driver.
+
+\textbf{FIXME: Is the above correct? And is there anything else we need to add
+  to this section?}
 
 \section{Performance evaluation}
 \label{sec:perf-eval}
