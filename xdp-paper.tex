@@ -145,7 +145,9 @@ together. We begin with a high-level overview of the XDP programming model and
 how various features of the kernel combine to form a powerful programmable data
 plane. Following this, we look in detail at the extended BSD Packer Filter
 (eBPF) virtual machine providing the execution model, and the in-kernel verifier
-that ensures the safety of loaded eBPF programs.
+that ensures the safety of loaded eBPF programs. Finally, we give an overview of
+some of the performance optimisations that are part of the XDP system, and which
+help ensure high performance.
 
 Figure~\ref{fig:xdp-kernel} shows a diagram of how XDP integrates into the Linux
 kernel, and Figure~\ref{fig:xdp-execution} shows the execution flow of a typical
@@ -470,6 +472,44 @@ all copies of a pointer returned from the same map lookup share their \emph{id},
 a check against NULL will be valid for all of them.
 
 
+
+\subsection{Performance Optimisations in XDP}
+\label{sec:perf-optim-xdp}
+
+Much of the performance improvement that XDP represents over the standard Linux
+networking stack is due to the processing happening before data structures are
+created and memory allocated. However, there are also a couple of performance
+enhancement techniques that have specifically been applied over the development
+of XDP (although some of them also benefit the normal stack). In this section we
+outline these techniques, and how they apply to XDP.
+
+Packet processing on general-purpose hardware, as is done with XDP, inevitably
+carries some overhead costs related to getting the packets transferred to the
+system memory, processing them by the CPU, and sending them back to the
+hardware. Amortising these costs over multiple packets through bulking is an
+essential technique to achieve high performance. In Linux, there are two main
+ways bulking is achieved: On the receive path, the NAPI mechanism~\cite{napi}
+amortises the cost of interrupts from the hardware, by temporarily turning off
+interrupts each time a packet is received, and instead polling to receive a
+batch of packets at once. This mechanism has been available in Linux for a long
+time; but for XDP it carries with it additional benefits, since the XDP program
+can be executed directly in the NAPI poll context.
+
+A similar issue is seen on the transmit path, where updating the tail pointer in
+the device ring buffer initiates a transmit operation to the hardware, which
+carries with it some overhead. To amortise this, XDP uses two mechanisms: When
+the XDP program indicates that the packet should be transmitted out on the same
+interface it came in on, it is put into the transmit ring buffer immediately,
+but the tail pointer update is deferred until the end of the NAPI poll sequence,
+which causes batching of all packets in the same sequence on transmit as well.
+When redirecting packets to a different interface, another mechanism is used to
+achieve the same thing: the redirect mechanism can use a BPF map to lookup the
+destination interface. When doing so, the map also contains a buffer that will
+be used to batch packets from subsequent calls, and defer the actual
+transmission out of the destination interface until the end of the NAPI poll
+sequence. Using the map structure to achieve this makes it transparent to the
+calling program and even the device driver.
+
 \section{Performance evaluation}
 \label{sec:perf-eval}
 In this section we present our performance evaluation of XDP, using synthetic
@@ -571,8 +611,6 @@ sub-linear performance increases as more cores are added. We attribute this to
 \includegraphics[width=\linewidth]{figures/redirect-test.pdf}
 \caption{\label{fig:redirect-test} Packet forwarding performance.}
 \end{figure}
-
-
 
 \section{Real-world use cases}
 \label{sec:usecases}
