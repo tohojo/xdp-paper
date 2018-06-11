@@ -534,6 +534,69 @@ Or instead of interactive mode, use stats reporting mode:
 
 From 3-5 this is actually bounded by the traffic generator, it would seem.
 
+Trying faster generator setup:
+
+Using two packet generators.  T-rex sending 99 Mpps and kernel pktgen
+(pktgen_sample05_flow_per_thread.sh) sending approx 45 Mpps.  Ethtool
+stats show on 100G switch show 144,371,992 pps TX towards DUT :
+
+#+BEGIN_EXAMPLE
+Show adapter(s) (sw1p5 sw1p9 sw1p13) statistics (ONLY that changed!)
+Ethtool(sw1p5   ) stat:     46132421 (     46,132,421) <= a_frames_received_ok /sec
+Ethtool(sw1p5   ) stat:     98833878 (     98,833,878) <= a_frames_transmitted_ok /sec
+Ethtool(sw1p5   ) stat:       667329 (        667,329) <= a_mac_control_frames_received /sec
+Ethtool(sw1p5   ) stat:   2952475678 (  2,952,475,678) <= a_octets_received_ok /sec
+Ethtool(sw1p5   ) stat:   6325368523 (  6,325,368,523) <= a_octets_transmitted_ok /sec
+Ethtool(sw1p5   ) stat:       667329 (        667,329) <= a_pause_mac_ctrl_frames_received /sec
+Ethtool(sw1p5   ) stat:     45465150 (     45,465,150) <= rx_frames_prio_0 /sec
+Ethtool(sw1p5   ) stat:   2952478555 (  2,952,478,555) <= rx_octets_prio_0 /sec
+Ethtool(sw1p5   ) stat:         -122 (           -122) <= tc_transmit_queue_tc_0 /sec
+Ethtool(sw1p5   ) stat:     98834011 (     98,834,011) <= tx_frames_prio_0 /sec
+Ethtool(sw1p5   ) stat:   6325376817 (  6,325,376,817) <= tx_octets_prio_0 /sec
+Ethtool(sw1p9   ) stat:    144371988 (    144,371,988) <= a_frames_transmitted_ok /sec
+Ethtool(sw1p9   ) stat:   9239808140 (  9,239,808,140) <= a_octets_transmitted_ok /sec
+Ethtool(sw1p9   ) stat:         -276 (           -276) <= tc_transmit_queue_tc_0 /sec
+Ethtool(sw1p9   ) stat:    144371992 (    144,371,992) <= tx_frames_prio_0 /sec
+Ethtool(sw1p9   ) stat:   9239807395 (  9,239,807,395) <= tx_octets_prio_0 /sec
+Ethtool(sw1p13  ) stat:     98855049 (     98,855,049) <= a_frames_received_ok /sec
+Ethtool(sw1p13  ) stat:     45474257 (     45,474,257) <= a_frames_transmitted_ok /sec
+Ethtool(sw1p13  ) stat:   6326723716 (  6,326,723,716) <= a_octets_received_ok /sec
+Ethtool(sw1p13  ) stat:   2910352561 (  2,910,352,561) <= a_octets_transmitted_ok /sec
+Ethtool(sw1p13  ) stat:     98855091 (     98,855,091) <= rx_frames_prio_0 /sec
+Ethtool(sw1p13  ) stat:   6326726369 (  6,326,726,369) <= rx_octets_prio_0 /sec
+Ethtool(sw1p13  ) stat:          -61 (            -61) <= tc_transmit_queue_tc_0 /sec
+Ethtool(sw1p13  ) stat:     45474290 (     45,474,290) <= tx_frames_prio_0 /sec
+Ethtool(sw1p13  ) stat:   2910354419 (  2,910,354,419) <= tx_octets_prio_0 /sec
+#+END_EXAMPLE
+
+Testpmd command used changing variable CORES:
+
+: export CORES=3 ; sudo build/app/testpmd -l 0-5 -n 4 -- --nb-cores=$CORES --forward-mode=rxonly --auto-start --portmask=0x1 --rxq $CORES --txq $CORES --rss-udp --stats-period=2
+
+#+NAME: dpdk_test2
+| Cores |    RX PPS | Forward PPS |
+|-------+-----------+-------------|
+|     1 |  43617057 |             |
+|     2 |  75034064 |             |
+|     3 |  97535287 |             |
+|     4 | 115806957 |             |
+|     5 | 100600263 |             |
+
+Ethtools stats (works due to Mellanox bifiscated driver) for
+dpdk_test2 with 5 cores:
+
+#+BEGIN_EXAMPLE
+Show adapter(s) (mlx5p1) statistics (ONLY that changed!)
+Ethtool(mlx5p1  ) stat:    144075528 (    144,075,528) <= rx_64_bytes_phy /sec
+Ethtool(mlx5p1  ) stat:   9220824984 (  9,220,824,984) <= rx_bytes_phy /sec
+Ethtool(mlx5p1  ) stat:     42595068 (     42,595,068) <= rx_discards_phy /sec
+Ethtool(mlx5p1  ) stat:    144075393 (    144,075,393) <= rx_packets_phy /sec
+Ethtool(mlx5p1  ) stat:   9220821849 (  9,220,821,849) <= rx_prio0_bytes /sec
+Ethtool(mlx5p1  ) stat:    101480704 (    101,480,704) <= rx_prio0_packets /sec
+Ethtool(mlx5p1  ) stat:   6088740630 (  6,088,740,630) <= rx_vport_unicast_bytes /sec
+Ethtool(mlx5p1  ) stat:    101479024 (    101,479,024) <= rx_vport_unicast_packets /sec
+#+END_EXAMPLE
+
 #+BEGIN_SRC ipython :session :exports both :results raw drawer :var data=dpdk_test[,0:1]
 d = np.array(data)
 plt.plot(d[:,0], d[:,1]/10**6, marker='o', label="rxonly")
