@@ -61,46 +61,51 @@
 \section{Introduction}%
 \label{sec:introduction}
 High-performance packet processing in software has very tight bounds on the time
-spent processing each packet ($\simeq17$~ns per packet at 40 Gbps). Network
+spent processing each packet ($\simeq6$~ns per packet at 100 Gbps). Network
 stacks in general purpose operating systems typically perform too many
 operations per packet to be able to keep up with this packet rate, which has led
-to increased popularity of special-purpose networking toolkits for software
-packet processing, which either bypass the operating system completely, or
-modify it to better accommodate high-speed packet processing. Both of these
-approaches improve performance, but have the drawback that they are more
-difficult to integrate with the existing networking stack, sometimes even
-leading to the need to re-implement large parts of the stack. In the worst case,
-this leads to the need to operate two separate stacks; one to perform high-speed
-packet processing and one to run normal applications.
+to increased popularity of special-purpose toolkits for software packet
+processing, such as the Data Plane Development Kit (DPDK)~\cite{dpdk}, which
+bypass the operating system completely, instead passing control of the network
+hardware directly to the network application. This approach can significantly
+improve performance, but has the drawback that it is more difficult to integrate
+with the existing networking stack, and applications have to re-implement large
+parts of the stack. In the worst case, this leads to the need to operate two
+separate stacks; one to perform high-speed packet processing and one to run
+normal applications, leading to increased management and maintainability costs.
 
-In this work we present an alternative approach: A novel way to integrate
-programmable packet processing directly into the operating system networking
-stack in a cooperative way, making it possible to perform high-speed packet
-processing that integrates seamlessly with existing systems, while selective
-leveraging functionality in the operating system. This framework, called the
-eXpress Data Path (XDP), works by defining a limited execution environment based
-on an extended version of the Berkeley Packet Filter virtual machine, which
-allows verified programs to run directly in the device driver context, before
-the kernel performs any other packet processing tasks.
+As an alternative to the all-or-nothing kernel bypass packet processing
+technique, we present a system that adds programmability directly in the
+operating system networking stack in a cooperative way, making it possible to
+perform high-speed packet processing that integrates seamlessly with existing
+systems, while selective leveraging functionality in the operating system. This
+framework, called the eXpress Data Path (XDP), works by defining a limited
+execution environment based on an extended version of the Berkeley Packet Filter
+virtual machine, which allows verified programs to run directly in the device
+driver context, before the kernel performs any other packet processing tasks.
 
-XDP achieves extremely high packet processing performance on a single core,
-making it possible to implement applications that previously required their own
-appliance, such as DDOS protection and load balancing, directly on application
-servers. It also allows a hybrid approach, where certain fast path processing is
-offloaded to XDP while retaining normal network stack processing for other
-packets. This allows for high throughput and low latency processing without
-sacrificing flexibility.
+XDP has been gradually integrated into the Linux kernel over the last several
+releases. However, no complete architectural description of the system as a
+whole exists in the literature. In this work we present such a high-level design
+decription of XDP, its capabilities and how it integrates with the rest of the
+Linux kernel. Our performance analysis shows raw packet processing performance
+on a single core of up to 25 million packets per second. In addition,
+performance scales both downwards, by decreasing CPU usage as the traffic load
+drops, and upwards, by increasing performance with the number of cores dedicated
+to packet processing.
 
-While XDP has been gradually integrated into the Linux kernel over the last
-several releases, no complete description of the system as a whole exists. In
-this work we remedy this, and present the design of XDP, its capabilities and
-integration with the rest of the Linux kernel. Our performance analysis shows
-raw packet processing performance on a single core exceeding 20 million packets
-per second, and scaling linearly with the number of cores. We supplement this
-with three examples of real-world use cases that can be straight-forwardly
-implemented in XDP:\,inline DDOS protection on a hypervisor host or application
-server; load balancing by rewriting packets and resubmitting them to the
-network; and a layer-3 software router implementation.
+Because of its integration with the kernel networking stack, and its high
+performance, XDP makes it possible to implement applications that previously
+required their own networking appliance, such as DDOS protection and load
+balancing, directly on application servers. It also allows a hybrid approach,
+where certain fast path processing is offloaded to XDP while retaining normal
+network stack processing for other packets. This allows for high performance
+processing without sacrificing flexibility. To illustrate these facets of XDP,
+we supplement our synthetic performance benchmarks with three examples of
+real-world use cases that can be implemented in XDP: inline DDOS protection on a
+hypervisor host or application server; full layer-3 packet forwarding
+capabilities; and layer-4 load balancing by encapsulating packets and
+resubmitting them to the network.
 
 The rest of this paper is structured as follows: Section~\ref{sec:related-work}
 first outlines related work. Section~\ref{sec:design} then presents the design
