@@ -861,10 +861,20 @@ planned for the future.
 
 \section{Conclusions}
 \label{sec:conclusion}
+We have presented XDP, a system for safely integrating high-speed programmable
+packet processing directly in the Linux kernel. This represents an alternative
+solution to all-or-nothing kernel bypass solutions, which makes it easier to
+integrate the packet processing with normal applications.
 
+Our evaluation has shown that XDP achieves raw packet processing performance of
+up to 25 million packets per second on a single CPU core. We have also
+demonstrated three examples of real-world use cases that can be implemented with
+XDP: Inline DDOS mitigation, layer-3 forwarding, and layer-4 load balancing.
 
-
-
+XDP continues to be actively developed by the Linux community, and we believe
+that it offers a compelling alternative to other high-speed packet processing
+frameworks, especially where integrating with existing systems and applications
+is important.
 
 \bibliographystyle{ACM-Reference-Format}
 \bibliography{xdp}
