@@ -121,6 +121,7 @@ Install RPM tool dependencies:
 #+BEGIN_EXAMPLE
   sudo dnf install createrepo
   sudo dnf install python2-devel redhat-rpm-config rpm-build
+  sudo dnf install tk
 #+END_EXAMPLE
 
 Try using mlnxofedinstall --add-kernel-support option:
@@ -365,3 +366,51 @@ Starts in interactive mode. To run basic rxonly test:
 
 To see current stats:
 : show port stats <id>
+
+* Installing DPDK 18.05 on Fedora 27
+
+The F27 rdma-core looks too old.
+
+The F27 packaged DPDK version 17.08 is likely also too old.  Tried to
+run testpmd and it didn't detect any interfaces.
+
+Give DPDK is already packages, we can easily install the build dependencies:
+
+: sudo dnf builddep dpdk
+
+And package kernel-devel is also needed for compiling DPDK.
+
+The mlx driver(s) need some infiniband libraries.  But the F27 package
+libibverbs-devel via rdma-core-devel is too old. The easiest
+work-around is to install the MLNX_OFED software tar.gz from
+Mellanox'es homepage.
+
+If trying to install rdma-core-devel manually, you also need build dep:
+
+: sudo dnf install libnl3-devel
+
+
+Get DPDK git source:
+
+: git clone git://dpdk.org/dpdk
+
+Follow config+compile instructions from above Ubuntu guide. Remember to
+modify/enable the MLX5 defines in file config/common_base.
+
+
+* Mellanox DPDK PMD drivers use bifurcated mode
+
+As documented in:
+ http://dpdk.org/doc/guides/linux_gsg/linux_drivers.html
+
+The Mellanox drivers uses a Bifurcated mode:
+ https://dpdksummit.com/Archive/pdf/2016Userspace/Day02-Session04-RonyEfraim-Userspace2016.pdf
+
+By using Infiniband verbs, which requires some "ib" kernel drivers and
+userspace libraries for infiniband "libibverbs" (which can be
+difficult to get installed in the correct version)
+
+Thus, loading some extra infiniband kernel driver are needed:
+
+: modprobe ib_uverbs mlx5_ib
+
