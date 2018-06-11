@@ -737,15 +737,66 @@ perform the full BGP table comparison with DPDK.
 
 The performance of this use case is seen in Figure~\textbf{FIXME}.
 
-\subsection{Load-balancer}
-\label{sec:org685e28c}
-\begin{itemize}
-\item \texttt{XDP\_TX}
-\item \texttt{XDP\_REDIRECT} to CPU/VM
-\end{itemize}
+\subsection{Load Balancer}
+\label{sec:load-balancer}
+For the load balancer use case, we use the XDP component of the Katran load
+balancer~\cite{katran} recently released as open source by Facebook. This works
+by announcing a virtual IP address to the world, which is then routed to the
+load balancer. At the load balancer, the XDP program hashes the layer-4 packet
+header using a stable hashing algorithm, which becomes a destination application
+server. The packet is then encapsulated in a new IP header and sent to the
+application server, which is responsible for decapsulating it, processing the
+request, and replying directly to the originator of the request. This means that
+the XDP program can perform the packet encapsulation, and immediately return the
+packet out the same interface, as in the performance test in
+Section~\ref{sec:pack-mirr-perf}.
+
+To test this use case, we configure the Katran XDP program with a fixed number
+of destination hosts, and run it on our test machine. Once the packets are
+returned to the network they are simply dropped; we are only interested in the
+performance of the load balancer component itself. This performance is shown in
+Figure~\textbf{FIXME}.
 
 \section{Limitations and future work}
 \label{sec:limitations}
+%- Busy polling
+%- UX: error msg + debug
+%- driver support
+%- REDIRECT vs ndo_xdp_xmit
+%- queueing
+As we have shown above, XDP has excellent performance, and is already useful in
+a variety of real-world use cases. However, XDP is also relatively new
+technology that is being incrementally added to a general purpose operating
+system kernel. As such, it is constantly evolving, and still has some rough
+edges. In this section we present some of the known limitations, and future
+directions for XDP's development. These include: User experience and debugging;
+driver support; improvements to NAPI; and better handling of rate transitions.
+Each of the following subsections discuss each of these issues in turn.
+% FIXME: CONFIG_RETPOLINE
+
+\subsection{User Experience and Debugging}
+\label{sec:user-exper-debugg}
+
+\subsection{Driver Support}
+\label{sec:driver-support}
+
+\subsection{Improvements to NAPI}
+\label{sec:improvements-napi}
+
+\subsection{Handling of Rate Transitions}
+\label{sec:handl-rate-trans}
+Currently, XDP offers no mechanism to gracefully handle rate transitions, i.e.,
+cases where packets are forwarded to a destination that cannot handle the rate
+of incoming packets. This can happen if, e.g., a 100\,Gbps ingress interface
+attempts to forward packets to a slower 10\,Gbps interface, or to a virtual
+interface or userspace application that cannot process them fast enough.
+
+Since the XDP program signals the packet destination via its return code,
+execution has already ended when the packet forwarding is attempted, and so a
+failure due to a full hardware buffer or a busy userspace application cannot be
+gracefully handled, and will simply result in the packet being silently dropped.
+This is obviously not ideal, and exploring ways to gracefully deal with this is
+planned for the future.
 
 
 \section{Conclusions}
