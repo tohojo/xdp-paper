@@ -597,6 +597,21 @@ Ethtool(mlx5p1  ) stat:   6088740630 (  6,088,740,630) <= rx_vport_unicast_bytes
 Ethtool(mlx5p1  ) stat:    101479024 (    101,479,024) <= rx_vport_unicast_packets /sec
 #+END_EXAMPLE
 
+#+BEGIN_EXAMPLE
+dpdk_test2 with 4 cores
+
+Show adapter(s) (mlx5p1) statistics (ONLY that changed!)
+Ethtool(mlx5p1  ) stat:    144211662 (    144,211,662) <= rx_64_bytes_phy /sec
+Ethtool(mlx5p1  ) stat:   9229552001 (  9,229,552,001) <= rx_bytes_phy /sec
+Ethtool(mlx5p1  ) stat:     28429333 (     28,429,333) <= rx_discards_phy /sec
+Ethtool(mlx5p1  ) stat:    144211748 (    144,211,748) <= rx_packets_phy /sec
+Ethtool(mlx5p1  ) stat:   9229514359 (  9,229,514,359) <= rx_prio0_bytes /sec
+Ethtool(mlx5p1  ) stat:    115783855 (    115,783,855) <= rx_prio0_packets /sec
+Ethtool(mlx5p1  ) stat:   6946966145 (  6,946,966,145) <= rx_vport_unicast_bytes /sec
+Ethtool(mlx5p1  ) stat:    115782780 (    115,782,780) <= rx_vport_unicast_packets /sec
+#+END_EXAMPLE
+
+
 #+BEGIN_SRC ipython :session :exports both :results raw drawer :var data=dpdk_test[,0:1]
 d = np.array(data)
 plt.plot(d[:,0], d[:,1]/10**6, marker='o', label="rxonly")
