@@ -457,6 +457,7 @@ Ethtool(mlx5p1  ) stat:     74992720 (     74,992,720) <= rx_prio0_packets /sec
 Ethtool(mlx5p1  ) stat:   4499667608 (  4,499,667,608) <= rx_vport_unicast_bytes /sec
 Ethtool(mlx5p1  ) stat:     74994463 (     74,994,463) <= rx_vport_unicast_packets /sec
 #+END_EXAMPLE
+
 * Data and graphs
 ** DONE Get real results for XDP_DROP 2-5 cores
 :LOGBOOK:
@@ -572,18 +573,25 @@ Ethtool(sw1p13  ) stat:   2910354419 (  2,910,354,419) <= tx_octets_prio_0 /sec
 Note: DUT was running kernel 4.16.13-200.fc27.x86_64 during these DPDK
 tests to please the MLNX_OFED software.
 
-Testpmd command used changing variable CORES:
+Testpmd DPDK-"drop" command used changing variable CORES:
 
 : export CORES=3 ; sudo build/app/testpmd -l 0-5 -n 4 -- --nb-cores=$CORES --forward-mode=rxonly --auto-start --portmask=0x1 --rxq $CORES --txq $CORES --rss-udp --stats-period=2
 
+Testpmd DPDK-"forward" command used changing variable CORES:
+
+: export CORES=1 ; sudo build/app/testpmd -l 0-5 -n 4 -- --nb-cores=$CORES --forward-mode=mac --auto-start --portmask=0x3 --rxq $CORES --txq $CORES --rss-udp --stats-period=2
+
+Used the testpmd forward-mode "mac", which I don't know if it is
+correct(?).
+
 #+NAME: dpdk_test2
-| Cores |    RX PPS | Forward PPS |
-|-------+-----------+-------------|
-|     1 |  43617057 |             |
-|     2 |  75034064 |             |
-|     3 |  97535287 |             |
-|     4 | 115806957 |             |
-|     5 | 100600263 |             |
+| Cores |    RX PPS | DPDK Forward PPS |
+|-------+-----------+------------------|
+|     1 |  43617057 |         21893094 |
+|     2 |  75034064 |         26549320 |
+|     3 |  97535287 |         38194032 |
+|     4 | 115806957 |         40641805 |
+|     5 | 100600263 |         51173067 |
 
 Ethtools stats (works due to Mellanox bifiscated driver) for
 dpdk_test2 with 5 cores:
