@@ -515,7 +515,7 @@ For this test, we set the packet generator to a fixed pps and report the CPU
 usage using mpstat. For a single core, up to the 26Mpps maximum performance. For
 DPDK this is always 100%, by design.
 
-The interface is running the 'xdp1' sample program.
+The interface is running the 'xdp_rxq_info' sample program with XDP_DROP as action.
 
 3 samples of 30sec intervals:
 : mpstat -P ALL 30 3
@@ -534,13 +534,13 @@ stats.
 |    2 | 71.1 |  40.4 |
 |    3 | 64.8 |  29.2 |
 |    5 | 52.7 |     0 |
-|   10 | 35.8 |     0 |
-|   15 | 25.1 |     0 |
-|   20 |  7.1 |     0 |
-|   23 |    0 |     0 |
+|   10 | 37.6 |     0 |
+|   15 | 25.3 |     0 |
+|   20 |  8.2 |     0 |
+| 24.8 |    0 |     0 |
 |   25 |    0 |     0 |
 |   30 |    0 |     0 |
-|   35 |    0 | 0     |
+|   35 |    0 |     0 |
 |   40 |    0 |     0 |
 |   43 |    0 |     0 |
 * DPDK tests:
@@ -808,8 +808,8 @@ plt.show()
 
 #+RESULTS: drop-cpu
 :results:
-# Out[53]:
-[[file:./obipy-resources/GwfkG9.svg]]
+# Out[57]:
+[[file:./obipy-resources/eaHYbf.svg]]
 :end:
 
 
