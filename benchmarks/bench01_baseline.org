@@ -588,6 +588,39 @@ plt.show()
 [[file:./obipy-resources/yxxa1q.svg]]
 :end:
 
+** CPU usage for lower PPS
+For this test, we set the packet generator to a fixed pps and report the CPU
+usage using mpstat. For a single core, up to the 26Mpps maximum performance. For
+DPDK this is always 100%, by design.
+
+The interface is running the 'xdp_rxq_info' sample program with XDP_DROP as action.
+
+3 samples of 30sec intervals:
+: mpstat -P ALL 30 3
+
+We report average %idle and plot the inverse. For XDP confirm with the output of
+the xdp1 program that no packets are dropped. For iptables --raw look at ethtool
+stats.
+
+#+NAME: cpu_stats
+| Mpps |  XDP | Linux |
+|------+------+-------|
+|    0 |  100 |   100 |
+| 0.25 | 93.0 |  79.0 |
+|  0.5 | 88.3 |  69.8 |
+|    1 | 80.4 |  57.4 |
+|    2 | 71.1 |  40.4 |
+|    3 | 64.8 |  29.2 |
+|    5 | 52.7 |     0 |
+|   10 | 37.6 |     0 |
+|   15 | 25.3 |     0 |
+|   20 |  8.2 |     0 |
+| 24.8 |    0 |     0 |
+|   25 |    0 |     0 |
+|   30 |    0 |     0 |
+|   35 |    0 |     0 |
+|   40 |    0 |     0 |
+|   43 |    0 |     0 |
 * DPDK tests:
 
 Test invocation for RX test:
@@ -810,7 +843,7 @@ mpl.rcParams.update({
 #+END_SRC
 
 
-** DROP test
+** DROP test max PPS
 
 #+NAME: drop-test
 #+BEGIN_SRC ipython :session :exports both :results raw drawer :var dpdk_data=dpdk_test2[,0:1] :var xdp_data=xdp_base_data[,0:1]
@@ -823,15 +856,40 @@ plt.xlabel("Number of cores")
 plt.ylabel("Mpps")
 plt.legend()
 plt.ylim(0,130)
-plt.savefig(BASEDIR+"/figures/drop-test.pdf")
+plt.savefig(BASEDIR+"/figures/drop-test.pdf", bbox_inches='tight')
 plt.show()
 #+END_SRC
 
 #+RESULTS: drop-test
 :results:
-# Out[24]:
-[[file:./obipy-resources/lHDMuO.svg]]
+# Out[65]:
+[[file:./obipy-resources/TIr0BI.svg]]
 :end:
+
+** DROP test CPU usage
+
+#+NAME: drop-cpu
+#+BEGIN_SRC ipython :session :exports both :results raw drawer :var data=cpu_stats
+data = np.array(data)
+ones = np.ones(len(data[:,1]))*100
+plt.plot(data[:,0], ones, marker='o', label="DPDK")
+plt.plot(data[:11,0], ones[:11]-data[:11,1], marker='s', label="XDP")
+plt.plot(data[:7,0], ones[:7]-data[:7,2], marker='^', label="Linux")
+plt.xlabel("Offered load (Mpps)")
+plt.ylabel("CPU usage (%)")
+plt.legend()
+plt.ylim(0,110)
+plt.xlim(0,27)
+plt.savefig(BASEDIR+"/figures/drop-cpu.pdf", bbox_inches='tight')
+plt.show()
+#+END_SRC
+
+#+RESULTS: drop-cpu
+:results:
+# Out[63]:
+[[file:./obipy-resources/eQB3JJ.svg]]
+:end:
+
 
 ** REDIRECT test
 
@@ -847,12 +905,12 @@ plt.xlabel("Number of cores")
 plt.ylabel("Mpps")
 plt.legend()
 plt.ylim(0,70)
-plt.savefig(BASEDIR+"/figures/redirect-test.pdf")
+plt.savefig(BASEDIR+"/figures/redirect-test.pdf", bbox_inches='tight')
 plt.show()
 #+END_SRC
 
 #+RESULTS: redirect-test
 :results:
-# Out[20]:
-[[file:./obipy-resources/xrgN19.svg]]
+# Out[64]:
+[[file:./obipy-resources/b74erV.svg]]
 :end:

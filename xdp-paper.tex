@@ -611,6 +611,13 @@ beyond these limits given a suitable traffic source. \textbf{FIXME: Is this
   when it has to generate more streams.}
 \end{figure}
 
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{figures/drop-cpu.pdf}
+\caption{\label{fig:drop-cpu} CPU usage in the drop scenario. Each line stops at
+the method's maximum processing capacity.}
+\end{figure}
+
 
 The reason the performance dips at five and six cores is because dividing the
 traffic over several cores requires using the Receive Side Scaling (RSS)
