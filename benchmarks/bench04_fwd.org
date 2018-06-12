@@ -1,0 +1,32 @@
+* Layer3 routing test
+We use the xdp_fwd routing table helper for these benchmarks, compare with
+baseline Linux.
+** Data
+
+#+NAME: fwd_data
+| Cores | Linux (single route) | Linux (full table) | XDP (single route) | XDP (full table) |
+|-------+----------------------+--------------------+--------------------+------------------|
+|     1 |              1739672 |                  0 |            5211477 |                0 |
+|     2 |              3370584 |                  0 |           10239315 |                0 |
+|     3 |              4976559 |                  0 |           13731038 |                0 |
+|     4 |              6488625 |                  0 |           16393261 |                0 |
+|     5 |              7848970 |                  0 |           19364863 |                0 |
+|     6 |              9285971 |                  0 |           22852944 |                0 |
+
+
+#+BEGIN_SRC ipython :session :exports both :results raw drawer :var data=fwd_data
+d = np.array(data)
+plt.plot(d[:,0], d[:,3]/10**6, marker='o', label="XDP (single route)")
+plt.plot(d[:,0], d[:,1]/10**6, marker='^', label="Linux (single route)")
+plt.xlabel("Number of cores")
+plt.ylabel("Mpps")
+plt.legend()
+plt.savefig(BASEDIR+"/figures/router-fwd.pdf", bbox_inches='tight')
+plt.show()
+#+END_SRC
+
+#+RESULTS:
+:results:
+# Out[78]:
+[[file:./obipy-resources/Xzj8Ra.svg]]
+:end:
