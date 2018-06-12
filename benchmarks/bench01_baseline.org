@@ -778,14 +778,14 @@ plt.xlabel("Number of cores")
 plt.ylabel("Mpps")
 plt.legend()
 plt.ylim(0,130)
-plt.savefig(BASEDIR+"/figures/drop-test.pdf")
+plt.savefig(BASEDIR+"/figures/drop-test.pdf", bbox_inches='tight')
 plt.show()
 #+END_SRC
 
 #+RESULTS: drop-test
 :results:
-# Out[24]:
-[[file:./obipy-resources/lHDMuO.svg]]
+# Out[65]:
+[[file:./obipy-resources/TIr0BI.svg]]
 :end:
 
 ** DROP test CPU usage
@@ -802,14 +802,14 @@ plt.ylabel("CPU usage (%)")
 plt.legend()
 plt.ylim(0,110)
 plt.xlim(0,27)
-plt.savefig(BASEDIR+"/figures/drop-cpu.pdf")
+plt.savefig(BASEDIR+"/figures/drop-cpu.pdf", bbox_inches='tight')
 plt.show()
 #+END_SRC
 
 #+RESULTS: drop-cpu
 :results:
-# Out[57]:
-[[file:./obipy-resources/eaHYbf.svg]]
+# Out[63]:
+[[file:./obipy-resources/eQB3JJ.svg]]
 :end:
 
 
@@ -827,12 +827,12 @@ plt.xlabel("Number of cores")
 plt.ylabel("Mpps")
 plt.legend()
 plt.ylim(0,70)
-plt.savefig(BASEDIR+"/figures/redirect-test.pdf")
+plt.savefig(BASEDIR+"/figures/redirect-test.pdf", bbox_inches='tight')
 plt.show()
 #+END_SRC
 
 #+RESULTS: redirect-test
 :results:
-# Out[20]:
-[[file:./obipy-resources/xrgN19.svg]]
+# Out[64]:
+[[file:./obipy-resources/b74erV.svg]]
 :end:
