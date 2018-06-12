@@ -470,13 +470,15 @@ varying the flow rules on RX is better? That way we wouldn't get the weird dips
 at higher # of cores.
 
 ** Initial data from Jesper's runs
-|---+----------+----------|
-| 1 | 25928270 |  7909103 |
-| 2 |          | 14964733 |
-| 3 |          | 17586052 |
-| 4 |          | 20167875 |
-| 5 |          | 23863927 |
-| 6 | 75297461 | 28376755 |
+#+NAME: xdp_base_data
+| RXQs | XDP_DROP | XDP_REDIRECT | REDIR PREEMPT voluntary |
+|------+----------+--------------+-------------------------|
+|    1 | 25928270 |      7909103 |                 8649872 |
+|    2 |          |     14964733 |                15975491 |
+|    3 |          |     17586052 |                19222735 |
+|    4 |          |     20167875 |                21535588 |
+|    5 |          |     23863927 |                25464083 |
+|    6 | 75297461 |     28376755 |                29828924 |
 
 ** XDP_DROP per number of queues
 
