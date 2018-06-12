@@ -479,6 +479,84 @@ at higher # of cores.
 |    5 |          |     23863927 |                25464083 |
 |    6 | 75297461 |     28376755 |                29828924 |
 
+Testing with newer xdp_rxq_info tool that have an option for reading
+data.
+
+: sudo ./xdp_rxq_info --dev mlx5p1 --action XDP_DROP --no-sep --read
+
+https://git.kernel.org/pub/scm/linux/kernel/git/hawk/net-next-xdp.git/commit/?h=xdp_paper01&id=8b314e06b52b8111
+
+#+NAME: xdp_drop_data_jdb01
+| RXQs | XDP_DROP no_touch | XDP_DROP read |
+|------+-------------------+---------------|
+|    1 |          24379188 |      23095606 |
+|    2 |          49805895 |      46552903 |
+|    3 |          73230349 |      64474005 |
+|    4 |          86624323 |      68250791 |
+|    5 |          86830822 |      49905645 |
+|    6 |          86608045 |      56323684 |
+
+Data for RXQ=4 unbalance, two CPUs process 21Mpps and these CPUs have
+idle cycles 2.75% :
+
+#+BEGIN_EXAMPLE
+Running XDP on dev:mlx5p1 (ifindex:8) action:XDP_DROP options:read
+XDP stats       CPU     pps         issue-pps  
+XDP-RX CPU      0       21620425    0          
+XDP-RX CPU      1       21603145    0          
+XDP-RX CPU      2       12676047    0          
+XDP-RX CPU      3       12324059    0          
+XDP-RX CPU      total   68223677   
+
+RXQ stats       RXQ:CPU pps         issue-pps  
+rx_queue_index    0:0   21620423    0          
+rx_queue_index    0:sum 21620423   
+rx_queue_index    1:1   21603146    0          
+rx_queue_index    1:sum 21603146   
+rx_queue_index    2:2   12676050    0          
+rx_queue_index    2:sum 12676050   
+rx_queue_index    3:3   12324050    0          
+rx_queue_index    3:sum 12324050   
+
+05:01:06 PM  CPU    %usr   %sys %iowait    %irq   %soft    %idle
+05:01:08 PM  all    0.00   0.17    0.00    0.17   64.89    34.77
+05:01:08 PM    0    0.00   0.55    0.00    0.00   96.70     2.75
+05:01:08 PM    1    0.00   0.54    0.00    0.54   96.22     2.70
+05:01:08 PM    2    0.00   0.00    0.00    0.00  100.00     0.00
+05:01:08 PM    3    0.00   0.00    0.00    0.00  100.00     0.00
+05:01:08 PM    4    0.00   0.50    0.00    0.00    0.50    99.00
+05:01:08 PM    5    0.00   0.51    0.00    0.00    0.00    99.49
+#+END_EXAMPLE
+
+Data for RXQ=3
+
+#+BEGIN_EXAMPLE
+Running XDP on dev:mlx5p1 (ifindex:8) action:XDP_DROP options:read
+XDP stats       CPU     pps         issue-pps  
+XDP-RX CPU      0       22088751    0          
+XDP-RX CPU      1       21279391    0          
+XDP-RX CPU      2       21189691    0          
+XDP-RX CPU      total   64557835   
+
+RXQ stats       RXQ:CPU pps         issue-pps  
+rx_queue_index    0:0   22088753    0          
+rx_queue_index    0:sum 22088753   
+rx_queue_index    1:1   21279391    0          
+rx_queue_index    1:sum 21279391   
+rx_queue_index    2:2   21189695    0          
+rx_queue_index    2:sum 21189695   
+
+05:03:04 PM  CPU    %usr   %sys %iowait    %irq   %soft   %idle
+05:03:06 PM  all    0.00   0.08    0.00    0.00   50.04   49.87
+05:03:06 PM    0    0.00   0.00    0.00    0.00  100.00    0.00
+05:03:06 PM    1    0.00   0.00    0.00    0.00  100.00    0.00
+05:03:06 PM    2    0.00   0.00    0.00    0.00  100.00    0.00
+05:03:06 PM    3    0.50   0.50    0.00    0.50    0.00   98.51
+05:03:06 PM    4    0.00   0.00    0.00    0.00    0.00  100.00
+05:03:06 PM    5    0.00   0.00    0.00    0.00    0.00  100.00
+#+END_EXAMPLE
+
+
 ** XDP_DROP per number of queues
 
 These are from Toke's test run. Note that REDIRECT throughput drops *by 5 Mpps*
