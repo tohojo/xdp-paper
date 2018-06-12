@@ -793,7 +793,7 @@ plt.show()
 
 * Baseline Linux tests
 
-** REDIRECT
+** Linux "REDIRECT"
 There's no good way to do any kind of bypass, so we just run this with normal
 Linux forwarding. Throughput is measure by ethtool on the TX interface, e.g.,
 for one core:
@@ -830,6 +830,42 @@ Ethtool(ens3f1  ) stat:      1739687 (      1,739,687) <= tx_vport_unicast_packe
 |     4 | 6488625 |
 |     5 | 7848970 |
 |     6 | 9285971 |
+
+** Linux iptables drop
+
+What is the performance of iptables dropping SKBs in the raw table.
+
+
+Unloaded all iptables modules, and then invoke the iptables -t raw
+command line to make it loaded only the needed iptables kernel
+modules.
+
+Cmdline for 'raw' table:
+
+: iptables -t raw -I PREROUTING -p udp --dport 9:19 --j DROP
+
+Cmdline for 'filter' table:
+
+: iptables -t filter -I INPUT  -p udp --dport 9:19 --j DROP
+
+Cmdline for activating conntrack:
+
+: iptables -I INPUT -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+
+Default Fedora 27 firewalld setup with jump rules and REJECT target
+(reject-with icmp-host-prohibited) as the last rule getting hitted.
+
+#+NAME: linux_iptables_drop
+| Cores | table raw | table filter | conntrack | firewalld |
+|-------+-----------+--------------+-----------+-----------|
+|     1 |   5051787 |      3319718 |   1819409 |    721284 |
+|     2 |  10226514 |      6707809 |   3274018 |   1403399 |
+|     3 |  15104793 |      9944065 |   4713610 |   2036345 |
+|     4 |  20075858 |     13235307 |   6189412 |   2657446 |
+|     5 |  24995919 |     16442723 |   7497838 |   3380752 |
+|     6 |  29443869 |     19518401 |   8726498 |   4001466 |
+
+
 * Graphs used in the paper
 
 ** Figure style
@@ -881,7 +917,6 @@ mpl.rcParams.update({
     'ytick.major.size': 0.0,
     'ytick.minor.size': 0.0})
 #+END_SRC
-
 
 ** DROP test max PPS
 
