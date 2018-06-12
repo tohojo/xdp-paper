@@ -558,13 +558,18 @@ some of our tests the performance is bottlenecked at the PCI bus, as we will see
 below.
 
 We use the TRex packet generator~\cite{cisco18:_trex_traff_gener} to produce the
-test traffic. The test machine runs a version of the Linux kernel that will
-be released as v4.18. We make details of our setup, links to source code and the
+test traffic. The test machine runs a version of the Linux kernel that will be
+released as v4.18. The needed XDP redirect changes to NIC driver mlx5 is
+expected to appear in v4.19.
+We make details of our setup, links to source code and the
 raw test data available in an online repository~\cite{test-data}.\footnote{One
   particular configuration detail that we want to mention here, however, is that
   we disable the ``retpoline'' mitigation for the recent Meltdown and Spectre
   vulnerabilities, since that has a particularly high performance cost in XDP.
   Work to reduce this cost is ongoing.}
+
+% Jesper have a git tree (branch xdp_paper01) that we use for testing here:
+%  https://git.kernel.org/pub/scm/linux/kernel/git/hawk/net-next-xdp.git/
 
 To show the performance achievable with XDP, we perform the following
 measurements, which correspond to the four different return codes shown in
