@@ -104,7 +104,7 @@ t-rex script:
 
 t-rex cmdline:
 
-: start -f /home/jbrouer/git/xdp-paper/benchmarks/udp_for_benchmarks.py -t packet_len=60,stream_count=XX --port 0 -m 100mpps
+: start -f /home/jbrouer/git/xdp-paper/benchmarks/udp_for_benchmarks.py -t packet_len=64,stream_count=XX --port 0 -m 100mpps
 
 
 **** bench

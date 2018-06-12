@@ -486,15 +486,31 @@ data.
 
 https://git.kernel.org/pub/scm/linux/kernel/git/hawk/net-next-xdp.git/commit/?h=xdp_paper01&id=8b314e06b52b8111
 
+Generator command:
+
+: start -f /home/jbrouer/git/xdp-paper/benchmarks/udp_for_benchmarks02.py -t packet_len=64,stream_count=RXQs --port 0 -m 100mpps
+
 #+NAME: xdp_drop_data_jdb01
-| RXQs | XDP_DROP no_touch | XDP_DROP read |
-|------+-------------------+---------------|
-|    1 |          24379188 |      23095606 |
-|    2 |          49805895 |      46552903 |
-|    3 |          73230349 |      64474005 |
-|    4 |          86624323 |      68250791 |
-|    5 |          86830822 |      49905645 |
-|    6 |          86608045 |      56323684 |
+| RXQs DROP | no_touch RX=1024 | no_touch RX=512 | read RX=1024 | read RX=512 |
+|-----------+------------------+-----------------+--------------+-------------|
+|         1 |         24379188 |                 |     23095606 |    23062789 |
+|         2 |         49805895 |                 |     46552903 |    46537526 |
+|         3 |         73230349 |                 |     64474005 |    68859775 |
+|         4 |         86624323 |                 |     68250791 |    86168278 |
+|         5 |         86830822 |                 |     49905645 |    87341248 |
+|         6 |         86608045 |                 |     56323684 |    87585333 |
+
+
+The default NIC driver mlx5 RX-ring size of 1024 frames turned out to
+be a performance problem. When scaling to multiple RX-queues, then the
+NIC driver will have more outstandig memory, which the DDIO mechanism
+tries to place in L3-cache.  With RX-ring size 1024 we observed
+cache-misses (to main memory) on some RX-queues.  This can only mean
+that DDIO some how didn't manage to
+
+The problem was identified as RX-ring size adjustable via ethtool:
+
+: ethtool -G mlx5p1 rx 512 tx 512
 
 Data for RXQ=4 unbalance, two CPUs process 21Mpps and these CPUs have
 idle cycles 2.75% :
