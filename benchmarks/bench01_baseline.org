@@ -718,10 +718,10 @@ plt.show()
 ** REDIRECT test
 
 #+NAME: redirect-test
-#+BEGIN_SRC ipython :session :exports both :results raw drawer :var dpdk_data=dpdk_test[,0:1] :var xdp_data=xdp_base_data
-#dpdk = np.array(dpdk_data)
+#+BEGIN_SRC ipython :session :exports both :results raw drawer :var dpdk_data=dpdk_test2 :var xdp_data=xdp_base_data
+dpdk = np.array(dpdk_data)
 xdp = np.array(xdp_data)
-#plt.plot(dpdk[:,0], dpdk[:,1]/10**6, marker='o', label="DPDK")
+plt.plot(dpdk[:,0], dpdk[:,2]/10**6, marker='o', label="DPDK")
 plt.plot(xdp[:,0], xdp[:,2]/10**6, marker='s', label="XDP")
 #plt.plot(d[:,0], d[:,2]/10**6, marker='o', label="XDP_REDIRECT")
 plt.xlabel("Number of cores")
@@ -734,6 +734,6 @@ plt.show()
 
 #+RESULTS: redirect-test
 :results:
-# Out[4]:
-[[file:./obipy-resources/RoLI7t.svg]]
+# Out[8]:
+[[file:./obipy-resources/nIMszb.svg]]
 :end:
