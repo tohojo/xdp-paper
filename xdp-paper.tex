@@ -19,14 +19,12 @@
 \title{The eXpress Data Path: Programmable Packet Processing for the Linux Kernel}
 \author{Toke Høiland-Jørgensen}
 \affiliation{%
-  \institution{Karlstad University}
-  \country{Sweden}}
+  \institution{Karlstad University}}
 \email{toke.hoiland-jorgensen@kau.se}
 
 \author{Jesper Dangaard Brouer}
 \affiliation{%
-  \institution{Red Hat}
-  \country{Denmark}}
+  \institution{Red Hat}}
 \email{brouer@redhat.com}
 
 % \renewcommand{\shortauthors}{T. Høiland-Jørgensen et al.}
@@ -535,7 +533,11 @@ below.
 We use the TRex packet generator~\cite{cisco18:_trex_traff_gener} to produce the
 test traffic. The test machine runs a version of the Linux kernel that will
 be released as v4.18. We make details of our setup, links to source code and the
-raw test data available in an online repository~\cite{test-data}.
+raw test data available in an online repository~\cite{test-data}.\footnote{One
+  particular configuration detail that we want to mention here, however, is that
+  we disable the ``retpoline'' mitigation for the recent Meltdown and Spectre
+  vulnerabilities, since that has a particularly high performance cost in XDP.
+  Work to reduce this cost is ongoing.}
 
 To show the performance achievable with XDP, we perform the following
 measurements, which correspond to the four different return codes shown in
@@ -543,8 +545,8 @@ Figure~\ref{fig:xdp-execution} above:
 
 \begin{itemize}
 \item Packet drop performance. We install a simple XDP program that drops
-  packets after receiving them, to examine the maximum possible packet
-  processing performance.
+  packets immediately after receiving them, to examine the maximum possible
+  packet processing performance.
 
 \item Packet mirroring performance. Here we measure the performance of sending
   packets out the same network interface that they arrived on.
@@ -772,16 +774,72 @@ edges. In this section we present some of the known limitations, and future
 directions for XDP's development. These include: User experience and debugging;
 driver support; improvements to NAPI; and better handling of rate transitions.
 Each of the following subsections discuss each of these issues in turn.
-% FIXME: CONFIG_RETPOLINE
+
+\textbf{FIXME: This needs to strike the right balance between ``look, we are
+  improving things'' and ``there are lots of issues''. I fear it leans a bit too
+far towards the latter as is, so maybe some text needs to be cut.}
 
 \subsection{User Experience and Debugging}
 \label{sec:user-exper-debugg}
+Since an XDP program runs in the kernel, the debugging tools available to a
+regular userspace program are not generally applicable, and even common
+debugging tools such as \texttt{printf()} are unavailable. The tendency for some
+operations to fail silently and just drop packets doesn't help this situation.
+In addition, the subset of C that is generally used to write BPF programs can be
+limiting, for instance due to the need to unroll all loops. Finally, the
+verifier will sometimes reject valid programs because it cannot prove validity,
+and its error messages are not always helpful. Together, these issues combine to
+make writing a useful XDP application harder than it needs to be, especially for
+someone not familiar with the Linux ecosystem.
+
+Work is ongoing to improve this situation, and indeed it already has improved
+some. The XDP subsystem includes a number of tracepoints, that can be accessed
+by the debugging tools used for the rest of the kernel to give information about
+failures of XDP actions, usage of helper functions, etc. The tools to support
+this continue to improve, as does the documentation. In addition, the verifier
+continuously improving to recognise more correct programs that were previously
+rejected as invalid. Support for function calls in eBPF has recently been added,
+and the addition of support for bounded loops is planned. However, we recognise
+that this is still an area in need of improvement.
 
 \subsection{Driver Support}
 \label{sec:driver-support}
+Each device driver needs to add support for running XDP programs, by supporting
+an API exposed by the core networking stack. Support is continuously being added
+to more and more drivers.\footnote{At the time of writing Linux 4.17 has XDP
+  support in 12 different drivers, including the most popular high-speed network
+  adapters. An updated list of supported drivers is included in
+  \url{http://cilium.readthedocs.io/en/latest/bpf}.} However, not having
+universal support is limiting and can be confusing for users. One particular
+issue with this is that it is possible for drivers to support only subsets of
+the XDP functionality. This is because drivers need to implement support for
+each of the possible return code. This is further complicated by the fact that
+support for redirection has separate implementations in the receive path and the
+transmit path, so it is possible for a driver to support redirecting packets to
+other interfaces, but not being the target of a redirection from elsewhere.
+
+Ultimately, we believe that these issues will be resolved by having full support
+for XDP in all device drivers. However, for obvious reasons this takes time, and
+holding back the development of the system until all drivers have caught up is
+not feasible. As the XDP system has evolved, the need to keep the API support
+required in drivers to a minimum has become increasingly clear, and some steps
+have been taken in this direction. For instance, support for new targets can be
+added to the redirection action without any changes needed from the drivers.
 
 \subsection{Improvements to NAPI}
 \label{sec:improvements-napi}
+As we saw in Section~\ref{sec:perf-eval}, DPDK still achieves markedly better
+raw packet processing performance than XDP. The main reason for this is that the
+NAPI mechanism that Linux uses to selectively switch between interrupt-based
+packet processing and polling is insufficient to mitigate the large number of
+interrupts that happen at high packet rates. In some cases it would be
+beneficial to switch to a full busy polling mode, if one is willing to dedicate
+a full CPU core to packet processing.
+
+There have been some efforts to selective switch a network adapter to busy
+polling mode, which has shown promising results~\cite{dumazet17:_busyp}. We
+believe continuing this work, and integrating it with XDP, will make it possible
+to reach raw packet processing performance equal to that of DPDK.
 
 \subsection{Handling of Rate Transitions}
 \label{sec:handl-rate-trans}
@@ -801,10 +859,20 @@ planned for the future.
 
 \section{Conclusions}
 \label{sec:conclusion}
+We have presented XDP, a system for safely integrating high-speed programmable
+packet processing directly in the Linux kernel. This represents an alternative
+solution to all-or-nothing kernel bypass solutions, which makes it easier to
+integrate the packet processing with normal applications.
 
+Our evaluation has shown that XDP achieves raw packet processing performance of
+up to 25 million packets per second on a single CPU core. We have also
+demonstrated three examples of real-world use cases that can be implemented with
+XDP: Inline DDOS mitigation, layer-3 forwarding, and layer-4 load balancing.
 
-
-
+XDP continues to be actively developed by the Linux community, and we believe
+that it offers a compelling alternative to other high-speed packet processing
+frameworks, especially where integrating with existing systems and applications
+is important.
 
 \bibliographystyle{ACM-Reference-Format}
 \bibliography{xdp}
