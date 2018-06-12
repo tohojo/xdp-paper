@@ -921,12 +921,14 @@ mpl.rcParams.update({
 ** DROP test max PPS
 
 #+NAME: drop-test
-#+BEGIN_SRC ipython :session :exports both :results raw drawer :var dpdk_data=dpdk_test2[,0:1] :var xdp_data=xdp_drop_data_jdb01
+#+BEGIN_SRC ipython :session :exports both :results raw drawer :var dpdk_data=dpdk_test2[,0:1] :var xdp_data=xdp_drop_data_jdb01 :var linux_data=linux_iptables_drop
 dpdk = np.array(dpdk_data)
 xdp = np.array(xdp_data)
+linux = np.array(linux_data)
 plt.plot(dpdk[:,0], dpdk[:,1]/10**6, marker='o', label="DPDK")
 plt.plot(xdp[:,0], xdp[:,2]/10**6, marker='s', label="XDP")
-#plt.plot(d[:,0], d[:,2]/10**6, marker='o', label="XDP_REDIRECT")
+plt.plot(linux[:,0], linux[:,1]/10**6, marker='^', label="Linux (raw)")
+plt.plot(linux[:,0], linux[:,3]/10**6, marker='x', label="Linux (conntrack)")
 plt.xlabel("Number of cores")
 plt.ylabel("Mpps")
 plt.legend()
@@ -937,8 +939,8 @@ plt.show()
 
 #+RESULTS: drop-test
 :results:
-# Out[36]:
-[[file:./obipy-resources/wbHjO3.svg]]
+# Out[45]:
+[[file:./obipy-resources/2RJuv4.svg]]
 :end:
 
 ** DROP test CPU usage
