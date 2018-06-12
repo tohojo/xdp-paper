@@ -528,11 +528,11 @@ Or instead of interactive mode, use stats reporting mode:
 #+NAME: dpdk_test
 | Cores |   RX PPS | Forward PPS |
 |-------+----------+-------------|
-|     1 | 43527279 |             |
-|     2 | 70499318 |             |
-|     3 | 82695730 |             |
-|     4 | 82937531 |             |
-|     5 | 80575187 |             |
+|     1 | 43527279 |    23914513 |
+|     2 | 70499318 |    35337558 |
+|     3 | 82695730 |    56526568 |
+|     4 | 82937531 |    58197505 |
+|     5 | 80575187 |    62998140 |
 
 From 3-5 this is actually bounded by the traffic generator, it would seem.
 
@@ -719,7 +719,7 @@ plt.show()
 ** REDIRECT test
 
 #+NAME: redirect-test
-#+BEGIN_SRC ipython :session :exports both :results raw drawer :var dpdk_data=dpdk_test2 :var xdp_data=xdp_base_data
+#+BEGIN_SRC ipython :session :exports both :results raw drawer :var dpdk_data=dpdk_test :var xdp_data=xdp_base_data
 dpdk = np.array(dpdk_data)
 xdp = np.array(xdp_data)
 plt.plot(dpdk[:,0], dpdk[:,2]/10**6, marker='o', label="DPDK")
@@ -728,13 +728,13 @@ plt.plot(xdp[:,0], xdp[:,2]/10**6, marker='s', label="XDP")
 plt.xlabel("Number of cores")
 plt.ylabel("Mpps")
 plt.legend()
-plt.ylim(0,60)
+plt.ylim(0,70)
 plt.savefig(BASEDIR+"/figures/redirect-test.pdf")
 plt.show()
 #+END_SRC
 
 #+RESULTS: redirect-test
 :results:
-# Out[14]:
-[[file:./obipy-resources/OpVtY0.svg]]
+# Out[11]:
+[[file:./obipy-resources/6b1hkX.svg]]
 :end:
