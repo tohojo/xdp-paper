@@ -528,6 +528,30 @@ rx_queue_index    3:sum 12324050
 05:01:08 PM    5    0.00   0.51    0.00    0.00    0.00    99.49
 #+END_EXAMPLE
 
+In RXQ=4 case, the CPUs are experiencing different levels of
+cache-misses.
+
+#+BEGIN_EXAMPLE
+$ sudo ~/perf stat -C3 -e cycles -e  instructions -e cache-references -e cache-misses -r 3 sleep 1
+
+ Performance counter stats for 'CPU(s) 3' (3 runs):
+
+  3,804,377,863  cycles                                         ( +-  0.01% )
+  5,865,630,935  instructions    #    1.54  insn per cycle      ( +-  0.03% )
+     43,829,681  cache-references                               ( +-  0.04% )
+      9,360,529  cache-misses    #   21.357 % of all cache refs ( +-  0.03% )
+
+$ sudo ~/perf stat -C0 -e cycles -e  instructions -e cache-references -e cache-misses -r 3 sleep 1
+
+ Performance counter stats for 'CPU(s) 0' (3 runs):
+
+  3,728,030,288  cycles                                         ( +-  0.01% )
+ 10,383,860,909  instructions     #    2.79  insn per cycle     ( +-  0.03% )
+     85,613,852  cache-references                               ( +-  0.11% )
+        358,027  cache-misses     #    0.418 % of all cache refs( +-  1.94% )
+
+#+END_EXAMPLE
+
 Data for RXQ=3
 
 #+BEGIN_EXAMPLE
