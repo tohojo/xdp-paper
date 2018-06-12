@@ -209,7 +209,7 @@ From: Andrew Theurer
 
     First, install trex: install-trex.sh
     Next, configure/launch trex: launch-trex.sh
-    Finally, run a test: binary-search.py
+    Finally, run a test: binary-search.py --traffic-generator=trex-txrx
 
     We recommend using Intel XL710 or XVV710 adapters to drive traffic.  Intel
     Niantic will work, but it does not filter incoming packets reliably, so we
@@ -217,6 +217,36 @@ From: Andrew Theurer
 #+END_EXAMPLE
 
 It is nice they have a script for installing trex in /opt/.
+
+Some binary search commands I played with:
+
+: ./binary-search.py --traffic-generator=trex-txrx --one-shot 1 --rate=0.1 --validation-runtime=20
+
+: ./binary-search.py --traffic-generator=trex-txrx --run-bidirec 0 --search-runtime=10
+
+: ./binary-search.py --traffic-generator=trex-txrx --run-bidirec 0 --search-runtime=10 --max-loss-pct 0.1
+
+Setup steps from Andrew Theurer:
+
+#+BEGIN_EXAMPLE
+1) confirm BIOS has support for VT-d (PCI device assignment)
+2) add kernel parameters: iommu=pt intel_iommu-on
+3)​ use CPU isolation, tuned "cpu-partitioning" profile recommended, but
+also include "isolcpus=<cpulist>" boot paramter
+3b) choose at least 8 cores from the same NUMA node as the PCI device used
+for traffic generator
+4) reboot host
+5) unbind the kernel module from the 2 PCI devices
+6) load vfio and vfio-pci kernel modules
+7) bind both PCI devices to vfio-pci (via sysfs, driverctl, or dpdk-devbind)
+8) confirm isolcpus is working (sysfs)
+9) run launch-trex.sh, confirm with screen -x that trex server is running
+10) run a quick sanity check test: binary-search.py with at least
+--devices=<your PCI devices> --traffic-generator=trex-txrx --one-shot 1
+--rate=0.1 --validation-runtime=30
+11) run a binary search test (rerun and remove the --one-shot, --rate, and
+--validation-runtime options)
+#+END_EXAMPLE
 
 ** setup issues
    :PROPERTIES:
@@ -228,6 +258,7 @@ Manually created file for trex and could start it with:
 #+BEGIN_QUOTE
   sudo ./launch-trex.sh --yaml-file=/etc/trex\_cfg02-ixgbe.yaml
 #+END_QUOTE
+
 
 * Running basic T-rex packet generator
 Given a correctly configured T-rex with a config file in /etc/trex-cfg.yaml,
