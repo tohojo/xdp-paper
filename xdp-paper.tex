@@ -27,6 +27,16 @@
   \institution{Red Hat}}
 \email{brouer@redhat.com}
 
+\author{David Ahern}
+\affiliation{%
+  \institution{}}
+\email{dsahern@gmail.com}
+
+\author{Daniel Borkmann}
+\affiliation{%
+  \institution{Cilium.io}}
+\email{daniel@iogearbox.net}
+
 % \renewcommand{\shortauthors}{T. Høiland-Jørgensen et al.}
 \renewcommand{\shorttitle}{The eXpress Data Path}
 \captionsetup{font+=small}
@@ -621,6 +631,9 @@ we see an almost linear scaling with the first couple of cores, tapering off to
 sub-linear performance increases as more cores are added. We attribute this to
 \textbf{FIXME}.
 
+\textbf{FIXME: WHy the dip in DPDK performance at 2 cores? Should we re-run with
+'io' forwarding mode?}
+
 
 \begin{figure}[t]
 \centering
@@ -773,11 +786,6 @@ Figure~\textbf{FIXME}.
 
 \section{Limitations and future work}
 \label{sec:limitations}
-%- Busy polling
-%- UX: error msg + debug
-%- driver support
-%- REDIRECT vs ndo_xdp_xmit
-%- queueing
 As we have shown above, XDP has excellent performance, and is already useful in
 a variety of real-world use cases. However, XDP is also relatively new
 technology that is being incrementally added to a general purpose operating
