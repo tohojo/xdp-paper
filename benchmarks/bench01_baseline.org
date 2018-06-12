@@ -640,6 +640,45 @@ plt.show()
 [[file:./obipy-resources/beY3Mq.svg]]
 :end:
 
+* Baseline Linux tests
+
+** REDIRECT
+There's no good way to do any kind of bypass, so we just run this with normal
+Linux forwarding. Throughput is measure by ethtool on the TX interface, e.g.,
+for one core:
+
+Show adapter(s) (ens3f1) statistics (ONLY that changed!)
+Ethtool(ens3f1  ) stat:        27183 (         27,183) <= ch0_arm /sec
+Ethtool(ens3f1  ) stat:        27183 (         27,183) <= ch0_events /sec
+Ethtool(ens3f1  ) stat:        27183 (         27,183) <= ch0_poll /sec
+Ethtool(ens3f1  ) stat:        27183 (         27,183) <= ch_arm /sec
+Ethtool(ens3f1  ) stat:        27182 (         27,182) <= ch_events /sec
+Ethtool(ens3f1  ) stat:        27183 (         27,183) <= ch_poll /sec
+Ethtool(ens3f1  ) stat:    104380023 (    104,380,023) <= tx0_bytes /sec
+Ethtool(ens3f1  ) stat:      1739714 (      1,739,714) <= tx0_cqes /sec
+Ethtool(ens3f1  ) stat:      1739667 (      1,739,667) <= tx0_csum_none /sec
+Ethtool(ens3f1  ) stat:      1739667 (      1,739,667) <= tx0_packets /sec
+Ethtool(ens3f1  ) stat:    104380319 (    104,380,319) <= tx_bytes /sec
+Ethtool(ens3f1  ) stat:    111340650 (    111,340,650) <= tx_bytes_phy /sec
+Ethtool(ens3f1  ) stat:      1739714 (      1,739,714) <= tx_cqes /sec
+Ethtool(ens3f1  ) stat:      1739672 (      1,739,672) <= tx_csum_none /sec
+Ethtool(ens3f1  ) stat:      1739672 (      1,739,672) <= tx_packets /sec
+Ethtool(ens3f1  ) stat:      1739707 (      1,739,707) <= tx_packets_phy /sec
+Ethtool(ens3f1  ) stat:    111338817 (    111,338,817) <= tx_prio0_bytes /sec
+Ethtool(ens3f1  ) stat:      1739669 (      1,739,669) <= tx_prio0_packets /sec
+Ethtool(ens3f1  ) stat:    104381267 (    104,381,267) <= tx_vport_unicast_bytes /sec
+Ethtool(ens3f1  ) stat:      1739687 (      1,739,687) <= tx_vport_unicast_packets /sec
+
+
+#+NAME: linux_fwd
+| Cores |     PPS |
+|-------+---------|
+|     1 | 1739672 |
+|     2 | 3370584 |
+|     3 | 4976559 |
+|     4 | 6488625 |
+|     5 | 7848970 |
+|     6 | 9285971 |
 * Graphs used in the paper
 
 ** Figure style
@@ -719,12 +758,13 @@ plt.show()
 ** REDIRECT test
 
 #+NAME: redirect-test
-#+BEGIN_SRC ipython :session :exports both :results raw drawer :var dpdk_data=dpdk_test :var xdp_data=xdp_base_data
+#+BEGIN_SRC ipython :session :exports both :results raw drawer :var dpdk_data=dpdk_test :var xdp_data=xdp_base_data :var linux_data=linux_fwd
 dpdk = np.array(dpdk_data)
 xdp = np.array(xdp_data)
+linux = np.array(linux_data)
 plt.plot(dpdk[:,0], dpdk[:,2]/10**6, marker='o', label="DPDK")
 plt.plot(xdp[:,0], xdp[:,2]/10**6, marker='s', label="XDP")
-#plt.plot(d[:,0], d[:,2]/10**6, marker='o', label="XDP_REDIRECT")
+plt.plot(linux[:,0], linux[:,1]/10**6, marker='^', label="Linux")
 plt.xlabel("Number of cores")
 plt.ylabel("Mpps")
 plt.legend()
@@ -735,6 +775,6 @@ plt.show()
 
 #+RESULTS: redirect-test
 :results:
-# Out[11]:
-[[file:./obipy-resources/6b1hkX.svg]]
+# Out[20]:
+[[file:./obipy-resources/xrgN19.svg]]
 :end:
