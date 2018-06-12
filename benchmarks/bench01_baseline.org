@@ -569,6 +569,9 @@ Ethtool(sw1p13  ) stat:     45474290 (     45,474,290) <= tx_frames_prio_0 /sec
 Ethtool(sw1p13  ) stat:   2910354419 (  2,910,354,419) <= tx_octets_prio_0 /sec
 #+END_EXAMPLE
 
+Note: DUT was running kernel 4.16.13-200.fc27.x86_64 during these DPDK
+tests to please the MLNX_OFED software.
+
 Testpmd command used changing variable CORES:
 
 : export CORES=3 ; sudo build/app/testpmd -l 0-5 -n 4 -- --nb-cores=$CORES --forward-mode=rxonly --auto-start --portmask=0x1 --rxq $CORES --txq $CORES --rss-udp --stats-period=2
