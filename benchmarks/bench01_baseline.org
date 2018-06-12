@@ -470,7 +470,6 @@ varying the flow rules on RX is better? That way we wouldn't get the weird dips
 at higher # of cores.
 
 ** Initial data from Jesper's runs
-#+NAME: xdp_base_data
 | RXQs | XDP_DROP | XDP_REDIRECT | REDIR PREEMPT voluntary |
 |------+----------+--------------+-------------------------|
 |    1 | 25928270 |      7909103 |                 8649872 |
@@ -488,12 +487,12 @@ These are from Toke's test run. Note that REDIRECT throughput drops *by 5 Mpps*
 #+NAME: xdp_base_data
 | RXQs | XDP_DROP | XDP_REDIRECT |
 |------+----------+--------------|
-|    1 | 25928270 |     13735034 |
-|    2 | 51349744 |     27227069 |
-|    3 | 76578241 |     33556194 |
-|    4 | 82782450 |     35075662 |
-|    5 | 82294143 |     38239118 |
-|    6 | 80444303 |     43191983 |
+|    1 | 25928270 |      8461375 |
+|    2 | 51349744 |     16241020 |
+|    3 | 76578241 |     18639798 |
+|    4 | 82782450 |     21417122 |
+|    5 | 82294143 |     25373567 |
+|    6 | 80444303 |     29970889 |
 
 #+BEGIN_SRC ipython :session :exports both :results raw drawer :var data=xdp_base_data
 d = np.array(data)
@@ -729,13 +728,13 @@ plt.plot(xdp[:,0], xdp[:,2]/10**6, marker='s', label="XDP")
 plt.xlabel("Number of cores")
 plt.ylabel("Mpps")
 plt.legend()
-plt.ylim(0,90)
+plt.ylim(0,60)
 plt.savefig(BASEDIR+"/figures/redirect-test.pdf")
 plt.show()
 #+END_SRC
 
 #+RESULTS: redirect-test
 :results:
-# Out[8]:
-[[file:./obipy-resources/nIMszb.svg]]
+# Out[14]:
+[[file:./obipy-resources/OpVtY0.svg]]
 :end:
