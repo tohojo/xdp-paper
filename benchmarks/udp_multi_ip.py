@@ -45,8 +45,8 @@ class STLS1(object):
 
         for i in range(stream_count):
             port = 12 + (i % port_count)
-            dst = "%d.%d.%d.%d" % [random.choice(ALLOWED_OCTETS) for i in range(4)]
-            base_pkt = Ether()/IP(src="16.0.0.1",dst=dst)/UDP(dport=port,sport=1025)
+            dst = "%d.%d.%d.%d" % tuple([random.choice(ALLOWED_OCTETS) for i in range(4)])
+            base_pkt = Ether()/IP(src="10.70.1.2",dst=dst)/UDP(dport=port,sport=1025)
             base_pkt_len = len(base_pkt)
             base_pkt /= 'x' * max(0, packet_len - base_pkt_len)
             packets.append(STLStream(
