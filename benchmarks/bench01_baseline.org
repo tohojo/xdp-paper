@@ -57,6 +57,8 @@ Yes, this makes sense: touch packet in XDP, pass to iptables-raw.
 
 The redirect needs a separate benchmark document.
 
+file://bench05_xdp_redirect.org
+
 * Hardware: Jesper
   :PROPERTIES:
   :CUSTOM_ID: hardware-jesper
@@ -745,7 +747,7 @@ correct(?).
 |     4 | 115806957 |         40641805 |
 |     5 | 100600263 |         51173067 |
 
-Ethtools stats (works due to Mellanox bifiscated driver) for
+Ethtools stats (works due to Mellanox bifurcated driver) for
 dpdk_test2 with 5 cores:
 
 #+BEGIN_EXAMPLE
