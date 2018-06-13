@@ -876,7 +876,7 @@ Modified sample/bpf xdp_rxq_info tool to 'swapmac' when doing XDP_TX benchmarks.
 
 Copied table from bench05, to compare XDP_TX to XDP_REDIRECT.
 
-#+NAME: xdp_redirect_data_to_compare
+#+NAME: xdp_redirect_data
 | RXQs | XDP_REDIRECT (1024) | RX-size=512 | RX-size=256 | RX-size=128 |
 |------+---------------------+-------------+-------------+-------------|
 |    1 |             8649872 |     8665664 |     8641197 |     7577448 |
@@ -1010,12 +1010,12 @@ plt.show()
 ** REDIRECT test
 
 #+NAME: redirect-test
-#+BEGIN_SRC ipython :session :exports both :results raw drawer :var dpdk_data=dpdk_test :var xdp_data=xdp_base_data :var linux_data=linux_fwd
+#+BEGIN_SRC ipython :session :exports both :results raw drawer :var dpdk_data=dpdk_test :var xdp_data=xdp_redirect_data :var linux_data=linux_fwd
 dpdk = np.array(dpdk_data)
 xdp = np.array(xdp_data)
 linux = np.array(linux_data)
 plt.plot(dpdk[:,0], dpdk[:,2]/10**6, marker='o', label="DPDK")
-plt.plot(xdp[:,0], xdp[:,2]/10**6, marker='s', label="XDP")
+plt.plot(xdp[:,0], xdp[:,3]/10**6, marker='s', label="XDP")
 plt.plot(linux[:,0], linux[:,1]/10**6, marker='^', label="Linux")
 plt.xlabel("Number of cores")
 plt.ylabel("Mpps")
@@ -1027,18 +1027,18 @@ plt.show()
 
 #+RESULTS: redirect-test
 :results:
-# Out[64]:
-[[file:./obipy-resources/b74erV.svg]]
+# Out[163]:
+[[file:./obipy-resources/ZnST24.svg]]
 :end:
 
 ** XDP_TX
 
 #+NAME: tx-test
-#+BEGIN_SRC ipython :session :exports both :results raw drawer :var redir_data=xdp_base_data :var tx_data=xdp_tx_data01
+#+BEGIN_SRC ipython :session :exports both :results raw drawer :var redir_data=xdp_redirect_data :var tx_data=xdp_tx_data01
 tx = np.array(tx_data)
 redir = np.array(redir_data)
 plt.plot(tx[:,0], tx[:,2]/10**6, marker='o', label="TX")
-plt.plot(redir[:,0], redir[:,2]/10**6, marker='s', label="REDIRECT")
+plt.plot(redir[:,0], redir[:,3]/10**6, marker='s', label="REDIRECT")
 plt.xlabel("Number of cores")
 plt.ylabel("Mpps")
 plt.legend()
@@ -1049,6 +1049,6 @@ plt.show()
 
 #+RESULTS: tx-test
 :results:
-# Out[160]:
-[[file:./obipy-resources/SLyVfn.svg]]
+# Out[164]:
+[[file:./obipy-resources/dCuhbD.svg]]
 :end:
