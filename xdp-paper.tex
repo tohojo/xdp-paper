@@ -697,11 +697,6 @@ queues (each of which is bound to a separate core) based on packet header
 information. Using this requires the traffic generator to generate the traffic
 as separate flows, which means its maximum throughput drops.
 
-\subsection{Packet Mirroring Performance}
-\label{sec:pack-mirr-perf}
-
-TBD. FIXME: Can we do this with DPDK?
-
 \subsection{Packet Forwarding Performance}
 \label{sec:pack-forw-perf}
 Figure~\ref{fig:redirect-test} shows the packet forwarding performance. Again,
@@ -718,6 +713,17 @@ sub-linear performance increases as more cores are added. We attribute this to
 \includegraphics[width=\linewidth]{figures/redirect-test.pdf}
 \caption{\label{fig:redirect-test} Packet forwarding performance.}
 \end{figure}
+
+\subsection{Packet Mirroring Performance}
+\label{sec:pack-mirr-perf}
+Results shown in Figure~\ref{fig:tx-test}.
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{figures/tx-test.pdf}
+\caption{\label{fig:tx-test} XDP\_TX vs XDP\_REDIRECT.}
+\end{figure}
+
+
 
 \subsection{Discussion}
 \label{sec:perf-discussion}
