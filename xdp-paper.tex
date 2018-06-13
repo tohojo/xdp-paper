@@ -731,6 +731,8 @@ sub-linear performance increases as more cores are added. We attribute this to
 % Absolute DROP difference XDP vs DPDK is (1/26-1/43.5)*1000 = 15.47 ns. This is
 % between 55 and 145 instructions (depending on ins/cycle; perf says 2.61 for
 % XDP_DROP). About 350 instructions per pkt.
+% Function call overhead is 1.317 ns; mlx5 can potentially eliminate 6 of those
+% for XDP_DROP - half the difference to DPDK.
 
 \section{Real-world use cases}
 \label{sec:usecases}
