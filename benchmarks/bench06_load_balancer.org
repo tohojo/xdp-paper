@@ -1,0 +1,230 @@
+* Installation
+We use Facebook's Katran load balancer, released at
+https://github.com/facebookincubator/katran. 
+
+There are a couple of issues that need to be fixed to make it run. A patch to
+fix all of them is included below. The issues are:
+
+- It needs a newer version of cmake than the one in Ubuntu 16.04. Downloading
+  the latest version from cmake.org and compile that works. The build script
+  will try to install the packaged version, which is too old, so disable that.
+
+- The C++ code is using the C++14 standard, which is not the default in the
+  version of GCC on Ubuntu 16.04. This needs to be declared in two of the
+  CMakeLists.txt build files.
+
+- There's a bug in the example client (see description below), where it won't
+  accept an empty flags argument.
+
+- The setup script tries to run the katran server in "shared mode" where an "XDP
+  root" dispatch program passes execution to other XDP programs via BPF maps.
+  This doesn't work out of the box; so we just modify the startup script to run
+  Katran in standalone mode, where it installs its own XDP program directly on
+  the root of the interface.
+
+Patch:
+
+#+begin_src diff
+diff --git a/build_katran.sh b/build_katran.sh
+index cb75615..a8fb600 100755
+--- a/build_katran.sh
++++ b/build_katran.sh
+@@ -36,7 +36,6 @@ get_dev_tools() {
+     sudo apt-get update
+     sudo apt-get install -y \
+         build-essential \
+-        cmake \
+         libbison-dev \
+         bison \
+         flex \
+diff --git a/example/CMakeLists.txt b/example/CMakeLists.txt
+index b761b7c..880499a 100644
+--- a/example/CMakeLists.txt
++++ b/example/CMakeLists.txt
+@@ -1,5 +1,6 @@
+ cmake_minimum_required (VERSION 3.0)
+ project (katranserver-proj)
++set (CMAKE_CXX_STANDARD 14)
+ 
+ # thrift cmake macro
+ find_program(THRIFT1 thrift1)
+diff --git a/example_grpc/CMakeLists.txt b/example_grpc/CMakeLists.txt
+index 363652a..72ac070 100644
+--- a/example_grpc/CMakeLists.txt
++++ b/example_grpc/CMakeLists.txt
+@@ -1,5 +1,6 @@
+ cmake_minimum_required(VERSION 3.9)
+ project(katran_grpc)
++set (CMAKE_CXX_STANDARD 14)
+ 
+ find_library(PROTOBUF libprotobuf.a protobuf)
+ find_library(GRPC libgrpc.a grpc)
+diff --git a/example/client/KatranSimpleClient.cpp b/example/client/KatranSimpleClient.cpp
+index 7340c17..5a049b7 100644
+--- a/example/client/KatranSimpleClient.cpp
++++ b/example/client/KatranSimpleClient.cpp
+@@ -39,12 +39,14 @@ using apache::thrift::async::TAsyncSocket;
+ namespace {
+ constexpr uint64_t IPPROTO_TCP = 6;
+ constexpr uint64_t IPPROTO_UDP = 17;
++constexpr uint64_t DEFAULT_FLAG = 0;
+ constexpr uint64_t NO_SPORT = 1;
+ constexpr uint64_t NO_LRU = 2;
+ constexpr uint64_t QUIC_VIP = 4;
+ constexpr uint64_t DPORT_HASH = 8;
+ 
+ const std::map<std::string, uint64_t> flagTranslationTable = {
++    {"", DEFAULT_FLAG},
+     {"NO_SPORT", NO_SPORT},
+     {"NO_LRU", NO_LRU},
+     {"QUIC_VIP", QUIC_VIP},
+diff --git a/start_katran_simple_server.sh b/start_katran_simple_server.sh
+index 290b2a9..1db5242 100755
+--- a/start_katran_simple_server.sh
++++ b/start_katran_simple_server.sh
+@@ -17,6 +17,5 @@
+ 
+ # this script will start simple_katran_server w/ xdproot
+ set -xeo pipefail
+-INTERFACE="enp0s3"
+-./install_xdproot.sh
+-sudo sh -c "./build/example/simple_katran_server -balancer_prog=./deps/linux/bpfprog/bpf/balancer_kern.o -intf=${INTERFACE} -hc_forwarding=false -map_path=/sys/fs/bpf/jmp_${INTERFACE} -prog_pos=2"
++INTERFACE="ens1f1"
++sudo sh -c "./build/example/simple_katran_server -balancer_prog=./deps/linux/bpfprog/bpf/balancer_kern.o -intf=${INTERFACE} -hc_forwarding=false"
+#+end_src
+
+After this, run the build script:
+
+: ./build_katran.sh
+
+Note that the build script installs a bunch of system packages as build depends,
+and clones a bunch of other git repos. It will run sudo commands without asking.
+And it probably won't work on Fedora.
+
+The build script will have cloned Linux 4.15 to the deps/linux directory.
+However, actually compiling the BPF programs against this doesn't seem to work.
+Instead, move deps/linux out of the way, and symlink our net-next tree in its
+place. Then, build the BPF modules:
+
+: ./build_bpf_modules_opensource.sh
+
+* Running
+
+To run, first make sure the =start_katran_simple_server.sh= script points to the
+right interface (the patch above modifies this so it works for my setup). Then
+start the server:
+
+: ./start_katran_simple_server.sh
+
+This will load the BPF program onto the interface, and start listening for RPC
+connections. To configure services, use the client located in
+build/example/simple_katran_client. The flags to this are a bit confusing, and
+the --help output is not too helpful. Here's a walkthrough:
+
+First, add a virtual service:
+
+: cd build/example
+: ./simple_katran_client -A -u 10.70.2.2:12
+Adds (-A) a virtual service running on UDP (-u) 10.70.2.2:12. This is the
+address that the load balancer will rewrite.
+
+Then, add a couple of 'real' servers, i.e., destination addresses of the
+encapsulated packets:
+
+: ./simple_katran_client -u 10.70.2.2:12 -a -r 10.0.0.1
+: ./simple_katran_client -u 10.70.2.2:12 -a -r 10.0.0.2
+Selects the previously configured service (with -u), adds (-a) a real IP (-r).
+
+To verify the configuration use -l:
+#+begin_example
+./simple_katran_client -l
+I0613 18:56:28.337016   626 KatranSimpleClient.cpp:208] vips len: 1
+I0613 18:56:28.337990   626 KatranSimpleClient.cpp:222] VIP: 10.70.2.2            Port: 000012, Protocol: udp
+I0613 18:56:28.338860   626 KatranSimpleClient.cpp:225] Vip's flags: 
+I0613 18:56:28.338902   626 KatranSimpleClient.cpp:227] -> 10.0.0.2             weight 1
+I0613 18:56:28.338915   626 KatranSimpleClient.cpp:227] -> 10.0.0.1             weight 1
+#+end_example
+
+With this, Katran should be active, and rewriting packets. It includes a
+performance monitor:
+
+: ./simple_katran_client -s
+: I0613 19:07:59.154206  1663 KatranSimpleClient.cpp:396] vip: 10.70.2.2            00000010 pkts/sec, 00000460 bytes/sec
+
+Ethtool seems to confirm this:
+#+begin_example
+Show adapter(s) (ens1f1) statistics (ONLY that changed!)
+Ethtool(ens1f1  ) stat:           10 (             10) <= rx_xdp_tx_xmit /sec
+Ethtool(ens1f1  ) stat:           10 (             10) <= tx_packets_phy /sec
+#+end_example
+
+By default, it uses a destination MAC of 00:00:00:00:00:01, so all outgoing
+packets are just going to be dropped. This is fine for our purposes.
+
+* Performance tests
+
+For the performance measurements, we set up a service for each of the ports we
+use in the rxq rules:
+
+#+begin_example
+for p in $(seq 12 17); do ./simple_katran_client -u 10.70.2.2:$p -A; done
+I0613 19:18:12.401931  1937 KatranSimpleClient.cpp:88] Adding service: 10.70.2.2:12 17
+I0613 19:18:12.403775  1937 KatranSimpleClient.cpp:107] Vip added
+I0613 19:18:12.410696  1938 KatranSimpleClient.cpp:88] Adding service: 10.70.2.2:13 17
+I0613 19:18:12.412173  1938 KatranSimpleClient.cpp:107] Vip added
+I0613 19:18:12.418993  1939 KatranSimpleClient.cpp:88] Adding service: 10.70.2.2:14 17
+I0613 19:18:12.420284  1939 KatranSimpleClient.cpp:107] Vip added
+I0613 19:18:12.426725  1940 KatranSimpleClient.cpp:88] Adding service: 10.70.2.2:15 17
+I0613 19:18:12.428203  1940 KatranSimpleClient.cpp:107] Vip added
+I0613 19:18:12.432396  1941 KatranSimpleClient.cpp:88] Adding service: 10.70.2.2:16 17
+I0613 19:18:12.433356  1941 KatranSimpleClient.cpp:107] Vip added
+I0613 19:18:12.438549  1942 KatranSimpleClient.cpp:88] Adding service: 10.70.2.2:17 17
+I0613 19:18:12.439680  1942 KatranSimpleClient.cpp:107] Vip added
+#+end_example
+
+Then add a hundred destination IPs for each (doesn't matter what they are, the
+packets are going to be dropped anyway):
+
+: for p in $(seq 12 17); do for i in $(seq 1 100); do ./simple_katran_client -u 10.70.2.2:$p -a -r 10.0.$p.$i; done; done
+: <lots of output elided>
+
+To get summary statistics for all of them:
+
+: ./simple_katran_client -s -sum
+
+To generate the traffic, we use a modified version of the IP randomisation
+script from before, except now we randomise src IPs but keep the destination IP
+constant and vary the destination port. This script is in udp_multi_ip_src.py.
+We use 1000 streams (different src IPs), which means TRex generates 50 Mpps on
+my box.
+
+** Results
+
+#+NAME:results_katran
+| Cores |      PPS |
+|-------+----------|
+|     1 |  5161976 |
+|     2 | 10050051 |
+|     3 | 14611439 |
+|     4 | 19514935 |
+|     5 | 23444383 |
+|     6 | 29303202 |
+
+#+BEGIN_SRC ipython :session :exports both :results raw drawer :var data=results_katran
+d = np.array(data)
+plt.plot(d[:,0], d[:,1]/10**6, marker='o', label="Katran")
+plt.xlabel("Number of cores")
+plt.ylabel("Mpps")
+#plt.legend()
+plt.savefig(BASEDIR+"/figures/load-balancer.pdf", bbox_inches='tight')
+plt.ylim(0,32)
+plt.show()
+#+END_SRC
+
+#+RESULTS:
+:results:
+# Out[188]:
+[[file:./obipy-resources/34o26Z.svg]]
+:end:
+
+

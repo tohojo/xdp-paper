@@ -930,7 +930,15 @@ To test this use case, we configure the Katran XDP program with a fixed number
 of destination hosts, and run it on our test machine. Once the packets are
 returned to the network they are simply dropped; we are only interested in the
 performance of the load balancer component itself. This performance is shown in
-Figure~\textbf{FIXME}.
+Figure~\ref{fig:load-balancer}.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{figures/load-balancer.pdf}
+\caption{\label{fig:load-balancer} Load balancer performance. FIXME: This is a
+  really boring graph.}
+\end{figure}
+
 
 \section{Limitations and future work}
 \label{sec:limitations}
