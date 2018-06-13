@@ -739,13 +739,16 @@ Used the testpmd forward-mode "mac", which I don't know if it is
 correct(?).
 
 #+NAME: dpdk_test2
-| Cores |    RX PPS | DPDK Forward PPS |
-|-------+-----------+------------------|
-|     1 |  43617057 |         21893094 |
-|     2 |  75034064 |         26549320 |
-|     3 |  97535287 |         38194032 |
-|     4 | 115806957 |         40641805 |
-|     5 | 100600263 |         51173067 |
+| Cores |    RX PPS | DPDK Forward PPS | DPDK-rxonly-drop run#2 |
+|-------+-----------+------------------+------------------------|
+|     1 |  43617057 |         21893094 |               43503636 |
+|     2 |  75034064 |         26549320 |               74380044 |
+|     3 |  97535287 |         38194032 |               97203856 |
+|     4 | 115806957 |         40641805 |              113876503 |
+|     5 | 100600263 |         51173067 |              115453781 |
+
+run#2 was with our net-next-xdp kernel, and generators was sending
+with 138726434 pps (138,726,434 pps) measured at switch.
 
 Ethtools stats (works due to Mellanox bifurcated driver) for
 dpdk_test2 with 5 cores:
