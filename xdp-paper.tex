@@ -257,18 +257,19 @@ Figure~\ref{fig:xdp-execution} shows the various processing steps an XDP program
 can perform. The program starts its execution with access to a pointer to a
 context object. This object contains the buffer of the raw packet data, along
 with metadata fields describing which interface and receive queue the packet
-came in on, etc. The program typically begins by parsing packet data, and can
-pass control to a different XDP program, through a so-called \emph{tail call},
-which executes the target program and never returns to the caller, thus
-splitting processing into logical sub-units (based on, say, IP header version).
-The context object also contains a pointer to a special memory area is available
-for XDP to store arbitrary metadata that will be available to other XDP
-programs, as well as to other parts of the kernel and userspace (under certain
-circumstances). The program can also write any parts of the packet data buffer,
-including expanding or shrinking the packet to add or remove headers. These
-three steps (reading, metadata processing, and writing packet data) correspond
-to the light grey boxes on the left side of Figure~\ref{fig:xdp-execution}, and
-can of course alternate and repeat in a arbitrary ways.
+came in on, etc. The program typically begins by parsing packet data, can invoke
+BPF helper functions (e.g., to perform a map lookup), or can pass control to a
+different XDP program, through a so-called \emph{tail call}, which executes the
+target program and never returns to the caller, thus splitting processing into
+logical sub-units (based on, say, IP header version).  The context object also
+contains a pointer to a special memory area is available for XDP to store
+arbitrary metadata that will be available to other XDP programs, as well as to
+other parts of the kernel and userspace (under certain circumstances). The
+program can also write any parts of the packet data buffer, including expanding
+or shrinking the packet to add or remove headers. These three steps (reading,
+metadata processing, and writing packet data) correspond to the light grey boxes
+on the left side of Figure~\ref{fig:xdp-execution}, and can of course alternate
+and repeat in a arbitrary ways.
 
 Similar to a regular userspace program, an XDP program ends its execution with a
 return code, instructing the kernel what to do with the packet. This is shown on
@@ -278,12 +279,12 @@ interface, or allow the packet to be processed by the kernel networking stack.
 In addition to these simple actions, the XDP program can \emph{redirect} the
 packet, which controls its further processing. Redirecting can be used to
 transmit the packet out a different network interface, to pass it to a different
-CPU to further processing, to pass it to a virtual machine running on the host,
+CPU for further processing, to pass it to a virtual machine running on the host,
 or to pass it directly to a special userspace socket without copying. These
 different ways packets can be passed on are shown with solid lines in
 Figure~\ref{fig:xdp-kernel}.
 
-During its execution, and XDP program also has access to kernel facilities that
+During its execution, an XDP program also has access to kernel facilities that
 provide helper functions and additional metadata. These allow the XDP program to
 gather additional metadata through helper functions and maps (dotted lines in
 Figure~\ref{fig:xdp-kernel} and the top part of Figure~\ref{fig:xdp-execution}).
