@@ -870,6 +870,40 @@ Default Fedora 27 firewalld setup with jump rules and REJECT target
 |     5 |  24995919 |     16442723 |   7497838 |   3380752 |
 |     6 |  29443869 |     19518401 |   8726498 |   4001466 |
 
+* Benchmarks: XDP_TX
+
+Modified sample/bpf xdp_rxq_info tool to 'swapmac' when doing XDP_TX benchmarks.
+
+Copied table from bench05, to compare XDP_TX to XDP_REDIRECT.
+
+#+NAME: xdp_redirect_data_to_compare
+| RXQs | XDP_REDIRECT (1024) | RX-size=512 | RX-size=256 | RX-size=128 |
+|------+---------------------+-------------+-------------+-------------|
+|    1 |             8649872 |     8665664 |     8641197 |     7577448 |
+|    2 |            15975491 |    16629074 |    16742325 |    14268397 |
+|    3 |            19222735 |    25230973 |    25738189 |    22086964 |
+|    4 |            21535588 |    28807445 |    34185239 |    29512278 |
+|    5 |            25464083 |    31306207 |    41461874 |    36652247 |
+|    6 |            29828924 |    33970445 |    46062737 |    43376903 |
+
+Perf tool cmdline to measure cache misses on CPU-0:
+
+: perf stat -C0 -e L1-icache-load-misses -e cycles -e  instructions -e cache-misses -e cache-references -e branch-misses -e branches  -r 3 sleep 1
+
+Below it is clear that XDP_TX is experiencing some cache-miss issue.
+
+#+NAME: xdp_tx_data01
+| RXQs | XDP_REDIRECT RX=512 | XDP_TX RX=1024 | % cache-miss | insn per cycle |
+|------+---------------------+----------------+--------------+----------------|
+|    1 |             8665664 |       16230538 |        0.001 |           2.76 |
+|    2 |            16629074 |       31226024 |        0.469 |           2.59 |
+|    3 |            25230973 |       32344463 |       11.752 |           1.74 |
+|    4 |            28807445 |       32604398 |       30.577 |           1.37 |
+|    5 |            31306207 |       37494941 |       41.497 |           1.26 |
+|    6 |            33970445 |       43230678 |       41.977 |           1.22 |
+
+
+
 
 * Graphs used in the paper
 
