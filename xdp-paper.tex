@@ -855,11 +855,10 @@ forwards the packet if a match is found, or passes it up to the network stack if
 not. We perform two tests: one with a single route installed in the routing
 table and all packets set to the same destination address. And another where we
 import a full dump of the global BGP routing table from \url{routeviews.org},
-where we set all next-hop addresses to the same value, but vary the source
-addresses of the packets being routed. In the first test we compare the
-performance with the layer-3 forwarding example included with the DPDK source
-code; but because this example only supports a fixed routing table, we do not
-perform the full BGP table comparison with DPDK.
+where we set all next-hop addresses to the same value, but vary the destination
+addresses of the packets being routed. The routing table dump contains 752,138
+distinct routes, and for our tests we generate 4000 random destination IP
+addresses.
 
 The performance of this use case is seen in Figure~\ref{fig:router-fwd}.
 
