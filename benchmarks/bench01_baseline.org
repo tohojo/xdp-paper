@@ -1051,6 +1051,6 @@ plt.show()
 
 #+RESULTS: tx-test
 :results:
-# Out[166]:
-[[file:./obipy-resources/HoCfre.svg]]
+# Out[170]:
+[[file:./obipy-resources/G5CL1B.svg]]
 :end:
