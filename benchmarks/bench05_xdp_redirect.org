@@ -1,0 +1,29 @@
+* Intro XDP redirect
+
+The XDP_REDIRECT action/verdict is more advanced than other XDP return
+codes.
+
+** TODO Explain map novelty
+
+
+* Benchmarking XDP redirect
+
+Like the XDP_DROP test, we found that as the number of RXQs increase,
+the CPUs DDIO facility (that place payload data in L3 cache) start to
+fail.  The same is true for XDP_REDIRECT.
+
+Below table show scaling performance when adjusting the RX-ring size
+via cmdline:
+
+: ethtool -G mlx5p1 rx SIZE
+
+#+NAME: xdp_redirect_data
+| RXQs | XDP_REDIRECT (1024) | RX-size=512 | RX-size=256 | RX-size=128 |
+|------+---------------------+-------------+-------------+-------------|
+|    1 |             8649872 |     8665664 |     8641197 |     7577448 |
+|    2 |            15975491 |    16629074 |    16742325 |    14268397 |
+|    3 |            19222735 |    25230973 |    25738189 |    22086964 |
+|    4 |            21535588 |    28807445 |    34185239 |    29512278 |
+|    5 |            25464083 |    31306207 |    41461874 |    36652247 |
+|    6 |            29828924 |    33970445 |    46062737 |    43376903 |
+
