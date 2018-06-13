@@ -9,23 +9,51 @@ set to different values:
 
 : ethtool -G ens1f1 rx X
 
+** Full routing table test
+
+To run the full routing table test, a different trex script is used,
+udp_multi_ip.py, which randomises the destination IPs. For this script the
+stream_count parameter sets the number of dest IPs, and port_count sets the
+number of dest UDP ports (for flow rule scaling at the receiver).
+
+Running:
+
+: start -f stl/udp_multi_ip.py -t packet_len=64,stream_count=20000,port_count=1 --port 0 -m 100%
+
+Using larger numbers for stream_count takes a long time to setup! It's not
+efficient! :)
+
+20000 is the max number of streams supported by TRex, it seems. With this, TRex
+can generate ~17Mpps on my machine. I also needed to increase the number of
+mbufs in /etc/trex_cfg.yaml:
+
+#+begin_example
+  memory:
+    mbuf_64: 200000
+#+end_example
+
+With 4000 streams, I can generate ~35Mpps, which is a bit above the maximum
+forwarding rate with XDP, so that's what I'm going with.
+
 ** Data
 
 #+NAME: fwd_data
 | Cores | Linux (single route) | Linux (full table) | XDP (single route rxring 1024) | XDP (single route rxring 512) | XDP (single route rxring 256) | XDP (full table) |
 |-------+----------------------+--------------------+--------------------------------+-------------------------------+-------------------------------+------------------|
-|     1 |              1739672 |                  0 |                        5211477 |                       5357696 |                       5355583 |                0 |
-|     2 |              3370584 |                  0 |                       10239315 |                      10570550 |                      10652337 |                0 |
-|     3 |              4976559 |                  0 |                       13731038 |                      15722609 |                      15937977 |                0 |
-|     4 |              6488625 |                  0 |                       16393261 |                      20192727 |                      21353932 |                0 |
-|     5 |              7848970 |                  0 |                       19364863 |                      23225298 |                      26056821 |                0 |
-|     6 |              9285971 |                  0 |                       22852944 |                      25916115 |                      30416566 |                0 |
+|     1 |              1739672 |            1403287 |                        5211477 |                       5357696 |                       5355583 |          3614416 |
+|     2 |              3370584 |            2720573 |                       10239315 |                      10570550 |                      10652337 |          7210401 |
+|     3 |              4976559 |            4022981 |                       13731038 |                      15722609 |                      15937977 |         11117472 |
+|     4 |              6488625 |            5370551 |                       16393261 |                      20192727 |                      21353932 |         15044133 |
+|     5 |              7848970 |            6562462 |                       19364863 |                      23225298 |                      26056821 |         18806884 |
+|     6 |              9285971 |            7864779 |                       22852944 |                      25916115 |                      30416566 |         22238077 |
 
 
 #+BEGIN_SRC ipython :session :exports both :results raw drawer :var data=fwd_data
 d = np.array(data)
 plt.plot(d[:,0], d[:,5]/10**6, marker='o', label="XDP (single route)")
+plt.plot(d[:,0], d[:,6]/10**6, marker='s', label="XDP (full table)")
 plt.plot(d[:,0], d[:,1]/10**6, marker='^', label="Linux (single route)")
+plt.plot(d[:,0], d[:,2]/10**6, marker='x', label="Linux (full table)")
 plt.xlabel("Number of cores")
 plt.ylabel("Mpps")
 plt.legend()
@@ -35,6 +63,6 @@ plt.show()
 
 #+RESULTS:
 :results:
-# Out[49]:
-[[file:./obipy-resources/q2FUPU.svg]]
+# Out[156]:
+[[file:./obipy-resources/8lBmxR.svg]]
 :end:
