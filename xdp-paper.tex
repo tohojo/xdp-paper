@@ -719,6 +719,19 @@ sub-linear performance increases as more cores are added. We attribute this to
 \caption{\label{fig:redirect-test} Packet forwarding performance.}
 \end{figure}
 
+\subsection{Discussion}
+\label{sec:perf-discussion}
+
+% Points:
+% - We do things we don't have to (e.g., DMA map/unmap)
+% - We are not good enough at batching (e.g., per pkt memory return for
+% redirect)
+% - We cannot busy poll
+%
+% Absolute DROP difference XDP vs DPDK is (1/26-1/43.5)*1000 = 15.47 ns. This is
+% between 55 and 145 instructions (depending on ins/cycle; perf says 2.61 for
+% XDP_DROP). About 350 instructions per pkt.
+
 \section{Real-world use cases}
 \label{sec:usecases}
 In this section we describe and evaluate three real-world use cases that
