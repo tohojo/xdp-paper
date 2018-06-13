@@ -1015,7 +1015,9 @@ dpdk = np.array(dpdk_data)
 xdp = np.array(xdp_data)
 linux = np.array(linux_data)
 plt.plot(dpdk[:,0], dpdk[:,2]/10**6, marker='o', label="DPDK")
-plt.plot(xdp[:,0], xdp[:,3]/10**6, marker='s', label="XDP")
+plt.plot(xdp[:,0], xdp[:,3]/10**6, marker='s', label="XDP 256")
+plt.plot(redir[:,0], redir[:,2]/10**6, marker='s', label="XDP 512")
+plt.plot(redir[:,0], redir[:,1]/10**6, marker='s', label="XDP 1024")
 plt.plot(linux[:,0], linux[:,1]/10**6, marker='^', label="Linux")
 plt.xlabel("Number of cores")
 plt.ylabel("Mpps")
@@ -1027,8 +1029,8 @@ plt.show()
 
 #+RESULTS: redirect-test
 :results:
-# Out[163]:
-[[file:./obipy-resources/ZnST24.svg]]
+# Out[167]:
+[[file:./obipy-resources/CzETtD.svg]]
 :end:
 
 ** XDP_TX
@@ -1049,6 +1051,6 @@ plt.show()
 
 #+RESULTS: tx-test
 :results:
-# Out[164]:
-[[file:./obipy-resources/dCuhbD.svg]]
+# Out[166]:
+[[file:./obipy-resources/HoCfre.svg]]
 :end:
