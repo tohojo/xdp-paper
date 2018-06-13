@@ -606,28 +606,11 @@ the next section, we supplement this with a description and evaluation of a
 series of real-world use cases.
 
 For all benchmarks, we use a machine equipped with a hexa-core Intel Xeon
-E5-1650 v4 CPU running at 3.60GHz, and memory modules installed in all four
-memory slots, to get the full available memory bandwidth. This CPU supports
-Intel's Data Direct I/O (DDIO) technology, which makes it possible for the
-networking hardware using Direct Memory Access (DMA) to place data directly into
-the processor cache, which eliminates cache misses on subsequent processing of
-the data. The test machine is equipped with two Mellanox ConnectX-5 Ex VPI
-dual-port 100Gbps network adapters, installed in PCI Express v3 16-lane slots,
-which ensures that the PCI bus has enough nominal bandwidth available to match
-the network adapter speed for a single port on each card. However, even so, in
-some of our tests the performance is bottlenecked at the PCI bus, as we will see
-below.
-
-We use the TRex packet generator~\cite{cisco18:_trex_traff_gener} to produce the
-test traffic. The test machine runs a version of the Linux kernel that will be
-released as v4.18. The needed XDP redirect changes to NIC driver mlx5 is
-expected to appear in v4.19.
-We make details of our setup, links to source code and the
-raw test data available in an online repository~\cite{test-data}.\footnote{One
-  particular configuration detail that we want to mention here, however, is that
-  we disable the ``retpoline'' mitigation for the recent Meltdown and Spectre
-  vulnerabilities, since that has a particularly high performance cost in XDP.
-  Work to reduce this cost is ongoing.}
+E5-1650 v4 CPU running at 3.60GHz, equipped with two Mellanox ConnectX-5 Ex VPI
+dual-port 100Gbps network adapters. We use the TRex packet
+generator~\cite{cisco18:_trex_traff_gener} to produce the test traffic. The test
+machine runs a version of the Linux kernel that will be released as v4.18. The
+needed XDP redirect changes to NIC driver mlx5 is expected to appear in v4.19.
 
 % Jesper have a git tree (branch xdp_paper01) that we use for testing here:
 %  https://git.kernel.org/pub/scm/linux/kernel/git/hawk/net-next-xdp.git/
@@ -654,13 +637,73 @@ Figure~\ref{fig:xdp-execution} above:
 
 
 For all of these tests, we measure the maximum how many packets per second the
-system can process, as well as the CPU usage required for processing different
-offered loads. We compare the performance with the \texttt{testpmd} example
+system can process, by running the packet generator at line speed and measuring
+how many packets are processed by the test machine (the rest are simply dropped
+by the hardware). We compare the performance with the \texttt{testpmd} example
 application shipped with DPDK framework, and with the regular Linux kernel
-network stack (except for the inline processing use case, which is specific to
-XDP). For all tests, we use minimum-sized (64 bytes) packets, since processing a
-high number of packets per second is the most challenging, and using larger
-packets only exacerbates the PCI bus bottleneck.
+network stack. For all tests, we use minimum-sized (64 bytes) packets, since
+processing a high number of packets per second is the most challenging.
+
+\subsection{Performance Tuning}
+\label{sec:performance-tuning}
+
+As we will see in the results below, our tests push the hardware to its very
+limits. As such, tuning the performance of the system as a whole is important to
+realise optimal performance. This section outlines some important areas where
+this is needed for our experiments. In addition, we make the full details of our
+setup, links to source code and the raw test data available in an online
+repository~\cite{test-data}, to help others reproduce our results.
+
+To ensure optimal performance, care needs to be taken when selecting the
+hardware to run on: Our test machine has memory modules installed in all four
+memory slots, to get the full available memory bandwidth. In addition, the CPU
+supports Intel's Data Direct I/O (DDIO) technology, which makes it possible for
+the networking hardware using Direct Memory Access (DMA) to place data directly
+into the processor cache. This eliminates cache misses on subsequent processing
+of the data, which is important for performance. Finally, we also make sure to
+install the network card in a 16-lane PCI Express v3 slot, as smaller slots do
+not provide enough bandwidth.
+
+On the software side, a few configuration settings in the Linux kernel build are
+important to mention. The first one is that we disable the ``retpoline''
+mitigation for the recent Meltdown and Spectre vulnerabilities, since that has a
+particularly high performance cost in XDP, as it increases the cost of indirect
+function calls. Work to reduce this cost in the kernel is ongoing. The second is
+that we set the preemption mode to voluntary preemption, so kernel threads
+cannot be forcefully interrupted. This is the default setting used by most Linux
+distributions, however turning on full forced preemption is a common performance
+tweak applied to the Linux kernel. In this case it hurts performance, though, so
+we leave it at the voluntary setting.
+
+There are also a few configuration settings for the network interfaces that are
+important. The first one is to disable Ethernet flow control. Flow control
+causes the hardware to send pause frames to the sender if its buffers are full,
+in an effort to avoid packet drops. However, in our benchmarks we deliberately
+overload the receiver in an effort to measure its maximum performance. Flow
+control interferes with this, so we turn it off. We also tune the size of the
+receive size ring buffer that is used for transmitting packets form the hardware
+to the kernel. A larger buffer means that more packets can be enqueued by the
+hardware, which is generally a good thing. However, if the buffer is too large,
+it can cause the DDIO logic of the processor to make bad decisions: seeing a
+large buffer already queued in the processor cache, it will instead move the DMA
+data to the main system memory, which causes cache misses when the data is
+subsequently processed, which hurts performance. Unfortunately, there is no way
+to tune the DDIO mechanism itself, so we use the ring buffer size as a
+workaround for this problem. Different workloads have different optimal settings
+for the ring buffer size; we always use the setting that gives the highest
+performance, but not what that setting is in the results sections below.
+
+Finally, a note on how we measure the performance for different numbers of
+cores: The XDP program will always run on the core that is servicing the current
+packet. The network interface has a number of receive queues that can be bound
+to different cores, and the hardware offers various ways to steer packets onto
+different queues. We bind each receive queue to a different core, and install
+steering rules into the hardware so that a range of UDP ports are mapped 1-to-1
+to the different queues. This allows us to steer traffic to different CPUs are
+the traffic generator, by simply dividing the traffic between the desired number
+of destination ports. For DPDK, only the default hashing-based receive queue
+mapping is available; however, this is sufficient, since DPDK needs to be
+explicitly configured to run on a given number of cores.
 
 \subsection{Packet Drop Performance}
 \label{sec:basel-pack-proc}
