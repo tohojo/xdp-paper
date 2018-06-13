@@ -27,11 +27,6 @@
   \institution{Red Hat}}
 \email{brouer@redhat.com}
 
-\author{David Ahern}
-\affiliation{%
-  \institution{Cumulus Networks}}
-\email{dsahern@gmail.com}
-
 \author{Daniel Borkmann}
 \affiliation{%
   \institution{Cilium.io}}
@@ -41,6 +36,11 @@
 \affiliation{%
   \institution{Cilium.io}}
 \email{john@cilium.io}
+
+\author{David Ahern}
+\affiliation{%
+  \institution{Cumulus Networks}}
+\email{dsahern@gmail.com}
 
 \renewcommand{\shortauthors}{T. Høiland-Jørgensen et al.}
 \renewcommand{\shorttitle}{The eXpress Data Path}
@@ -132,8 +132,63 @@ cases and their performance. Finally, Section~\ref{sec:limitations} presents
 current limitations of XDP and future work, and Section~\ref{sec:conclusion}
 concludes.
 
-\section{Related work}%
+\section{Related Work}%
 \label{sec:related-work}
+
+Programmable packet processing continues to gain momentum as the performance
+attainable on commodity hardware rises, and costs fall. Programmable hardware
+devices such as the NetFPGA~\cite{lockwood2007netfpga}, allows this processing
+to continue to happen on specialised hardware, by exposing an API that makes it
+possible to run arbitrary packet processing tasks on the FPGA-based dedicated
+hardware. The P4 language~\cite{bosshart2014p4} seeks to extend this
+programmability to a wider variety of packet processing hardware.
+
+However, even though specialised hardware has begun to gain data plane
+programmability, the flexibility of commodity hardware has obvious advantages,
+and as performance increases and cost decreases, this becomes ever more popular.
+To achieve the maximum possible performance in this setting, it is necessary to
+remove any bottlenecks between the networking interface card (NIC) and the
+program performing the packet processing. Several systems and architectures have
+been presented, that achieve this in various ways with various tradeoffs. XDP is
+another such solution, with a novel approach that we believe offers a compelling
+tradeoff between the various competing demands of high performance, security,
+manageability and integration with existing systems. In this section we present
+an overview of the previous approaches, and explain how XDP places itself in
+relation to them.
+
+Since one of the main sources of performance bottlenecks is the interface
+between the operating system kernel and the userspace applications running on
+top of it (because of the high overhead of a system call), most of the packet
+processing frameworks are focused on managing this in various ways. This falls
+into three broad categories: (a) Implementing parts of the application as a
+module inside the kernel itself, (b) providing an interface for userspace to
+access packet data with lower overhead than traditional socket, or (c) bypassing
+the kernel entirely and handing over control of the networking device directly
+to userspace.
+
+In the first category, systems such as the OpenVswitch~\cite{openvswitch}
+virtual switch and the Click~\cite{martins2014clickos} software router provide
+kernel modules that offload part of their functionality into the kernel. These
+are implemented as loadable kernel modules that provide configuration APIs to
+userspace, but performs packet processing directly in the kernel. The drawback
+to this approach is that it requires deep familiarity with internal kernel APIs,
+and a failure of the network processing application in most cases leads to a
+failure of the entire system.
+
+In the second category, various systems introduce kernel modules that do not
+perform packet processing themselves, but instead focus on moving packet data
+out to userspace with as little overhead as possible, typically via shared
+memory. Examples of this approach include PF\_RING~\cite{deri2009modern}, the
+Packet I/O engine that is part of PacketShader~\cite{han2010packetshader}, and
+the Netmap~\cite{rizzo2012netmap} framework.
+
+In the third category of kernel bypass techniques, we find the PF\_RING ZC
+module~\cite{pfringzc}, the hardware-specific Solarflare
+OpenOnload~\cite{openonload} and, most prominently, the DataPlane Development
+Kit (DPDK)~\cite{dpdk}, which started out as an Intel-specific hardware support
+package, but has since seen a wide uptake under the stewardship of the Linux
+Foundation.
+
 \section{The design of XDP}
 \label{sec:design}
 XDP is designed to integrate with the Linux networking stack, enhancing it with
@@ -202,18 +257,19 @@ Figure~\ref{fig:xdp-execution} shows the various processing steps an XDP program
 can perform. The program starts its execution with access to a pointer to a
 context object. This object contains the buffer of the raw packet data, along
 with metadata fields describing which interface and receive queue the packet
-came in on, etc. The program typically begins by parsing packet data, and can
-pass control to a different XDP program, through a so-called \emph{tail call},
-which executes the target program and never returns to the caller, thus
-splitting processing into logical sub-units (based on, say, IP header version).
-The context object also contains a pointer to a special memory area is available
-for XDP to store arbitrary metadata that will be available to other XDP
-programs, as well as to other parts of the kernel and userspace (under certain
-circumstances). The program can also write any parts of the packet data buffer,
-including expanding or shrinking the packet to add or remove headers. These
-three steps (reading, metadata processing, and writing packet data) correspond
-to the light grey boxes on the left side of Figure~\ref{fig:xdp-execution}, and
-can of course alternate and repeat in a arbitrary ways.
+came in on, etc. The program typically begins by parsing packet data, can invoke
+BPF helper functions (e.g., to perform a map lookup), or can pass control to a
+different XDP program, through a so-called \emph{tail call}, which executes the
+target program and never returns to the caller, thus splitting processing into
+logical sub-units (based on, say, IP header version).  The context object also
+contains a pointer to a special memory area is available for XDP to store
+arbitrary metadata that will be available to other XDP programs, as well as to
+other parts of the kernel and userspace (under certain circumstances). The
+program can also write any parts of the packet data buffer, including expanding
+or shrinking the packet to add or remove headers. These three steps (reading,
+metadata processing, and writing packet data) correspond to the light grey boxes
+on the left side of Figure~\ref{fig:xdp-execution}, and can of course alternate
+and repeat in a arbitrary ways.
 
 Similar to a regular userspace program, an XDP program ends its execution with a
 return code, instructing the kernel what to do with the packet. This is shown on
@@ -223,12 +279,12 @@ interface, or allow the packet to be processed by the kernel networking stack.
 In addition to these simple actions, the XDP program can \emph{redirect} the
 packet, which controls its further processing. Redirecting can be used to
 transmit the packet out a different network interface, to pass it to a different
-CPU to further processing, to pass it to a virtual machine running on the host,
+CPU for further processing, to pass it to a virtual machine running on the host,
 or to pass it directly to a special userspace socket without copying. These
 different ways packets can be passed on are shown with solid lines in
 Figure~\ref{fig:xdp-kernel}.
 
-During its execution, and XDP program also has access to kernel facilities that
+During its execution, an XDP program also has access to kernel facilities that
 provide helper functions and additional metadata. These allow the XDP program to
 gather additional metadata through helper functions and maps (dotted lines in
 Figure~\ref{fig:xdp-kernel} and the top part of Figure~\ref{fig:xdp-execution}).
