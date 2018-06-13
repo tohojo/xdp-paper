@@ -12,8 +12,8 @@ Like the XDP_DROP test, we found that as the number of RXQs increase,
 the CPUs DDIO facility (that place payload data in L3 cache) start to
 fail.  The same is true for XDP_REDIRECT.
 
-Below table show scaling performance when adjusting the RX-ring size
-via cmdline:
+Below table show XDP_REDIRECT scaling performance (same PCIe-slot NIC
+dual port) when adjusting the RX-ring size via cmdline:
 
 : ethtool -G mlx5p1 rx SIZE
 
