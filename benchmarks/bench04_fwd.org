@@ -4,6 +4,11 @@ baseline Linux.
 
 : ./xdp_fwd -D ens1f1
 
+Normal Linux forwarding also skip the rules lookup, so that corresponds to
+xdp_fwd direct mode. But only if no rules have *ever* been installed since the
+machine was rebooted. Removing the rules does *not* get it back in the optimised
+lookup mode.
+
 Measure throughput with ethtool_stats.pl (rx_xdp_redirect /sec). Adapter RX ring
 set to different values:
 
@@ -35,17 +40,27 @@ mbufs in /etc/trex_cfg.yaml:
 With 4000 streams, I can generate ~35Mpps, which is a bit above the maximum
 forwarding rate with XDP, so that's what I'm going with.
 
+Note that the randomly generated IPs may hit holes in the routing table, so make
+sure there's either a default route or a covering route going to the same
+destination. I use:
+
+: ip r add 0.0.0.0/1 via 10.70.2.2
+: ip r add 128.0.0.0/1 via 10.70.2.2
+
+These are more specific than the default route (so that is still there if I want
+to go out onto the internet), but covers everything.
+
 ** Data
 
 #+NAME: fwd_data
 | Cores | Linux (single route) | Linux (full table) | XDP (single route rxring 1024) | XDP (single route rxring 512) | XDP (single route rxring 256) | XDP (full table) |
 |-------+----------------------+--------------------+--------------------------------+-------------------------------+-------------------------------+------------------|
-|     1 |              1739672 |            1403287 |                        5211477 |                       5357696 |                       5355583 |          3614416 |
-|     2 |              3370584 |            2720573 |                       10239315 |                      10570550 |                      10652337 |          7210401 |
-|     3 |              4976559 |            4022981 |                       13731038 |                      15722609 |                      15937977 |         11117472 |
-|     4 |              6488625 |            5370551 |                       16393261 |                      20192727 |                      21353932 |         15044133 |
-|     5 |              7848970 |            6562462 |                       19364863 |                      23225298 |                      26056821 |         18806884 |
-|     6 |              9285971 |            7864779 |                       22852944 |                      25916115 |                      30416566 |         22238077 |
+|     1 |              1739672 |            1373550 |                        5211477 |                       5357696 |                       5355583 |          3446336 |
+|     2 |              3370584 |            2746704 |                       10239315 |                      10570550 |                      10652337 |          7016974 |
+|     3 |              4976559 |            3958725 |                       13731038 |                      15722609 |                      15937977 |         10641333 |
+|     4 |              6488625 |            5295366 |                       16393261 |                      20192727 |                      21353932 |         14408549 |
+|     5 |              7848970 |            6451024 |                       19364863 |                      23225298 |                      26056821 |         17870856 |
+|     6 |              9285971 |            7809312 |                       22852944 |                      25916115 |                      30416566 |         21227330 |
 
 
 #+BEGIN_SRC ipython :session :exports both :results raw drawer :var data=fwd_data
@@ -63,6 +78,6 @@ plt.show()
 
 #+RESULTS:
 :results:
-# Out[156]:
-[[file:./obipy-resources/8lBmxR.svg]]
+# Out[158]:
+[[file:./obipy-resources/5egC7f.svg]]
 :end:
