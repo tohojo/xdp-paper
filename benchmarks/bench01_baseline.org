@@ -903,6 +903,19 @@ Below it is clear that XDP_TX is experiencing some cache-miss issue.
 |    6 |            33970445 |       43230678 |       41.977 |           1.22 |
 
 
+Testing changing RX + TX ring size in XDP_TX test:
+
+: ethtool -G mlx5p1 rx 512 tx 512
+
+#+NAME: xdp_tx_data02_512
+| RXQs | XDP_TX RX=512 | % cache-miss | insn per cycle |
+|------+---------------+--------------+----------------|
+|    1 |      17005709 |        0.001 |           2.86 |
+|    2 |      33926316 |        0.004 |           2.81 |
+|    3 |      45523114 |        1.159 |           2.60 |
+|    4 |      50978970 |        4.868 |           2.22 |
+|    5 |      50619968 |       13.544 |           1.76 |
+|    6 |      52315564 |       22.498 |           1.46 |
 
 
 * Graphs used in the paper
