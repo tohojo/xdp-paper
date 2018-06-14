@@ -46,7 +46,7 @@ lot of different tests, to simulate a reasonable DDoS BPF program.
 
 Notice: xdp_ddos01_blacklist is missing CPU redirect feature.
 
-** sample: xdp_redirect_cpu
+** sample: xdp_redirect_cpu run#1
 
 The xdp_redirect_cpu tool have --prognum 4, which is a DDoS test.
 See: xdp_prognum4_ddos_filter_pktgen
@@ -94,6 +94,8 @@ bytes  Bytes  bytes    bytes   secs.    per sec
 #+END_EXAMPLE
 
 Baseline with XDP but without DDoS traffic: 25408.50 TCP-Trans/sec
+
+NOTICE: these benchmarks were run with a kernel with PREEMPT enabled.
 
 The XDP program cmdline, which place TCP traffic on CPU-2, and netperf
 is also requested to run on CPU-2.  This cause several advantages,
@@ -435,6 +437,89 @@ cpumap_kthread  total   24,530         0           24,530     sched-sum
 redirect_err    total   0              0          
 xdp_exception   total   0              0          
 #+END_EXAMPLE
+
+** sample: xdp_redirect_cpu run#2
+
+The xdp_redirect_cpu tool have --prognum 4, which is a DDoS test.
+See: xdp_prognum4_ddos_filter_pktgen
+
+Testing again with a kernel with PREEMPT disabled. This showed both
+higher TCP_RR performance and more stable results (with less
+variance).
+
+Make sure DDoS attack is hitting same RXQ on NIC, by reducing NIC RXQ
+number to 1:
+
+: ethtool -L mlx5p1 combined 1
+
+Kernel config option CONFIG_PREEMPT is not set, instead:
+ CONFIG_PREEMPT_VOLUNTARY=y
+
+The netperf TCP_RR benchmark is highly affected by the CPU-scheduler.
+This test is run on Fedora 27 with performance profile "throughput-performance":
+
+: tuned-adm profile throughput-performance
+
+Netperf benchmark tool cmdline:
+
+: netperf -t TCP_RR -H 198.18.1.1 -D3 -l 60000 -T 2,2
+
+Pinned to CPU 2, and display average over 3 sec.
+
+Without any XDP prog loaded:
+
+#+BEGIN_EXAMPLE
+Interim result: 34107.16 Trans/s over 3.000 seconds ending at 1528982557.512
+Interim result: 34023.98 Trans/s over 3.007 seconds ending at 1528982560.520
+Interim result: 34025.00 Trans/s over 3.000 seconds ending at 1528982563.520
+Interim result: 34053.21 Trans/s over 3.000 seconds ending at 1528982566.520
+Interim result: 34049.66 Trans/s over 3.000 seconds ending at 1528982569.520
+#+END_EXAMPLE
+
+| Non-XDP prog | TCP RR/s | TCP RR/s | TCP RR/s |      mean |
+|--------------+----------+----------+----------+-----------|
+|  0           | 34107.16 | 34023.98 | 34023.98 | 34051.707 |
+|              |          |          |          |           |
+#+TBLFM: $5=vmean($2..$4)
+
+With XDP prog loaded:
+
+#+BEGIN_EXAMPLE
+Interim result: 34560.40 Trans/s over 3.000 seconds ending at 1528982518.251
+Interim result: 34544.30 Trans/s over 3.001 seconds ending at 1528982521.252
+Interim result: 34502.85 Trans/s over 3.004 seconds ending at 1528982524.256
+#+END_EXAMPLE
+
+#+NAME: xdp_ddos_run2
+| DDoS Mpps | TCP RR/s | TCP RR/s | TCP RR/s | TCP RR/s |      mean |       dev |
+|-----------+----------+----------+----------+----------+-----------+-----------|
+|         0 | 34560.40 | 34544.30 | 34491.15 | 34502.85 | 34524.675 | 32.973082 |
+|     0.256 | 33881.53 | 34066.66 | 33938.16 | 34136.39 | 34005.685 | 116.58450 |
+|       0.5 | 33916.21 | 33965.21 | 33721.10 | 33890.03 | 33873.138 | 106.03984 |
+|         1 | 32168.70 | 32132.45 | 32184.41 | 32452.78 | 32234.585 | 147.08159 |
+|         2 | 31603.60 | 31335.46 | 31391.17 | 31858.82 | 31547.263 | 237.67426 |
+|         3 | 30570.39 | 30652.12 | 30595.63 | 30702.58 |  30630.18 | 59.137327 |
+|         5 | 28748.27 | 28859.18 | 28502.75 | 28550.92 |  28665.28 | 167.31085 |
+|         7 | 28331.19 | 28422.92 | 28323.18 | 28016.72 | 28273.503 | 177.06735 |
+|        10 | 27536.85 | 27713.44 | 27464.99 | 27654.98 | 27592.565 | 112.37725 |
+|        11 | 28140.47 | 28243.31 | 28201.44 | 27980.79 | 28141.503 | 115.16198 |
+|        12 | 28479.02 | 28343.78 | 28707.78 | 28695.97 | 28556.638 | 176.62615 |
+|        13 | 29444.75 | 29469.29 | 29658.59 | 29533.20 | 29526.458 | 95.653363 |
+|        14 | 29184.16 | 29104.75 | 29148.01 | 29124.63 | 29140.388 | 34.119713 |
+|        15 | 28913.03 | 28783.66 | 28666.26 | 28623.69 |  28746.66 | 129.91505 |
+|        16 | 28675.24 | 28452.68 | 28634.08 | 28756.18 | 28629.545 | 128.35660 |
+|        17 | 28488.98 | 28439.15 | 28485.69 | 28690.08 | 28525.975 | 111.74456 |
+|        18 | 28030.18 | 27999.80 | 27862.47 | 28000.41 | 27973.215 | 75.179333 |
+|        19 | 27501.86 | 27470.43 | 26970.67 | 26077.61 | 27005.143 | 664.51126 |
+|      19.5 | 25733.67 | 27264.79 | 27069.43 | 27527.75 |  26898.91 | 799.20153 |
+|        20 | 23789.44 | 21537.97 | 25096.89 | 23591.55 | 23503.963 | 1471.0216 |
+|        21 | 17232.24 | 13798.76 | 16562.17 | 13144.36 | 15184.383 | 2014.4197 |
+|        22 |  2107.00 |  2908.04 |  2222.60 |  2897.89 | 2533.8825 | 428.80483 |
+|        23 |        0 |        0 |        0 |        0 |         0 |         0 |
+|        24 |        0 |        0 |        0 |        0 |         0 |         0 |
+|        25 |        0 |        0 |        0 |        0 |         0 |         0 |
+#+TBLFM: $6=vmean($2..$5)::$7=vsdev($2..$5)
+
 
 ** Data: XDP DDOs sample
 
