@@ -870,6 +870,20 @@ Default Fedora 27 firewalld setup with jump rules and REJECT target
 |     5 |  24995919 |     16442723 |   7497838 |   3380752 |
 |     6 |  29443869 |     19518401 |   8726498 |   4001466 |
 
+Same test, but measuring the overhead of XDP_PASS (using xdp_rxq_info):
+
+#+NAME: linux_iptables_drop_toke
+| Cores | table raw + XDP_PASS | table raw |
+|-------+----------------------+-----------|
+|     1 |              4545188 |   4837269 |
+|     2 |              9069234 |   9661542 |
+|     3 |             13596920 |  14483976 |
+|     4 |             18081421 |  19250649 |
+|     5 |             22520733 |  24070686 |
+|     6 |             27002648 |  28817001 |
+
+300 kpps overhead; 13.88 ns
+
 * Benchmarks: XDP_TX
 
 Modified sample/bpf xdp_rxq_info tool to 'swapmac' when doing XDP_TX benchmarks.
@@ -928,7 +942,6 @@ Testing changing RX + TX ring size in XDP_TX test:
 |    4 |      68953922 |        0.010 |           2.90 |
 |    5 |      70164732 |        0.316 |           2.72 |
 |    6 |      68744044 |        1.340 |           2.48 |
-
 
 * Graphs used in the paper
 
