@@ -334,13 +334,13 @@ program, and can be referred to from within the eBPF code. Maps are shared, both
 between different eBPF programs running at various places in the kernel, as well
 as between eBPF and userspace. The map types include generic hash maps, arrays
 and radix trees, as well as specialised types containing pointers to eBPF
-programs, or even recursive pointers to other maps. Maps serve several purposes:
-they are a persistent data store between invocations of the same eBPF program; a
-global coordination tool, where eBPF programs in one part of the kernel can
-update state that changes the behaviour in another; and a communication
-mechanism between userspace programs and the kernel eBPF programs, similar to
-the communication between control plane and data plane in other programmable
-package processing frameworks.
+programs (used for tail calls), or even recursive pointers to other maps. Maps
+serve several purposes: they are a persistent data store between invocations of
+the same eBPF program; a global coordination tool, where eBPF programs in one
+part of the kernel can update state that changes the behaviour in another; and a
+communication mechanism between userspace programs and the kernel eBPF programs,
+similar to the communication between control plane and data plane in other
+programmable package processing frameworks.
 
 Another piece of the XDP picture is the ability to run eBPF programs in other
 parts of the kernel. These include packet processing in the Traffic Control (TC)
