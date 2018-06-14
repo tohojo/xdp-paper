@@ -552,10 +552,10 @@ import numpy as np
 |     25.07 |       30 |
 
 
-#+BEGIN_SRC ipython :session :exports both :results raw drawer :var data=xdp_ddos :var no_prot=no_protection
+#+BEGIN_SRC ipython :session :exports both :results raw drawer :var data=xdp_ddos_run2 :var no_prot=no_protection
 d = np.array(data)
 nprot = np.array(no_prot)
-plt.plot(d[:,0], d[:,1]/1000, marker='o', label="XDP")
+plt.plot(d[:,0], d[:,5]/1000, marker='o', label="XDP")
 plt.plot(nprot[:,0], nprot[:,1]/1000, marker='s', label="No XDP")
 plt.xlabel("Mpps DOS traffic")
 plt.ylabel("TCP Ktrans/s")
@@ -567,8 +567,8 @@ plt.show()
 
 #+RESULTS:
 :results:
-# Out[66]:
-[[file:./obipy-resources/iHfmYM.svg]]
+# Out[193]:
+[[file:./obipy-resources/i46ttM.svg]]
 :end:
 
 
