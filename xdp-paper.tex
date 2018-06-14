@@ -129,6 +129,8 @@ hypervisor host or application server; full layer-3 packet forwarding
 capabilities; and layer-4 load balancing by encapsulating packets and
 resubmitting them to the network.
 
+\textbf{FIXME: List the ``selling points'' of XDP.}
+
 The rest of this paper is structured as follows: Section~\ref{sec:related-work}
 first outlines related work. Section~\ref{sec:design} then presents the design
 of XDP and Section~\ref{sec:perf-eval} presents the raw packet processing
@@ -597,6 +599,7 @@ batch of packets at once. This mechanism has been available in Linux for a
 long time, added as part of the Linux 2.6 kernel series; but for XDP it carries
 with it additional benefits, since the XDP program can be executed directly in
 the NAPI poll context.
+% FIXME: bulking or batching?
 
 A similar issue is seen on the transmit path, where updating the tail pointer in
 the device ring buffer initiates a transmit operation to the hardware, which
@@ -812,6 +815,8 @@ to make the code available.
 The three use cases are inline Denial of Service (DoS) mitigation, a software
 layer-3 router, and an application load-balancer, and are described in turn in
 each of the following subsections.
+
+\textbf{FIXME: Explain how the use cases show off different features.}
 
 \subsection{Inline DoS Mitigation}
 \label{sec:dos-usecase}
