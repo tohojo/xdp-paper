@@ -1058,24 +1058,3 @@ plt.show()
 [[file:./obipy-resources/CzETtD.svg]]
 :end:
 
-** XDP_TX
-
-#+NAME: tx-test
-#+BEGIN_SRC ipython :session :exports both :results raw drawer :var redir_data=xdp_redirect_data :var tx_data=xdp_tx_data03_256
-tx = np.array(tx_data)
-redir = np.array(redir_data)
-plt.plot(tx[:,0], tx[:,1]/10**6, marker='o', label="TX")
-plt.plot(redir[:,0], redir[:,3]/10**6, marker='s', label="REDIRECT")
-plt.xlabel("Number of cores")
-plt.ylabel("Mpps")
-plt.legend()
-plt.ylim(0,80)
-plt.savefig(BASEDIR+"/figures/tx-test.pdf", bbox_inches='tight')
-plt.show()
-#+END_SRC
-
-#+RESULTS: tx-test
-:results:
-# Out[180]:
-[[file:./obipy-resources/fZw3Sp.svg]]
-:end:
