@@ -279,9 +279,8 @@ context object. This object contains the buffer of the raw packet data, along
 with metadata fields describing which interface and receive queue the packet
 came in on, etc. The program typically begins by parsing packet data, can invoke
 BPF helper functions (e.g., to perform a map lookup), or can pass control to a
-different XDP program, through a so-called \emph{tail call}, which executes the
-target program and never returns to the caller, thus splitting processing into
-logical sub-units (based on, say, IP header version).  The context object also
+different XDP program, through a tail calls, thus splitting processing into
+logical sub-units (based on, say, IP header version). The context object also
 contains a pointer to a special memory area is available for XDP to store
 arbitrary metadata that will be available to other XDP programs, as well as to
 other parts of the kernel and userspace (under certain circumstances). The
@@ -302,7 +301,8 @@ transmit the packet out a different network interface, to pass it to a different
 CPU for further processing, to pass it to a virtual machine running on the host,
 or to pass it directly to a special userspace socket without copying. These
 different ways packets can be passed on are shown with solid lines in
-Figure~\ref{fig:xdp-kernel}.
+Figure~\ref{fig:xdp-kernel}. \textbf{FIXME: Highlight that redirect via maps is
+  a generic facility with many cool uses.}
 
 During its execution, an XDP program also has access to kernel facilities that
 provide helper functions and additional metadata. These allow the XDP program to
@@ -443,6 +443,8 @@ points to a structure that allows the BPF program to access the packet data
 itself, as well as various items of metadata, including space for arbitrary data
 that is carried along with the packet and is accessible by other BPF programs
 that operate on the packet at later stages of processing.
+
+\textbf{FIXME: Add table of current helpers.}
 
 
 \subsection{The eBPF program verifier}
@@ -846,6 +848,9 @@ the server, repeating as soon as a reply is received. The output is the number
 of transactions per second, which is a good proxy for an interactive TCP
 session, such as small remote procedure calls.
 
+\textbf{FIXME: Rewrite so it doesn't seem like 25ktrans/s is the maximum
+  achievable.}
+
 We first measure the baseline performance of this test, and see that we are able
 to perform around 25.000 transactions per second with no competing traffic. We
 then, from a separate machine, offer an increasing load of small UDP packets,
@@ -974,8 +979,7 @@ far towards the latter as is, so maybe some text needs to be cut.}
 \subsection{User Experience and Debugging}
 \label{sec:user-exper-debugg}
 Since an XDP program runs in the kernel, the debugging tools available to a
-regular userspace program are not generally applicable, and even common
-debugging tools such as \texttt{printf()} are unavailable. The tendency for some
+regular userspace program are not generally applicable. The tendency for some
 operations to fail silently and just drop packets doesn't help this situation.
 In addition, the subset of C that is generally used to write BPF programs can be
 limiting, for instance due to the need to unroll all loops. Finally, the
@@ -1017,6 +1021,8 @@ not feasible. As the XDP system has evolved, the need to keep the API support
 required in drivers to a minimum has become increasingly clear, and some steps
 have been taken in this direction. For instance, support for new targets can be
 added to the redirection action without any changes needed from the drivers.
+
+\textbf{FIXME: Mention closing the performance gap with DPDK.}
 
 \subsection{Improvements to NAPI}
 \label{sec:improvements-napi}
