@@ -1033,20 +1033,16 @@ polling mode, which has shown promising results~\cite{dumazet17:_busyp}. We
 believe continuing this work, and integrating it with XDP, will make it possible
 to reach raw packet processing performance equal to that of DPDK.
 
-\subsection{Handling of Rate Transitions}
+\subsection{QoS and Rate Transitions}
 \label{sec:handl-rate-trans}
-Currently, XDP offers no mechanism to gracefully handle rate transitions, i.e.,
-cases where packets are forwarded to a destination that cannot handle the rate
-of incoming packets. This can happen if, e.g., a 100\,Gbps ingress interface
-attempts to forward packets to a slower 10\,Gbps interface, or to a virtual
-interface or userspace application that cannot process them fast enough.
+Currently, XDP does not implement any mechanism for supporting different Quality
+of Service (QoS). Specifically, an XDP program receives no backpressure when
+attempting to forward packets to a destination that has exhausted its capacity.
+This limitation can be exasperated when joining networks with different speeds
+or other mismatched network characteristics.
 
-Since the XDP program signals the packet destination via its return code,
-execution has already ended when the packet forwarding is attempted, and so a
-failure due to a full hardware buffer or a busy userspace application cannot be
-gracefully handled, and will simply result in the packet being silently dropped.
-This is obviously not ideal, and exploring ways to gracefully deal with this is
-planned for the future.
+We are exploring various solutions to this issue, however no consensus on the
+best approach has been reached in the community at this time.
 
 
 \section{Conclusions}
