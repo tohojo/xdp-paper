@@ -306,7 +306,7 @@ Figure~\ref{fig:xdp-kernel} and the top part of Figure~\ref{fig:xdp-execution}).
 % when JIT translated?
 %
 Helper functions are callbacks implemented in the kernel that an XDP program can
-call to make use of kernel functionality in its processing. These helpers range
+call to make use of kernel functionality in its processing. These helpers
 serve various purposes, ranging from simple checksum computation and hashing, to
 full access to the kernel routing table. New helpers are actively been added by
 the kernel development community in response to user requests, continuously
@@ -363,7 +363,7 @@ run in kernel space.
 The eBPF virtual machine is an evolution of the original BSD packet filter (BPF)
 \cite{mccanne_bsd_1993} which has seen extensive use in various packet filtering
 applications over the last decades. BPF uses a register-based virtual machine to
-describe filtering actions. This virtual machine has two 32-bit registers and
+describe filtering actions. The original virtual machine has two 32-bit registers and
 understands 22 different instructions. This makes BPF well-suited for packet
 filtering operations, but limited as a general purpose virtual machine. eBPF
 extends the original BPF virtual machine to allow full general purpose execution
@@ -402,7 +402,7 @@ increased to 64 bits, with 32-bit sub-registers accessible through certain
 instructions to provide compatibility with classic BPF programs. The 64-bit
 registers map one-to-one to hardware registers on all 64-bit architectures
 supported by the kernel, which eases JIT compilation. For instance, the x86\_64
-JIT compiler uses the mapping shown in Table \ref{tbl:reg-map}.
+JIT compiler uses the mapping shown in Table~\ref{tbl:reg-map}.
 
 \item eBPF adds a \emph{call} instruction for function calls, and adopts the same calling
 convention as the C language conventions used on the architectures supported
@@ -475,8 +475,8 @@ program, as explained in the following.
 \subsubsection{Register state tracking}
 \label{sec:reg-state}
 To track data access, the verifier assigns five state variables to each
-register, listed in Table \ref{tbl:vrf-state-vars}, with the possible types listed in
-Table \ref{tbl:reg-types}. The fixed offset is used to track the result of pointer
+register, listed in Table~\ref{tbl:vrf-state-vars}, with the possible types listed in
+Table~\ref{tbl:reg-types}. The fixed offset is used to track the result of pointer
 arithmetic with fixed values, while the ranges and \emph{tnum} are used to track
 variable offsets of pointers, as well as the ranges of scalar variables.
 
@@ -576,9 +576,10 @@ essential technique to achieve high performance. In Linux, there are two main
 ways bulking is achieved: On the receive path, the NAPI mechanism~\cite{napi}
 amortises the cost of interrupts from the hardware, by temporarily turning off
 interrupts each time a packet is received, and instead polling to receive a
-batch of packets at once. This mechanism has been available in Linux for a long
-time; but for XDP it carries with it additional benefits, since the XDP program
-can be executed directly in the NAPI poll context.
+batch of packets at once. This mechanism has been available in Linux for a
+long time, added as part of the Linux 2.6 kernel series; but for XDP it carries
+with it additional benefits, since the XDP program can be executed directly in
+the NAPI poll context.
 
 A similar issue is seen on the transmit path, where updating the tail pointer in
 the device ring buffer initiates a transmit operation to the hardware, which
@@ -817,7 +818,7 @@ How to identify attack traffic is not our focus here, but rather the mechanism
 that drops the unwanted traffic. We simply assume that there exists \emph{some}
 way of identifying which traffic is legitimate and which isn't. Because of the
 dynamic nature of XDP, there are many options available: BPF maps could be used
-for while-listing or black-listing, the packet payload could be inspected, etc.
+for white-listing or black-listing, the packet payload could be inspected, etc.
 It is even possible to load new XDP programs especially tailored towards
 dropping a particular kind of attack traffic as the need arises. However, in our
 example, we simply assume that a server hosts a TCP-based service, and so
