@@ -254,9 +254,9 @@ An XDP program is run in the eBPF virtual machine and is entirely event driven.
 The program is executed directly in context of the device driver, without
 context switching to userspace. As shown in Figure~\ref{fig:xdp-kernel}, the
 program is executed at the earliest possible moment after a packet is received
-from the hardware, before the kernel allocates any data structures or performs
-any parsing of packet data. This allows for high performance, but the program
-has to parse raw packet data itself.
+from the hardware, before the kernel allocates its per-packet \emph{sk\_buff}
+data structure or performs any parsing of the packet. This allows for high
+performance, but the program has to parse raw packet data itself.
 
 Figure~\ref{fig:xdp-execution} shows the various processing steps an XDP program
 can perform. The program starts its execution with access to a pointer to a
