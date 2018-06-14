@@ -176,23 +176,38 @@ virtual switch and the Click~\cite{martins2014clickos} software router provide
 kernel modules that offload part of their functionality into the kernel. These
 are implemented as loadable kernel modules that provide configuration APIs to
 userspace, but performs packet processing directly in the kernel. The drawback
-to this approach is that it requires deep familiarity with internal kernel APIs,
-and a failure of the network processing application in most cases leads to a
-failure of the entire system.
+of implementing packet processing applications in this way, is that it requires
+deep familiarity with internal kernel APIs, and a failure of the network
+processing application in most cases leads to a failure of the entire system.
+Both OpenVswitch and Click are general frameworks that can be configured to do a
+variety of tasks, which makes this cost easier to bear; thus it is no
+coincidence that these are the prominent examples of the in-kernel processing
+approach.
 
 In the second category, various systems introduce kernel modules that do not
 perform packet processing themselves, but instead focus on moving packet data
 out to userspace with as little overhead as possible, typically via shared
-memory. Examples of this approach include PF\_RING~\cite{deri2009modern}, the
-Packet I/O engine that is part of PacketShader~\cite{han2010packetshader}, and
-the Netmap~\cite{rizzo2012netmap} framework.
+memory. This allows the packet processing application to operate in userspace
+with no risk of crashing the system. Examples of this approach include
+PF\_RING~\cite{deri2009modern}, the Packet I/O engine that is part of
+PacketShader~\cite{han2010packetshader}, and the Netmap~\cite{rizzo2012netmap}
+framework. The drawback of this approach is that even if the frameworks
+mentioned above improve performance significantly, they still lack behind in
+performance compared to kernel bypass
+solutions~\cite{gallenmuller_comparison_2015}.
 
 In the third category of kernel bypass techniques, we find the PF\_RING ZC
 module~\cite{pfringzc}, the hardware-specific Solarflare
 OpenOnload~\cite{openonload} and, most prominently, the DataPlane Development
 Kit (DPDK)~\cite{dpdk}, which started out as an Intel-specific hardware support
 package, but has since seen a wide uptake under the stewardship of the Linux
-Foundation.
+Foundation. This approach offers excellent performance, but has the drawback
+that it is more difficult to integrate with the rest of the system, as mentioned
+in the introduction.
+
+\textbf{FIXME: Add text relating XDP to the above.}
+
+%FIXME: Cite the "lessons learned with BPF" paper.
 
 \section{The design of XDP}
 \label{sec:design}
