@@ -66,19 +66,20 @@
   kernel plays a dominant role in resource abstraction and isolation.
 
   In this paper, we present a novel approach to programmable packet processing
-  overcoming these all-or-nothing limitations, where the kernel itself provides
+  overcoming these all-or-nothing limitations where the kernel itself provides
   a safe execution environment for custom high-performance packet processing
   applications, executed in the context of the kernel device driver. This system,
   called the eXpress Data Path (XDP), has recently been merged as part of the
-  mainline Linux kernel, and got gradually expanded over the last releases. In
-  XDP, applications are programmed from higher level languages such as C, compiled
-  into custom bytecode which the Linux kernel then statically verifies for
-  safety, and translates into native instructions of the underlying architecture
-  or even transparently offloads into SmartNICs. We show that XDP achieves a
-  maximum packet processing performance of 25 million packets per second on
-  a single core, and illustrate the flexibility of the programming model
-  through three example use cases: inline DDoS protection, layer-3 routing and
-  layer-4 load balancing.
+  mainline Linux kernel. In XDP, applications are programmed from higher level
+  languages such as C, compiled into custom bytecode which the Linux kernel
+  then statically analyzes for safety, and translates into native instructions
+  of the underlying architecture or even transparently offloads into SmartNICs.
+  This extension of user space in flexibly programming the kernel additionally
+  allows for atomic XDP application updates without traffic interruption or
+  service restarts. We show that XDP achieves a maximum packet processing
+  performance of 25 million packets per second on a single core, and illustrate
+  the flexibility of the programming model through three example use cases:
+  inline DDoS protection, layer-3 routing and layer-4 load balancing.
 \end{abstract}
 
 % TODO: Add ccsxml tags and update keywords
