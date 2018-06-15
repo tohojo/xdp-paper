@@ -51,8 +51,6 @@
 \renewcommand{\shorttitle}{The eXpress Data Path}
 \captionsetup{font+=small}
 
-
-
 \begin{abstract}
   Programmable packet processing in software has become increasingly popular, as
   increases in computational power has made it possible to run custom
@@ -68,16 +66,19 @@
   processing, where the kernel provides a safe execution environment for custom
   high-performance packet processing applications, executed in the context of the
   kernel device driver. This system, called the eXpress Data Path (XDP), is part
-  of the mainline Linux kernel, and has been gradually expanded over the last several
-  releases. We show that XDP achieves a maximum packet processing performance of
-  25 million packets per second on a single core, and illustrate the flexibility
-  of the programming model through three example use cases: inline DDoS
-  protection, layer-3 routing and layer-4 load balancing.
+  of the mainline Linux kernel, and has been gradually expanded over the last
+  several releases. Such applications are programmed from higher level languages
+  such as C, compiled into custom bytecode which the Linux kernel then statically
+  verifies for safety and translates into native instructions of the underlying
+  architecture. We show that XDP achieves a maximum packet processing performance
+  of 25 million packets per second on a single core, and illustrate the flexibility
+  of the programming model through three example use cases: inline DDoS protection,
+  layer-3 routing and layer-4 load balancing.
 \end{abstract}
 
 % TODO: Add ccsxml tags and update keywords
 
-\keywords{XDP, Programmable Networking}
+\keywords{XDP, BPF, Programmable Networking}
 \maketitle
 
 \section{Introduction}%
@@ -119,18 +120,18 @@ performance scales both downwards, by decreasing CPU usage as the traffic load
 drops, and upwards, by increasing performance with the number of cores dedicated
 to packet processing.
 
-Because of its integration with the kernel networking stack, and its high
-performance, XDP makes it possible to implement applications that previously
-required their own networking appliance, such as DDOS protection and load
-balancing, directly on application servers. It also allows a hybrid approach,
+Because of its integration with the kernel's networking stack, and its high
+performance, XDP allows for implementing applications such as DDoS protection
+and load balancing that previously required their own networking appliance
+to run directly on application servers. It also enables a hybrid approach,
 where certain fast path processing is offloaded to XDP while retaining normal
 network stack processing for other packets. This allows for high performance
 processing without sacrificing flexibility. To illustrate these facets of XDP,
-we supplement our synthetic performance benchmarks with three examples of
-real-world use cases that can be implemented in XDP: inline DDOS protection on a
-hypervisor host or application server; full layer-3 packet forwarding
-capabilities; and layer-4 load balancing by encapsulating packets and
-resubmitting them to the network.
+we supplement our synthetic performance benchmarks with three non-exhaustive
+examples of real-world use cases that can be implemented in XDP: inline DDoS
+protection on a hypervisor host or application server; full layer-3 packet
+forwarding capabilities; and layer-4 load balancing by encapsulating packets
+and reinjecting them into the network.
 
 \textbf{FIXME: List the ``selling points'' of XDP.}
 
