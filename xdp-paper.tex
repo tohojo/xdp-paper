@@ -652,20 +652,28 @@ Figure~\ref{fig:xdp-execution} above:
 
 \begin{itemize}
 \item Packet drop performance. We install a simple XDP program that drops
-  packets immediately after receiving them, to examine the maximum possible
-  packet processing performance.
+  packets immediately after receiving them. Since the XDP program does no
+  processing of the packet, this benchmark shows the overhead of the XDP
+  framework and illustrates the maximum packet processing performance that an
+  XDP program can achieve.
+
+\item Packet forwarding performance. For this case we install a simple XDP
+  program that swaps the source and destination ethernet addresses and forwards
+  packets out a different interface from which they arrive. This test does not
+  involve any lookups and illustrates the maximum forwarding performance with
+  XDP.
 
 \item Packet mirroring performance. Here we measure the performance of sending
   packets out the same network interface that they arrived on.
-
-\item Packet forwarding performance. Here we install a simple XDP program that
-  redirects packets out a different interface as they arrive.
 
 \item Inline packet processing. We install an XDP program that allows the
   packets to proceed to the kernel networking stack, to measure the overhead
   that XDP processing introduces in the kernel receive path.
 \end{itemize}
 
+We provide comparisons to DPDK given its current mind-share as a fast packet
+processing engine, and in some cases legacy Linux capabilities to emphasize the
+performance improvements offered by XDP.
 
 For all of these tests, we measure the maximum how many packets per second the
 system can process, by running the packet generator at line speed and measuring
