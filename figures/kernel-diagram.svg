@@ -599,8 +599,8 @@
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
      inkscape:zoom="1"
-     inkscape:cx="294.69008"
-     inkscape:cy="620.80042"
+     inkscape:cx="177.95447"
+     inkscape:cy="868.81395"
      inkscape:document-units="mm"
      inkscape:current-layer="layer1"
      showgrid="false"
@@ -628,7 +628,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
+        <dc:title />
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -858,25 +858,25 @@
          y="171.28474"
          style="stroke-width:0.26748911px">AF_INET</tspan></text>
     <rect
-       rx="2.0713389"
-       style="opacity:1;fill:#f0f0f0;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:0.13229167;stroke-linecap:square;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+       rx="2.0713391"
+       style="opacity:1;fill:#f0f0f0;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:0.1322917;stroke-linecap:square;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
        id="rect4518-0-8-3-5"
-       width="88.377457"
+       width="144.96771"
        height="36.839977"
-       x="90.978989"
+       x="34.403484"
        y="102.47739"
        ry="2.0713389" />
     <text
        xml:space="preserve"
        style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:4.23333311px;line-height:125%;font-family:'Gentium Basic';-inkscape-font-specification:'Gentium Basic';letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
        x="-123.45778"
-       y="95.259598"
+       y="39.167923"
        id="text5008"
        transform="rotate(-90)"><tspan
          sodipodi:role="line"
          id="tspan5006"
          x="-123.45778"
-         y="95.259598"
+         y="39.167923"
          style="stroke-width:0.26458332px">Userspace</tspan></text>
     <rect
        style="opacity:1;fill:#96def1;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:0.3175;stroke-linecap:square;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
@@ -899,8 +899,8 @@
          y="111.38131"
          style="stroke-width:0.26458332px">Control plane</tspan></text>
     <path
-       style="fill:none;fill-opacity:0.75;fill-rule:evenodd;stroke:#000000;stroke-width:0.212;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;marker-end:url(#marker5414)"
-       d="M 48.568379,228.43814 V 139.67222"
+       style="fill:none;fill-opacity:0.75;fill-rule:evenodd;stroke:#000000;stroke-width:0.21200001;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;marker-end:url(#marker5414)"
+       d="M 48.568379,228.43814 V 135.34243"
        id="path5077"
        inkscape:connector-curvature="0" />
     <path
@@ -1041,60 +1041,6 @@
              y="275.07739"
              style="stroke-width:0.26458332px">Control data flow</tspan></text>
       </g>
-    </g>
-    <g
-       id="g1033"
-       transform="translate(71.995949,24.578368)">
-      <rect
-         rx="2.0713389"
-         ry="2.0713389"
-         y="77.899162"
-         x="-37.601658"
-         height="36.83971"
-         width="53.003159"
-         id="rect4518-0-3-2-0-7"
-         style="opacity:1;fill:#9de5a4;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:0.13229167;stroke-linecap:square;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1" />
-      <text
-         id="text5046"
-         y="83.808922"
-         x="-34.836338"
-         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:4.23333311px;line-height:125%;font-family:'Gentium Basic';-inkscape-font-specification:'Gentium Basic';letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-         xml:space="preserve"><tspan
-           id="tspan5048"
-           style="stroke-width:0.26458332px"
-           y="83.808922"
-           x="-34.836338"
-           sodipodi:role="line">VMs and containers</tspan></text>
-      <rect
-         transform="rotate(-90)"
-         rx="2.0713389"
-         ry="2.0713389"
-         y="-34.560223"
-         x="-111.61593"
-         height="14.56846"
-         width="25.000893"
-         id="rect4518-0-3-5-9-5-6-8-3-08"
-         style="opacity:1;fill:#f9a8a8;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:0.13229167;stroke-linecap:square;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:0.52916667, 1.05833333;stroke-dashoffset:0;stroke-opacity:1" />
-      <rect
-         transform="rotate(-90)"
-         rx="2.0713389"
-         ry="2.0713389"
-         y="-18.38431"
-         x="-111.61593"
-         height="14.56846"
-         width="25.000893"
-         id="rect4518-0-3-5-9-5-6-8-3-9"
-         style="opacity:1;fill:#f9a8a8;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:0.13229167;stroke-linecap:square;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:0.52916667, 1.05833333;stroke-dashoffset:0;stroke-opacity:1" />
-      <rect
-         transform="rotate(-90)"
-         rx="2.0713389"
-         ry="2.0713389"
-         y="-2.2083983"
-         x="-111.61593"
-         height="14.56846"
-         width="25.000893"
-         id="rect4518-0-3-5-9-5-6-8-3-8"
-         style="opacity:1;fill:#f9a8a8;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:0.13229167;stroke-linecap:square;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:0.52916667, 1.05833333;stroke-dashoffset:0;stroke-opacity:1" />
     </g>
     <rect
        style="opacity:1;fill:#9de5a4;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:0.13229167;stroke-linecap:square;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
@@ -1355,8 +1301,58 @@
        inkscape:connector-curvature="0" />
     <path
        style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:0.212;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#marker1504)"
-       d="m 91.868187,161.92863 v -7.29646 H 70.352991 v -14.96709"
+       d="m 91.868187,161.99731 v -8.74048 H 70.352991 v -17.9292"
        id="path1063"
        inkscape:connector-curvature="0" />
+    <rect
+       style="opacity:1;fill:#9de5a4;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:0.13229169;stroke-linecap:square;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+       id="rect4518-0-3-2-0-3-3"
+       width="50.886677"
+       height="28.527718"
+       x="43.978245"
+       y="106.33825"
+       ry="2.0713389"
+       rx="2.0713389" />
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:4.23333311px;line-height:125%;font-family:'Gentium Basic';-inkscape-font-specification:'Gentium Basic';letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       x="46.267101"
+       y="111.24767"
+       id="text5106-6"><tspan
+         sodipodi:role="line"
+         id="tspan5104-7"
+         x="46.267101"
+         y="111.24767"
+         style="stroke-width:0.26458332px">VMs and containers</tspan></text>
+    <rect
+       style="opacity:1;fill:#f9a8a8;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:0.13229169;stroke-linecap:square;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:0.52916667, 1.05833334;stroke-dashoffset:0;stroke-opacity:1"
+       id="rect4518-0-3-5-9-5-6-8-3-08-6-2-5"
+       width="18.608562"
+       height="13.387886"
+       x="-133.18399"
+       y="47.186146"
+       ry="2.0713389"
+       rx="2.0713389"
+       transform="rotate(-90)" />
+    <rect
+       style="opacity:1;fill:#f9a8a8;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:0.13229169;stroke-linecap:square;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:0.52916667, 1.05833334;stroke-dashoffset:0;stroke-opacity:1"
+       id="rect4518-0-3-5-9-5-6-8-3-08-6-71-3"
+       width="18.608562"
+       height="13.387886"
+       x="-133.18399"
+       y="62.54229"
+       ry="2.0713389"
+       rx="2.0713389"
+       transform="rotate(-90)" />
+    <rect
+       style="opacity:1;fill:#f9a8a8;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:0.1322917;stroke-linecap:square;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:0.52916667, 1.05833335;stroke-dashoffset:0;stroke-opacity:1"
+       id="rect4518-0-3-5-9-5-6-8-3-08-6-71-3-5"
+       width="18.608562"
+       height="13.387886"
+       x="-133.18399"
+       y="77.898438"
+       ry="2.0713389"
+       rx="2.0713389"
+       transform="rotate(-90)" />
   </g>
 </svg>
