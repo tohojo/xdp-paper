@@ -89,17 +89,22 @@ spent processing each packet ($\simeq6$~ns per packet at 100 Gbps). Network
 stacks in general purpose operating systems typically perform too many
 operations per packet to be able to keep up with this packet rate, which has led
 to increased popularity of special-purpose toolkits for software packet
-processing, such as the Data Plane Development Kit (DPDK)~\cite{dpdk}, which
-bypass the operating system completely, instead passing control of the network
-hardware directly to the network application. This approach can significantly
-improve performance, but has the drawback that it is more difficult to integrate
-with the existing networking stack, and applications have to re-implement large
-parts of the stack itself and other facilities provided natively by the operating
-system kernel. In the worst case, this leads to the need to operate two separate
-stacks; one to perform high-speed packet processing and one to run normal
-application or container workloads, leading to increased systems complexity,
-management and maintainability costs, and at the same time blur strict security
-boundaries otherwise provided by the operating system kernel.
+processing, such as the Data Plane Development Kit (DPDK)~\cite{dpdk}. Such
+toolkits generally bypass the operating system completely, instead passing
+control of the network hardware directly to the network application.
+
+The kernel bypass approach can significantly improve performance, but has the
+drawback that it is more difficult to integrate with the existing networking
+stack, and applications have to re-implement a great deal of functionality
+otherwise provided by the operating system kernel. In the worst case, this leads
+to the need to operate two separate stacks; one to perform high-speed packet
+processing and one to run normal application or container workloads, leading to
+increased systems complexity, management and maintainability costs, and at the
+same time blur strict security boundaries otherwise provided by the operating
+system kernel. The latter is in particular problematic as today's infrastructure
+is moving towards container-based workloads coupled with orchestration systems
+such as Docker or Kubernetes, where the kernel plays a dominant role in resource
+abstraction and isolation.
 
 As an alternative to the all-or-nothing kernel bypass packet processing
 technique, we present a system that adds programmability directly in the
@@ -123,18 +128,18 @@ to packet processing.
 
 Because of its integration with the kernel's networking stack, and its high
 performance, XDP allows for implementing applications such as DDoS protection
-and load balancing that previously required their own networking appliance
-to run directly on application servers. It also enables a hybrid approach,
-where certain fast path processing is offloaded to XDP while retaining normal
-network stack processing for other packets. This allows for high performance
-processing without sacrificing flexibility. To illustrate these facets of XDP,
-we supplement our synthetic performance benchmarks with three non-exhaustive
-examples of real-world use cases that can be implemented in XDP: inline DDoS
-protection on a hypervisor host or application server; full layer-3 packet
-forwarding capabilities; and layer-4 load balancing by encapsulating packets
-and reinjecting them into the network.
+and load balancing that previously required their own networking appliance to
+run directly on application servers. It also enables a hybrid approach, where
+certain fast path processing is offloaded to XDP while retaining normal network
+stack processing for other packets. In addition, XDP supports atomic application
+updates without traffic interruption or service restarts, which allows for high
+performance processing without sacrificing flexibility.
 
-\textbf{FIXME: List the ``selling points'' of XDP.}
+To illustrate the various facets of XDP, we supplement our synthetic performance
+benchmarks with three non-exhaustive examples of real-world use cases that can
+be implemented in XDP: inline DDoS protection on a hypervisor host or
+application server; full layer-3 packet forwarding capabilities; and layer-4
+load balancing by encapsulating packets and reinjecting them into the network.
 
 The rest of this paper is structured as follows: Section~\ref{sec:related-work}
 first outlines related work. Section~\ref{sec:design} then presents the design
