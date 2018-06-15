@@ -56,19 +56,22 @@
   increases in computational power has made it possible to run custom
   programmable pipelines at high speeds. Often, this is implemented by so-called
   kernel bypass techniques, where a userspace application takes complete control
-  of the networking hardware to avoid expensive context switches between kernel
-  and user space. However, this approach makes high-speed packet processing an
-  all-or-nothing proposition, where the processing application has to either
-  handle all network traffic itself, or perform cumbersome re-injection of
-  packets into the kernel.
+  of the networking hardware to avoid expensive stack traversal and context
+  switches between kernel and user space. However, this approach makes high-speed
+  packet processing an all-or-nothing proposition, where the processing application
+  has to either handle all network traffic itself, or perform cumbersome
+  re-injection of packets into the kernel. The latter is in particular cruicial
+  with the transformation of today's infrastructure to container-based workloads
+  coupled with orchestration systems such as Docker or Kubernetes where the
+  kernel plays a dominant role in resource abstraction and isolation.
 
   In this paper, we present a novel approach to programmable packet processing
-  overcoming these limitations, where the kernel itself provides a safe execution
-  environment for custom high-performance packet processing applications,
-  executed in the context of the kernel device driver. This system, called the
-  eXpress Data Path (XDP), has recently been merged as part of the mainline
-  Linux kernel, and got gradually expanded over the last releases. In XDP,
-  applications are programmed from higher level languages such as C, compiled
+  overcoming these all-or-nothing limitations, where the kernel itself provides
+  a safe execution environment for custom high-performance packet processing
+  applications, executed in the context of the kernel device driver. This system,
+  called the eXpress Data Path (XDP), has recently been merged as part of the
+  mainline Linux kernel, and got gradually expanded over the last releases. In
+  XDP, applications are programmed from higher level languages such as C, compiled
   into custom bytecode which the Linux kernel then statically verifies for
   safety, and translates into native instructions of the underlying architecture
   or even transparently offloads into SmartNICs. We show that XDP achieves a
