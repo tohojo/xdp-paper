@@ -30,7 +30,7 @@
 \author{Daniel Borkmann}
 \affiliation{%
   \institution{Cilium.io}}
-\email{daniel@iogearbox.net}
+\email{daniel@cilium.io}
 
 \author{John Fastabend}
 \affiliation{%
@@ -66,12 +66,12 @@
 
   In this paper, we present an alternative approach to programmable packet
   processing, where the kernel provides a safe execution environment for custom
-  packet processing applications, executed in the context of the kernel device
-  driver. This system, called the eXpress Data Path (XDP), is part of the
-  mainline Linux kernel, and has been gradually expanded over the last several
+  high-performance packet processing applications, executed in the context of the
+  kernel device driver. This system, called the eXpress Data Path (XDP), is part
+  of the mainline Linux kernel, and has been gradually expanded over the last several
   releases. We show that XDP achieves a maximum packet processing performance of
   25 million packets per second on a single core, and illustrate the flexibility
-  of the programming model through three example use cases: inline DDOS
+  of the programming model through three example use cases: inline DDoS
   protection, layer-3 routing and layer-4 load balancing.
 \end{abstract}
 
@@ -92,9 +92,12 @@ bypass the operating system completely, instead passing control of the network
 hardware directly to the network application. This approach can significantly
 improve performance, but has the drawback that it is more difficult to integrate
 with the existing networking stack, and applications have to re-implement large
-parts of the stack. In the worst case, this leads to the need to operate two
-separate stacks; one to perform high-speed packet processing and one to run
-normal applications, leading to increased management and maintainability costs.
+parts of the stack itself and other facilities provided natively by the operating
+system kernel. In the worst case, this leads to the need to operate two separate
+stacks; one to perform high-speed packet processing and one to run normal
+application or container workloads, leading to increased systems complexity,
+management and maintainability costs, and at the same time blur strict security
+boundaries otherwise provided by the operating system kernel.
 
 As an alternative to the all-or-nothing kernel bypass packet processing
 technique, we present a system that adds programmability directly in the
