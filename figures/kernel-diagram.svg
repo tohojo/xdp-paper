@@ -599,8 +599,8 @@
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
      inkscape:zoom="1"
-     inkscape:cx="177.95447"
-     inkscape:cy="868.81395"
+     inkscape:cx="474.5613"
+     inkscape:cy="507.89743"
      inkscape:document-units="mm"
      inkscape:current-layer="layer1"
      showgrid="false"
@@ -1301,9 +1301,10 @@
        inkscape:connector-curvature="0" />
     <path
        style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:0.212;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#marker1504)"
-       d="m 91.868187,161.99731 v -8.74048 H 70.352991 v -17.9292"
+       d="m 91.868187,161.99731 v -4.96192 H 70.352991 v -21.70776"
        id="path1063"
-       inkscape:connector-curvature="0" />
+       inkscape:connector-curvature="0"
+       sodipodi:nodetypes="cccc" />
     <rect
        style="opacity:1;fill:#9de5a4;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:0.13229169;stroke-linecap:square;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
        id="rect4518-0-3-2-0-3-3"
