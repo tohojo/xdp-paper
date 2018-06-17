@@ -1048,25 +1048,25 @@ plt.show()
 ** REDIRECT test
 
 #+NAME: redirect-test
-#+BEGIN_SRC ipython :session :exports both :results raw drawer :var dpdk_data=dpdk_test2 :var xdp_data=xdp_redirect_data :var linux_data=linux_fwd
+#+BEGIN_SRC ipython :session :exports both :results raw drawer :var dpdk_data=dpdk_test2 :var xdp_data=xdp_redirect_data :var linux_data=linux_fwd :var tx_data=xdp_tx_data03_256
 dpdk = np.array(dpdk_data)
 xdp = np.array(xdp_data)
-linux = np.array(linux_data)
+tx = np.array(tx_data)
 plt.plot(dpdk[:,0], dpdk[:,2]/10**6, marker='o', label="DPDK")
-plt.plot(xdp[:,0], xdp[:,3]/10**6, marker='s', label="XDP")
-#plt.plot(linux[:,0], linux[:,1]/10**6, marker='^', label="Linux")
+plt.plot(tx[:,0], tx[:,1]/10**6, marker='s', label="XDP (same NIC)")
+plt.plot(xdp[:,0], xdp[:,3]/10**6, marker='^', label="XDP (different NIC)")
 plt.xlabel("Number of cores")
 plt.ylabel("Mpps")
 plt.legend()
-plt.ylim(0,70)
+plt.ylim(0,80)
 plt.savefig(BASEDIR+"/figures/redirect-test.pdf", bbox_inches='tight')
 plt.show()
 #+END_SRC
 
 #+RESULTS: redirect-test
 :results:
-# Out[8]:
-[[file:./obipy-resources/vFMnRC.svg]]
+# Out[17]:
+[[file:./obipy-resources/NMQMJP.svg]]
 :end:
 
 ** XDP_TX
@@ -1087,6 +1087,6 @@ plt.show()
 
 #+RESULTS: tx-test
 :results:
-# Out[180]:
-[[file:./obipy-resources/fZw3Sp.svg]]
+# Out[9]:
+[[file:./obipy-resources/BQycom.svg]]
 :end:

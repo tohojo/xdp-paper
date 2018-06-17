@@ -782,30 +782,20 @@ as separate flows, which means its maximum throughput drops.
 \subsection{Packet Forwarding Performance}
 \label{sec:pack-forw-perf}
 Figure~\ref{fig:redirect-test} shows the packet forwarding performance. Again,
-we see an almost linear scaling with the first couple of cores, tapering off to
-sub-linear performance increases as more cores are added. We attribute this to
-\textbf{FIXME}.
-
-\textbf{FIXME: WHy the dip in DPDK performance at 2 cores? Should we re-run with
-'io' forwarding mode?}
+we see linear scaling the number of cores. Since XDP can forward packets out the
+same NIC as well as out a different NIC (using two different return codes from
+the program, we show both modes in the graph. It is clear that the XDP
+performance improves significantly when packets are sent out on the same NIC
+that it came in on, especially as the number of cores in use increases.
 
 
 \begin{figure}[t]
 \centering
 \includegraphics[width=\linewidth]{figures/redirect-test.pdf}
-\caption{\label{fig:redirect-test} Packet forwarding performance.}
+\caption{\label{fig:redirect-test} Packet forwarding performance. At 70 Mpps,
+  the same-NIC performance is limited by the PCI bus (since RX and TX on the
+  same device means only half the PCI slot bandwidth is available).}
 \end{figure}
-
-\subsection{Packet Mirroring Performance}
-\label{sec:pack-mirr-perf}
-Results shown in Figure~\ref{fig:tx-test}.
-\begin{figure}[t]
-\centering
-\includegraphics[width=\linewidth]{figures/tx-test.pdf}
-\caption{\label{fig:tx-test} XDP\_TX vs XDP\_REDIRECT.}
-\end{figure}
-
-
 
 \subsection{Discussion}
 \label{sec:perf-discussion}
