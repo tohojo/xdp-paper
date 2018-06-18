@@ -314,7 +314,14 @@ contains a pointer to a special memory area is available for XDP to store
 arbitrary metadata that will be available to other XDP programs, as well as to
 other parts of the kernel and userspace (under certain circumstances). The
 program can also write any parts of the packet data buffer, including expanding
-or shrinking the packet to add or remove headers. These three steps (reading,
+or shrinking the packet to add or remove headers.
+%
+% FIXME: More clear desc of header vs tail expand vs shrink support
+%
+% ALSO Describe: that we recently added truncating the packet tail
+% length, but not expanding the tail.
+%
+These three steps (reading,
 metadata processing, and writing packet data) correspond to the light grey boxes
 on the left side of Figure~\ref{fig:xdp-execution}, and can of course alternate
 and repeat in a arbitrary ways.
