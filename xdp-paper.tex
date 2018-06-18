@@ -329,14 +329,17 @@ and repeat in a arbitrary ways.
 Similar to a regular userspace program, an XDP program ends its execution with a
 return code, instructing the kernel what to do with the packet. This is shown on
 the right-hand side of the figure. There are three simple return codes which
-either drop the packet, immediately re-transmit it out the same network
-interface, or allow the packet to be processed by the kernel networking stack.
-In addition to these simple actions, the XDP program can \emph{redirect} the
-packet, which controls its further processing. Redirecting can be used to
-transmit the packet out a different network interface, to pass it to a different
-CPU for further processing, to pass it to a virtual machine running on the host,
-or to pass it directly to a special userspace socket without copying. These
-different ways packets can be passed on are shown with solid lines in
+either drop the packet (\texttt{XDP\_DROP}), immediately re-transmit it out the
+same network interface (\texttt{XDP\_TX}), or allow the packet to be processed
+by the kernel networking stack (\texttt{XDP\_PASS}).  In addition to these
+simple actions, the XDP program can \emph{redirect} the packet
+(\texttt{XDP\_REDIRECT}), which controls its further processing.
+%
+Redirecting can be used to transmit the packet out a
+different network interface, to pass it to a different CPU for further
+processing, to pass it to a virtual machine running on the host, or to pass it
+directly to a special userspace socket without copying. These different ways
+packets can be passed on are shown with solid lines in
 Figure~\ref{fig:xdp-kernel}. \textbf{FIXME: Highlight that redirect via maps is
   a generic facility with many cool uses.}
 
