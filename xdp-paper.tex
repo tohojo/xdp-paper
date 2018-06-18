@@ -334,13 +334,25 @@ same network interface (\texttt{XDP\_TX}), or allow the packet to be processed
 by the kernel networking stack (\texttt{XDP\_PASS}).  In addition to these
 simple actions, the XDP program can \emph{redirect} the packet
 (\texttt{XDP\_REDIRECT}), which controls its further processing.
+
+The redirect facility is novel in the way is allows us to extend the kernel with
+new types of redirects, without changing the driver code.
 %
-Redirecting can be used to transmit the packet out a
-different network interface, to pass it to a different CPU for further
-processing, to pass it to a virtual machine running on the host, or to pass it
-directly to a special userspace socket without copying. These different ways
-packets can be passed on are shown with solid lines in
-Figure~\ref{fig:xdp-kernel}. \textbf{FIXME: Highlight that redirect via maps is
+Currently three types of redirect exists.  Redirecting can be used to (1)
+transmit the raw xdp frame out a different network interface, (2) to pass it to
+a different CPU for further processing, or (3) to pass it directly to a special
+userspace socket address family (\texttt{AF\_XDP}).
+%
+Redirecting into a KVM virtual machine is currently acheived by using above
+option 1, redirecting to the network interface of the virtual
+machine \footnote{Does require the virtual NIC driver supports the XDP operation
+  ndo\_xdp\_xmit}.  Later we imagine that KVM/qemu gets explicit support for
+option 3 (\texttt{AF\_XDP}).
+%
+These different ways packets can be passed on are shown with solid lines in
+Figure~\ref{fig:xdp-kernel}.
+
+\textbf{FIXME: Highlight that redirect via maps is
   a generic facility with many cool uses.}
 
 During its execution, an XDP program also has access to kernel facilities that
