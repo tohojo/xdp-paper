@@ -308,7 +308,7 @@ describing which interface and receive queue the packet came in on, etc.
 %
 The program typically begins by parsing packet data, can invoke
 BPF helper functions (e.g., to perform a map lookup), or can pass control to a
-different XDP program, through a tail calls, thus splitting processing into
+different XDP program, through tail calls, thus splitting processing into
 logical sub-units (based on, say, IP header version). The context object also
 contains a pointer to a special memory area is available for XDP to store
 arbitrary metadata that will be available to other XDP programs, as well as to
