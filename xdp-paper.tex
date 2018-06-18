@@ -365,6 +365,10 @@ separate map type implementation.  Adding new types of redirect, thus only
 require implementing a new type of redirect map to the core kernel.
 
 % TODO: Mention xdp_do_flush_map
+Redirect via maps also implement RX bulking, without requiring the drivers to
+construct a bulk of frames.  Instead the drivers must call a map flush operation
+(\texttt{xdp\_do\_flush\_map}) when it ends the NAPI poll call.
+% FIXME: EXPLAIN MORE ... ran out of time...
 
 During its execution, an XDP program also has access to kernel facilities that
 provide helper functions and additional metadata. These allow the XDP program to
