@@ -1033,21 +1033,29 @@ server. The packet is then encapsulated in a new IP header and sent to the
 application server, which is responsible for decapsulating it, processing the
 request, and replying directly to the originator of the request. This means that
 the XDP program can perform the packet encapsulation, and immediately return the
-packet out the same interface, as in the performance test in
-Section~\ref{sec:pack-mirr-perf}.
+packet out the same interface.
 
 To test this use case, we configure the Katran XDP program with a fixed number
-of destination hosts, and run it on our test machine. Once the packets are
-returned to the network they are simply dropped; we are only interested in the
-performance of the load balancer component itself. This performance is shown in
-Figure~\ref{fig:load-balancer}.
+of destination hosts\footnote{We configure one virtual IP per CPU core, with 100
+  destination application servers per virtual IP.}, and run it on our test
+machine. Once the packets are returned to the network they are simply dropped;
+we are only interested in the performance of the load balancer component itself.
+This performance is shown in Table~\ref{tbl:load-balancer}, which, as in the
+other examples, shows linear scaling with the number of CPUs, and the ability to
+saturate a 10\,Gbps link using three CPU cores.
 
-\begin{figure}[t]
+\begin{table}[htbp]
+\caption{\label{tbl:load-balancer}Load balancer performance.}
 \centering
-\includegraphics[width=\linewidth]{figures/load-balancer.pdf}
-\caption{\label{fig:load-balancer} Load balancer performance. FIXME: This is a
-  really boring graph.}
-\end{figure}
+\begin{tabular}{lcccccc}
+  \toprule
+  CPU Cores & 1   &  2  &  3  &  4  &  5  &  6  \\
+  Mpps & 5.2 & 10.1 & 14.6 & 19.5 & 23.4 & 29.3 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+
 
 
 \section{Limitations and future work}
