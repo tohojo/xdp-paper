@@ -91,7 +91,8 @@ operations per packet to be able to keep up with this packet rate, which has led
 to increased popularity of special-purpose toolkits for software packet
 processing, such as the Data Plane Development Kit (DPDK)~\cite{dpdk}. Such
 toolkits generally bypass the operating system completely, instead passing
-control of the network hardware directly to the network application.
+control of the network hardware directly to the network application and
+dedicating one, or several, CPU cores exclusively to packet processing.
 
 The kernel bypass approach can significantly improve performance, but has the
 drawback that it is more difficult to integrate with the existing networking
@@ -112,9 +113,13 @@ operating system networking stack in a cooperative way, making it possible to
 perform high-speed packet processing that integrates seamlessly with existing
 systems, while selectively leveraging functionality in the operating system.
 This framework, called the eXpress Data Path (XDP), works by defining a limited
-execution environment based on an extended version of the Berkeley Packet Filter
-virtual machine, which allows verified programs to run directly in the device
-driver context, before the kernel performs any other packet processing tasks.
+execution environment in the form of a virtual machine running a custom bytecode
+that is based on an extended version of the Berkeley Packet Filter. This allows
+programs to run directly in the device driver context, before the kernel
+performs any other packet processing tasks. The kernel ensures safety and
+performance by statically verifying the program before it is loaded, and
+dynamically Just-in-Time-compiling the virtual machine bytecode in to native
+machine instructions.
 
 XDP has been gradually integrated into the Linux kernel over the last several
 releases. However, no complete architectural description of the system as a
@@ -691,112 +696,84 @@ the next section, we supplement this with a description and evaluation of a
 series of real-world use cases.
 
 For all benchmarks, we use a machine equipped with a hexa-core Intel Xeon
-E5-1650 v4 CPU running at 3.60GHz, equipped with two Mellanox ConnectX-5 Ex VPI
-dual-port 100Gbps network adapters. We use the TRex packet
-generator~\cite{cisco18:_trex_traff_gener} to produce the test traffic. The test
-machine runs a version of the Linux kernel that will be released as v4.18. The
-needed XDP redirect changes to NIC driver mlx5 is expected to appear in v4.19.
+E5-1650 v4 CPU running at 3.60GHz, which supports Intel's Data Direct I/O (DDIO)
+technology that allows networking hardware to use Direct Memory Access (DMA) to
+place packet data directly in the CPU cache. The test machine is equipped with
+two Mellanox ConnectX-5 Ex VPI dual-port 100Gbps network adapters. We use the
+TRex packet generator~\cite{cisco18:_trex_traff_gener} to produce the test
+traffic. The test machine runs a version of the Linux kernel that will be
+released as v4.18. The needed XDP redirect changes to NIC driver mlx5 is
+expected to appear in v4.19.
 
 % Jesper have a git tree (branch xdp_paper01) that we use for testing here:
 %  https://git.kernel.org/pub/scm/linux/kernel/git/hawk/net-next-xdp.git/
 
-To show the performance achievable with XDP, we perform the following
-measurements, which correspond to the four different return codes shown in
-Figure~\ref{fig:xdp-execution} above:
+To evaluate the performance of XDP, we compare it to the baseline performance of
+the Linux kernel network stack, and to the DPDK packet processing framework
+(using the \texttt{testpmd} example application shipped with DPDK). The
+comparison against the Linux stack shows the performance improvements offered by
+XDP, while DPDK serves as a baseline for the current state of the art in
+high-speed software packet processing. In our evaluation, we focus on three
+metrics:
 
 \begin{itemize}
-\item Packet drop performance. We install a simple XDP program that drops
-  packets immediately after receiving them. Since the XDP program does no
-  processing of the packet, this benchmark shows the overhead of the XDP
-  framework and illustrates the maximum packet processing performance that an
-  XDP program can achieve.
+\item CPU usage. As mentioned in the introduction, one of the benefits of XDP is
+  that it scales the CPU usage with the packet load, instead of dedicating CPU
+  cores exclusively to packet processing. We quantify this by measuring how CPU
+  usage scales with the offered network load.
 
-\item Packet forwarding performance. For this case we install a simple XDP
-  program that swaps the source and destination ethernet addresses and forwards
-  packets out a different interface from which they arrive. This test does not
-  involve any lookups and illustrates the maximum forwarding performance with
-  XDP.
+\item Packet drop performance. To show the maximum achievable packet processing
+  performance, we measure the performance of the simplest possible operation of
+  simply dropping the incoming packet. This effectively measures the overhead of
+  the system as a whole, and serves as an upper bound on the expected
+  performance of a real packet processing application.
 
-\item Packet mirroring performance. Here we measure the performance of sending
-  packets out the same network interface that they arrived on.
-
-\item Inline packet processing. We install an XDP program that allows the
-  packets to proceed to the kernel networking stack, to measure the overhead
-  that XDP processing introduces in the kernel receive path.
+\item Packet forwarding performance. A packet processing system that cannot
+  forward packets has limited utility. However, since forwarding introduces a
+  additional complexity compared to the simple processing case (e.g.,
+  interacting with more than one network adapter, rewriting link-layer headers,
+  etc.), a separate evaluation of forwarding performance is useful.
 \end{itemize}
 
-We provide comparisons to DPDK given its current mind-share as a fast packet
-processing engine, and in some cases legacy Linux capabilities to emphasize the
-performance improvements offered by XDP.
-
-For all of these tests, we measure the maximum how many packets per second the
-system can process, by running the packet generator at line speed and measuring
-how many packets are processed by the test machine (the rest are simply dropped
-by the hardware). We compare the performance with the \texttt{testpmd} example
-application shipped with DPDK framework, and with the regular Linux kernel
-network stack. For all tests, we use minimum-sized (64 bytes) packets, since
-processing a high number of packets per second is the most challenging.
-
-\subsection{Performance Tuning}
-\label{sec:performance-tuning}
+For all of these tests, we use minimum-sized (64 bytes) packets, since
+processing a high number of packets per second is the most challenging. We
+measure the maximum number of packets per second the system can process, by
+running the packet generator at line speed and measuring how many packets are
+processed by the test machine (the rest are simply dropped by the hardware).
+Since scaling workloads by adding more CPU cores is an important way to increase
+total performance, for each test we measure how performance scales with the
+number of processing cores. For XDP and the Linux network stack (which do not
+offer an explicit way to dedicate cores to packet processing) we achieve this by
+configuring the hardware Receive Side Scaling (RSS) feature to steer traffic to
+the number of cores needed for each test.
 
 As we will see in the results below, our tests push the hardware to its very
 limits. As such, tuning the performance of the system as a whole is important to
-realise optimal performance. This section outlines some important areas where
-this is needed for our experiments. In addition, we make the full details of our
-setup, links to source code and the raw test data available in an online
+realise optimal performance. This includes the physical hardware configuration,
+configuration of the network adapter features such as Ethernet flow control and
+receive queue size, and configuration parameters of the Linux kernel, where we
+for instance disable full preemption and the ``retpoline'' mitigation for the
+recent Meltdown and Spectre vulnerabilities. The full details of these
+configuration issues are omitted here due to lack of space, but we make them
+available, along with links to source code and the raw test data, in an online
 repository~\cite{test-data}, to help others reproduce our results.
 
-To ensure optimal performance, care needs to be taken when selecting the
-hardware to run on: Our test machine has memory modules installed in all four
-memory slots, to get the full available memory bandwidth. In addition, the CPU
-supports Intel's Data Direct I/O (DDIO) technology, which makes it possible for
-the networking hardware using Direct Memory Access (DMA) to place data directly
-into the processor cache. This eliminates cache misses on subsequent processing
-of the data, which is important for performance. Finally, we also make sure to
-install the network card in a 16-lane PCI Express v3 slot, as smaller slots do
-not provide enough bandwidth.
+The following subsections presents the evaluation results for each of the
+metrics outlined above, followed by a general discussion of the performance of
+XDP compared to the other systems in Section~\ref{sec:perf-discussion}.
 
-On the software side, a few configuration settings in the Linux kernel build are
-important to mention. The first one is that we disable the ``retpoline''
-mitigation for the recent Meltdown and Spectre vulnerabilities, since that has a
-particularly high performance cost in XDP, as it increases the cost of indirect
-function calls. Work to reduce this cost in the kernel is ongoing. The second is
-that we set the preemption mode to voluntary preemption, so kernel threads
-cannot be forcefully interrupted. This is the default setting used by most Linux
-distributions, however turning on full forced preemption is a common performance
-tweak applied to the Linux kernel. In this case it hurts performance, though, so
-we leave it at the voluntary setting.
+\subsection{CPU usage}
+\label{sec:cpu-usage}
 
-There are also a few configuration settings for the network interfaces that are
-important. The first one is to disable Ethernet flow control. Flow control
-causes the hardware to send pause frames to the sender if its buffers are full,
-in an effort to avoid packet drops. However, in our benchmarks we deliberately
-overload the receiver in an effort to measure its maximum performance. Flow
-control interferes with this, so we turn it off. We also tune the size of the
-receive size ring buffer that is used for transmitting packets form the hardware
-to the kernel. A larger buffer means that more packets can be enqueued by the
-hardware, which is generally a good thing. However, if the buffer is too large,
-it can cause the DDIO logic of the processor to make bad decisions: seeing a
-large buffer already queued in the processor cache, it will instead move the DMA
-data to the main system memory, which causes cache misses when the data is
-subsequently processed, which hurts performance. Unfortunately, there is no way
-to tune the DDIO mechanism itself, so we use the ring buffer size as a
-workaround for this problem. Different workloads have different optimal settings
-for the ring buffer size; we always use the setting that gives the highest
-performance, but not what that setting is in the results sections below.
 
-Finally, a note on how we measure the performance for different numbers of
-cores: The XDP program will always run on the core that is servicing the current
-packet. The network interface has a number of receive queues that can be bound
-to different cores, and the hardware offers various ways to steer packets onto
-different queues. We bind each receive queue to a different core, and install
-steering rules into the hardware so that a range of UDP ports are mapped 1-to-1
-to the different queues. This allows us to steer traffic to different CPUs are
-the traffic generator, by simply dividing the traffic between the desired number
-of destination ports. For DPDK, only the default hashing-based receive queue
-mapping is available; however, this is sufficient, since DPDK needs to be
-explicitly configured to run on a given number of cores.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{figures/drop-cpu.pdf}
+\caption{\label{fig:drop-cpu} CPU usage in the drop scenario. Each line stops at
+the method's maximum processing capacity.}
+\end{figure}
+
 
 \subsection{Packet Drop Performance}
 \label{sec:basel-pack-proc}
@@ -818,12 +795,6 @@ beyond these limits given a suitable traffic source. \textbf{FIXME: Is this
   when it has to generate more streams.}
 \end{figure}
 
-\begin{figure}[t]
-\centering
-\includegraphics[width=\linewidth]{figures/drop-cpu.pdf}
-\caption{\label{fig:drop-cpu} CPU usage in the drop scenario. Each line stops at
-the method's maximum processing capacity.}
-\end{figure}
 
 
 The reason the performance dips at five and six cores is because dividing the
