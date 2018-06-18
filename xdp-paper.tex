@@ -705,11 +705,12 @@ For all benchmarks, we use a machine equipped with a hexa-core Intel Xeon
 E5-1650 v4 CPU running at 3.60GHz, which supports Intel's Data Direct I/O (DDIO)
 technology that allows networking hardware to use Direct Memory Access (DMA) to
 place packet data directly in the CPU cache. The test machine is equipped with
-two Mellanox ConnectX-5 Ex VPI dual-port 100Gbps network adapters. We use the
-TRex packet generator~\cite{cisco18:_trex_traff_gener} to produce the test
-traffic. The test machine runs a version of the Linux kernel that will be
-released as v4.18. The needed XDP redirect changes to NIC driver mlx5 is
-expected to appear in v4.19.
+two Mellanox ConnectX-5 Ex VPI dual-port 100Gbps network adapters, which are
+supported by the \emph{mlx5} driver. We use the TRex packet
+generator~\cite{cisco18:_trex_traff_gener} to produce the test traffic. The test
+machine runs a version of the Linux kernel that will be released as v4.18. We
+additionally apply a change to the driver's support for XDP redirect mode; this
+change is expected to appear in Linux v4.19.
 
 % Jesper have a git tree (branch xdp_paper01) that we use for testing here:
 %  https://git.kernel.org/pub/scm/linux/kernel/git/hawk/net-next-xdp.git/
@@ -723,16 +724,16 @@ high-speed software packet processing. In our evaluation, we focus on three
 metrics:
 
 \begin{itemize}
-\item CPU usage. As mentioned in the introduction, one of the benefits of XDP is
-  that it scales the CPU usage with the packet load, instead of dedicating CPU
-  cores exclusively to packet processing. We quantify this by measuring how CPU
-  usage scales with the offered network load.
-
 \item Packet drop performance. To show the maximum achievable packet processing
   performance, we measure the performance of the simplest possible operation of
   simply dropping the incoming packet. This effectively measures the overhead of
   the system as a whole, and serves as an upper bound on the expected
   performance of a real packet processing application.
+
+\item CPU usage. As mentioned in the introduction, one of the benefits of XDP is
+  that it scales the CPU usage with the packet load, instead of dedicating CPU
+  cores exclusively to packet processing. We quantify this by measuring how CPU
+  usage scales with the offered network load.
 
 \item Packet forwarding performance. A packet processing system that cannot
   forward packets has limited utility. However, since forwarding introduces a
@@ -768,29 +769,14 @@ The following subsections presents the evaluation results for each of the
 metrics outlined above, followed by a general discussion of the performance of
 XDP compared to the other systems in Section~\ref{sec:perf-discussion}.
 
-\subsection{CPU usage}
-\label{sec:cpu-usage}
-
-
-
-\begin{figure}[t]
-\centering
-\includegraphics[width=\linewidth]{figures/drop-cpu.pdf}
-\caption{\label{fig:drop-cpu} CPU usage in the drop scenario. Each line stops at
-the method's maximum processing capacity.}
-\end{figure}
-
-
 \subsection{Packet Drop Performance}
 \label{sec:basel-pack-proc}
 Figure~\ref{fig:drop-test} shows the packet processing performance as a function
 of the number of cores. The baseline performance of XDP for a single core is
-26\,Mpps, while for DPDK it is 43.5\,Mpps. This scales linearly with the number
-of cores, until it hits the maximum capacity of our traffic generator, at
-82.5\,Mpps. DPDK reaches this with 3 cores, while for XDP it takes 4. However,
-we believe it is likely that both XDP and DPDK would be able to continue scaling
-beyond these limits given a suitable traffic source. \textbf{FIXME: Is this
-  true?}
+26\,Mpps, while for DPDK it is 43.5\,Mpps. Both scale their performance linearly
+up to three cores, but hit global performance bottlenecks above this, which
+leads to the sub-linear scaling up to four cores, and no additional improvements
+from adding a fifth or sixth core.
 
 \begin{figure}[t]
 \centering
@@ -802,23 +788,80 @@ beyond these limits given a suitable traffic source. \textbf{FIXME: Is this
 \end{figure}
 
 
+The hardware performance counters indicate that the global performance
+bottleneck is the PCI bus capacity. The reason why DPDK achieves a higher
+maximum performance before hitting the limit is that its busy-polling operating
+mode allows it to make better use of the available capacity on the bus, while
+the NAPI mechanism that the Linux kernel (and hence XDP) uses, intermittently
+waits for interrupts, which leads to idle periods on the PCI bus.
 
-The reason the performance dips at five and six cores is because dividing the
-traffic over several cores requires using the Receive Side Scaling (RSS)
-features of the hardware, which can divide up traffic between hardware receive
-queues (each of which is bound to a separate core) based on packet header
-information. Using this requires the traffic generator to generate the traffic
-as separate flows, which means its maximum throughput drops.
+The figure also shows the performance of the Linux networking stack in two
+configurations: One where we use the ``raw'' mode of the \emph{iptables}
+firewall module to drop packets, which ensures the earliest possible drop in the
+network stack processing; and another where we enable the connection tracking
+(\emph{conntrack}) module, which is enabled by default on most Linux
+distributions, but which carries a high overhead. These two modes illustrate the
+performance span of the Linux networking stack, from 1.8 Mpps of single-core
+performance with conntrack, up to 4.8 Mpps in raw mode. It also shows that in
+the absence of hardware bottlenecks, Linux performance scales linearly with the
+number of cores. And finally, it shows that XDP offers a five-fold improvement
+over the fastest processing mode of the regular networking stack, achieving 26
+Mpps on a single core.
+
+
+\subsection{CPU usage}
+\label{sec:cpu-usage}
+
+The CPU usage of the different tested systems, when configured to use a single
+core and immediately drop packets, is shown in Figure~\ref{fig:drop-cpu}. The
+test varies the offered packet load up to the maximum that each system can
+handle on a single core. We then measure the percentage of CPU busy time using
+the \texttt{mpstat} system utility.
+
+Since DPDK by design dedicates a full core to packet processing, and uses busy
+polling to process the packets, its CPU usage is always pegged at 100\%, which
+is the green line at the top of the figure. In contrast, both XDP and Linux
+smoothly scale CPU usage with the offered load, with a slightly larger relative
+increase in CPU usage at a small offered load level.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{figures/drop-cpu.pdf}
+\caption{\label{fig:drop-cpu} CPU usage in the drop scenario. Each line stops at
+  the method's maximum processing capacity. The DPDK line continues at 100\% up
+  to the maximum performance shown in Figure~\ref{fig:drop-test}.}
+\end{figure}
+
 
 \subsection{Packet Forwarding Performance}
 \label{sec:pack-forw-perf}
-Figure~\ref{fig:redirect-test} shows the packet forwarding performance. Again,
-we see linear scaling the number of cores. Since XDP can forward packets out the
-same NIC as well as out a different NIC (using two different return codes from
-the program, we show both modes in the graph. It is clear that the XDP
-performance improves significantly when packets are sent out on the same NIC
-that it came in on, especially as the number of cores in use increases.
+Figure~\ref{fig:redirect-test} shows the packet forwarding performance. The
+forwarding applications perform a simple Ethernet address rewrite, where the
+source and destination address of the incoming packet are swapped before the
+packet is forwarded. This is the minimum rewriting that is generally needed for
+a real packet forwarding application, so the results represent an upper bound on
+forwarding performance. Since XDP can forward packets out the same NIC as well
+as out a different NIC (using two different program return codes), we include
+both modes in the graph. The DPDK example program only supports forwarding
+packets through a different interface, so we only include this operating mode in
+the test. Finally, the Linux networking stack does not support this minimal
+forwarding mode, but requires a full bridging or routing lookup to forward
+packets; this lookup is expensive, and since the other applications don't
+perform it, the results are not directly comparable. We instead include the
+Linux routing performance in our real-world use case presented in
+Section~\ref{sec:fwd-usecase}.
 
+As Figure~\ref{fig:redirect-test} shows, we again see linear scaling the number
+of cores up to a global performance bottleneck. The absolute performance is
+somewhat lower than for the packet drop case, which shows the overhead of packet
+forwarding. We also see that the XDP performance improves significantly when
+packets are sent out on the same NIC that it came in on, especially as the
+number of cores in use increases. This is primarily due to differences in memory
+handling: packet buffers are allocated by the device driver and associated with
+the receiving interface. And so, when the packet is forwarded out a different
+interface, the memory buffer needs to be returned to the interface that it is
+associated with, which has some overhead. Work is ongoing to reduce this
+overhead.
 
 \begin{figure}[t]
 \centering
@@ -831,17 +874,33 @@ that it came in on, especially as the number of cores in use increases.
 \subsection{Discussion}
 \label{sec:perf-discussion}
 
-% Points:
-% - We do things we don't have to (e.g., DMA map/unmap)
-% - We are not good enough at batching (e.g., per pkt memory return for
-% redirect)
-% - We cannot busy poll
-%
-% Absolute DROP difference XDP vs DPDK is (1/26-1/43.5)*1000 = 15.47 ns. This is
-% between 55 and 145 instructions (depending on ins/cycle; perf says 2.61 for
-% XDP_DROP). About 350 instructions per pkt.
-% Function call overhead is 1.317 ns; mlx5 can potentially eliminate 6 of those
-% for XDP_DROP - half the difference to DPDK.
+As we have seen in the previous sections, XDP achieve significantly higher
+performance than the regular Linux networking stack. Even so, for most use cases
+XDP doesn't quite match the performance of DPDK. We believe this is primarily
+because DPDK has incorporated more performance optimisations at the lowest level
+of the code. To illustrate this, consider the packet drop example: XDP achieves
+26\,Mpps, which corresponds to 38.4 nanoseconds per packet, while DPDK achieves
+43.5\,Mpps, or 22.9 nanoseconds per packet. The difference of 15.5 nanoseconds
+corresponds to 56 clock cycles on the 3.6\,Ghz processor in our test machine;
+thus, it is clear that every micro-optimisation counts.
+
+Specifically, we identify three areas where the performance of XDP can be
+improved: (1) It is possible to eliminate some operations in XDP at the
+architectural level, such as DMA map and unmap operations. (2) It is possible to
+improve batching of operations, such as packet buffer returns across network
+interfaces, and increasing the use of busy polling under heavy load. And (3),
+there are some optimisations in the device driver code, such as inlining
+function calls, that could be applied specifically to the mlx5 driver. Indeed
+other drivers, such as the \emph{i40e} driver for 40\,Gbps Intel cards, show a
+smaller performance delta between XDP and DPDK.
+
+Given the above points, we believe it is quite feasible for XDP to close the
+performance gap to DPDK completely. In addition, given the fact that this gap is
+no longer a matter of orders of magnitude (as is the case between DPDK and the
+regular Linux network stack), we believe that given its benefits in terms of
+flexibility and integration with the rest of the system, XDP is already a
+compelling choice for many use cases. We illustrate some examples of this in the
+next section.
 
 \section{Real-world use cases}
 \label{sec:usecases}
