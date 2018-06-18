@@ -343,7 +343,7 @@ transmit the raw xdp frame out a different network interface, (2) to pass it to
 a different CPU for further processing, or (3) to pass it directly to a special
 userspace socket address family (\texttt{AF\_XDP}).
 %
-Redirecting into a KVM virtual machine is currently acheived by using above
+Redirecting into a KVM virtual machine is currently achieved by using above
 option 1, redirecting to the network interface of the virtual
 machine \footnote{Does require the virtual NIC driver supports the XDP operation
   ndo\_xdp\_xmit}.  Later we imagine that KVM/qemu gets explicit support for
@@ -354,6 +354,17 @@ Figure~\ref{fig:xdp-kernel}.
 
 \textbf{FIXME: Highlight that redirect via maps is
   a generic facility with many cool uses.}
+
+The novelty that allow redirecting without changing drivers is achieved by using
+BPF maps as the redirect target.  The XDP/bpf program redirect to an index in a
+map via a helper call (\texttt{bpf\_redirect\_map}) and ends execution with
+\texttt{XDP\_REDIRECT} return code. The helper call setup kernel side state,
+which makes the kernel lookup the map index and call the specific map type
+enqueue function.  The above mentioned redirect types have each associated
+separate map type implementation.  Adding new types of redirect, thus only
+require implementing a new type of redirect map to the core kernel.
+
+% TODO: Mention xdp_do_flush_map
 
 During its execution, an XDP program also has access to kernel facilities that
 provide helper functions and additional metadata. These allow the XDP program to
