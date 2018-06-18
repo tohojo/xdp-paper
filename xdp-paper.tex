@@ -969,77 +969,58 @@ an average packet size of 200\,bytes).
 \label{sec:dos-usecase}
 DoS attacks continue to plague the internet, typically in the form of
 distributed attacks (DDoS attacks) from compromised devices attached to the
-internet. There are various ways to mitigate them, but having some kind of
-service that protects critical infrastructure is typically at least a component
-of DDoS mitigation \textbf{FIXME: citation needed}. This can be done by
-filtering all traffic through a device that distinguish legitimate traffic from
-attacks, and drop the attack packets before they reach the application server.
+internet. With XDP, it is possible to deploy packet filtering to mitigate such
+attacks directly at the application servers, without needing to change the
+applications. In the case of a virtual machine deployment, the filter can even
+be installed on the hypervisor, and thus protect all virtual machines running on
+the host.
 
-The obvious problem with protecting against a DDoS attack is the sheer scale of
-the traffic that needs to be dropped, which leads to the use of expensive
-appliances to handle the dropping. However, with XDP we have another option:
-installing the traffic filter directly on the application server in the form of
-an XDP program, which is possible without any other modifications to the server.
-In the case of a virtual machine deployment, the filter can even be installed on
-the hypervisor, and thus protect all virtual machines running on the host.
+To show how this could work, we perform a test modelled on the DDoS mitigation
+architecture used by Cloudflare, which uses XDP as the filtering
+mechanism~\cite{cloudflare-ddos}. Their Gatebot architecture works by sampling
+traffic at servers located in distributed Points of Presence (PoPs), collecting
+it centrally for analysis, and formulating mitigation rules based on the
+analysis. The mitigation rules take the form of a series of simple checks on the
+packet payload, which are compiled directly into eBPF code which is distributed
+to the edge servers in the PoPs and executed as an XDP program that will drop
+packets matching the rules, while also updating match counters implemented as
+BPF maps.
 
-How to identify attack traffic is not our focus here, but rather the mechanism
-that drops the unwanted traffic. We simply assume that there exists \emph{some}
-way of identifying which traffic is legitimate and which isn't. Because of the
-dynamic nature of XDP, there are many options available: BPF maps could be used
-for white-listing or black-listing, the packet payload could be inspected, etc.
-It is even possible to load new XDP programs especially tailored towards
-dropping a particular kind of attack traffic as the need arises. However, in our
-example, we simply assume that a server hosts a TCP-based service, and so
-consider all UDP traffic as unwanted.
+To test the performance of such a solution, we use an XDP program that parses
+the packet headers and performs a small number of tests\footnote{A total of four
+  tests are performed after the header parsing. For details, see the online
+  appendix.} to identify attack traffic and drop it, and uses the CPU redirect
+feature to pass all other packets on to the network stack for processing on a
+different CPU core. To simulate a baseline application load we use the Netperf
+benchmarking tool~\cite{netperf}, which contains a TCP-based round-trip
+benchmark, which opens a TCP connection and sends a small payload which is
+echoed back from the server, repeating as soon as a reply is received. The
+output is the number of transactions per second, which is a good proxy for an
+interactive TCP session, such as small remote procedure calls.
 
-To test the performance of such a solution, we use the Netperf benchmarking
-tool~\cite{netperf}. This is equipped with a TCP-based round-trip benchmark,
-which opens a TCP connection and sends a small payload which is echoed back from
-the server, repeating as soon as a reply is received. The output is the number
-of transactions per second, which is a good proxy for an interactive TCP
-session, such as small remote procedure calls.
-
-\textbf{FIXME: Rewrite so it doesn't seem like 25ktrans/s is the maximum
-  achievable.}
-
-We first measure the baseline performance of this test, and see that we are able
-to perform around 25.000 transactions per second with no competing traffic. We
-then, from a separate machine, offer an increasing load of small UDP packets,
-which simulates the DoS attack, and measure how the TCP application is affected.
-The network interface is configured to redirect all traffic to a single receive
-queue, so all packets are processed by the same CPU core. This is important in
-this use case, because the machine will be running other applications on the
-remaining cores, and so we don't want to dedicate too many resources to just
-packet processing\footnote{The actual number of cores dedicated to packet
-  processing will of course have to depend on the volume of traffic the filter
-  should be able to process.}.
+We run our experiment on a single core and apply a baseline load of 35.000 TCP
+transactions per second. We then offer an increasing load of small UDP packets
+matching our packet filter, which simulates the DoS attack, and measure the
+number of TCP transactions achieved as the attack traffic volume increases. We
+repeat each experiment four times and report the mean value.
 
 \begin{figure}[t]
 \centering
 \includegraphics[width=\linewidth]{figures/ddos-test.pdf}
-\caption{\label{fig:ddos-results} DDOS performance. Number of TCP transactions
-  per second with different levels of UDP packet floods being sent to the
-  server.}
+\caption{\label{fig:ddos-results} DDoS performance. Number of TCP transactions
+  per second as the level of attack traffic directed at the server increases.}
 \end{figure}
 
-The results of this is shown in Figure~\ref{fig:ddos-results}. It is clearly
-seen that without the XDP filter, performance drops significantly, being halved
-at 2.5 Mpps and effectively zero at just below 3 Mpps. However, with the XDP
-filter in place, performance is kept above 20.000 transactions per second up to
-19 Mpps, after which it drops rapidly. The small increase in baseline
-performance (from 24,500 to 25,500 transactions per second) is because the XDP
-program uses the \emph{redirect} feature to move the network stack processing of
-the application traffic to a separate CPU core, to make sure the application
-performance is not impacted by handling of the DoS traffic.
-
-As these results show, it is quite feasible to perform this kind of filtering in
-XDP, and comfortably handle packet rates above 10\,Gbps of DoS traffic (with
-minimum packet sizes) on a single CPU core. Deploying DoS mitigation this way
-leads to increased flexibility, both because of the programmability offered by
-XDP, but also because it eliminates the need for at separate appliance to scrub
-the traffic.
-
+The results of this is shown in Figure~\ref{fig:ddos-results}. Without the XDP
+filter, performance drops significantly, being halved at 3\,Mpps and effectively
+zero at just below 3.5\,Mpps. However, with the XDP filter in place, the TCP
+transaction performance is kept high, gradually increasing towards 25.000
+transactions per second at 20\,Mpps, after which it drops rapidly. This shows
+that effective DDoS filtering is quite feasible to perform in XDP, and
+comfortably handles packet rates above 10\,Gbps of DoS traffic (with minimum
+packet sizes) on a single CPU core. Deploying DDoS mitigation this way leads to
+increased flexibility, since neither application changes, nor additional
+hardware is needed.
 
 \subsection{Load Balancer}
 \label{sec:load-balancer}
