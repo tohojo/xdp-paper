@@ -64,20 +64,23 @@ to go out onto the internet), but covers everything.
 
 
 #+BEGIN_SRC ipython :session :exports both :results raw drawer :var data=fwd_data
-d = np.array(data)
-plt.plot(d[:,0], d[:,5]/10**6, marker='o', label="XDP (single route)")
-plt.plot(d[:,0], d[:,6]/10**6, marker='s', label="XDP (full table)")
-plt.plot(d[:,0], d[:,1]/10**6, marker='^', label="Linux (single route)")
-plt.plot(d[:,0], d[:,2]/10**6, marker='x', label="Linux (full table)")
-plt.xlabel("Number of cores")
-plt.ylabel("Mpps")
-plt.legend()
+d = list(map(lambda x: x/10**6, [data[0][2], data[0][1], data[0][6], data[0][5]]))
+labels = ["Linux (full table)", "Linux (single route)",
+          "XDP (full table)","XDP (single route)"]
+
+#plt.plot(d[:,0], d[:,5]/10**6, marker='o', label="XDP (single route)")
+#plt.plot(d[:,0], d[:,6]/10**6, marker='s', label="XDP (full table)")
+#plt.plot(d[:,0], d[:,1]/10**6, marker='^', label="Linux (single route)")
+#plt.plot(d[:,0], d[:,2]/10**6, marker='x', label="Linux (full table)")
+plt.barh(range(len(d)), d, tick_label=labels, color=["#1b9e77", "#1b9e77", "#d95f02", "#d95f02"])
+plt.xlabel("Mpps (single core)")
+plt.gcf().set_figheight(3)
 plt.savefig(BASEDIR+"/figures/router-fwd.pdf", bbox_inches='tight')
 plt.show()
 #+END_SRC
 
 #+RESULTS:
 :results:
-# Out[158]:
-[[file:./obipy-resources/5egC7f.svg]]
+# Out[50]:
+[[file:./obipy-resources/A96bbg.svg]]
 :end:
