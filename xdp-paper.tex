@@ -302,9 +302,11 @@ performance, but the program has to parse raw packet data itself.
 
 Figure~\ref{fig:xdp-execution} shows the various processing steps an XDP program
 can perform. The program starts its execution with access to a pointer to a
-context object. This object contains the buffer of the raw packet data, along
-with metadata fields describing which interface and receive queue the packet
-came in on, etc. The program typically begins by parsing packet data, can invoke
+context object. This object contains pointers to the raw packet data (direct
+packet access bounds are checked by the verifier), along with metadata fields
+describing which interface and receive queue the packet came in on, etc.
+%
+The program typically begins by parsing packet data, can invoke
 BPF helper functions (e.g., to perform a map lookup), or can pass control to a
 different XDP program, through a tail calls, thus splitting processing into
 logical sub-units (based on, say, IP header version). The context object also
