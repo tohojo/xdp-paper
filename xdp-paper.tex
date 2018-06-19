@@ -16,7 +16,8 @@
 \acmConference[CoNEXT'18]{ACM CoNEXT 2018}{December 2018}{Heraklion/Crete, Greece}
 
 \begin{document}
-\title{The eXpress Data Path: Programmable Packet Processing for the Linux Kernel}
+\title{The eXpress Data Path:\\Integrating High-Speed Programmable Packet
+  Processing into the Operating System}
 %\author{Toke Høiland-Jørgensen}
 %\affiliation{%
 %  \institution{Karlstad University}}
@@ -54,9 +55,6 @@
 %
 %\renewcommand{\shortauthors}{T. Høiland-Jørgensen et al.}
 \author{A. Anonymous}
-\affiliation{%
-       \institution{Institution}
-       \country{Country}}
 \email{anon@example.org}
 
 \renewcommand{\shorttitle}{The eXpress Data Path}
@@ -97,26 +95,27 @@
 \label{sec:introduction}
 High-performance packet processing in software has very tight bounds on the time
 spent processing each packet ($\simeq6$~ns per packet at 100 Gbps). Network
-stacks in general purpose operating systems typically perform too many
-operations per packet to be able to keep up with this packet rate, which has led
-to increased popularity of special-purpose toolkits for software packet
-processing, such as the Data Plane Development Kit (DPDK)~\cite{dpdk}. Such
-toolkits generally bypass the operating system completely, instead passing
-control of the network hardware directly to the network application and
-dedicating one, or several, CPU cores exclusively to packet processing.
+stacks in general purpose operating systems are typically optimised for
+flexibility, which means they perform too many operations per packet to be able
+to keep up with this packet rate. This has led to the increased popularity of
+special-purpose toolkits for software packet processing, such as the Data Plane
+Development Kit (DPDK)~\cite{dpdk}. Such toolkits generally bypass the operating
+system completely, instead passing control of the network hardware directly to
+the network application and dedicating one, or several, CPU cores exclusively to
+packet processing.
 
 The kernel bypass approach can significantly improve performance, but has the
 drawback that it is more difficult to integrate with the existing networking
 stack, and applications have to re-implement a great deal of functionality
 otherwise provided by the operating system kernel. In the worst case, this leads
 to the need to operate two separate stacks; one to perform high-speed packet
-processing and one to run normal application or container workloads, leading to
-increased systems complexity, management and maintainability costs, and at the
-same time blur strict security boundaries otherwise provided by the operating
-system kernel. The latter is in particular problematic as today's infrastructure
-is moving towards container-based workloads coupled with orchestration systems
-such as Docker or Kubernetes, where the kernel plays a dominant role in resource
-abstraction and isolation.
+processing and one to run normal application or container workloads, resulting
+in increased systems complexity, management and maintainability costs, and at
+the same time blur strict security boundaries otherwise provided by the
+operating system kernel. The latter is in particular problematic as today's
+infrastructure is moving towards container-based workloads coupled with
+orchestration systems such as Docker or Kubernetes, where the kernel plays a
+dominant role in resource abstraction and isolation.
 
 As an alternative to the all-or-nothing kernel bypass packet processing
 technique, we present a system that adds programmability directly in the
@@ -125,22 +124,22 @@ perform high-speed packet processing that integrates seamlessly with existing
 systems, while selectively leveraging functionality in the operating system.
 This framework, called the eXpress Data Path (XDP), works by defining a limited
 execution environment in the form of a virtual machine running a custom bytecode
-that is based on an extended version of the Berkeley Packet Filter. This allows
-programs to run directly in the device driver context, before the kernel
-performs any other packet processing tasks. The kernel ensures safety and
-performance by statically verifying the program before it is loaded, and
-dynamically Just-in-Time-compiling the virtual machine bytecode in to native
+that is based on an extended version of the Berkeley Packet Filter. This
+environment executes custom programs directly in the device driver context,
+before the kernel performs any other packet processing tasks. The kernel ensures
+safety and performance by statically verifying the program before it is loaded,
+and dynamically just-in-time-compiling the virtual machine bytecode into native
 machine instructions.
 
-XDP has been gradually integrated into the Linux kernel over the last several
-releases. However, no complete architectural description of the system as a
-whole exists in the literature. In this work we present such a high-level design
-decription of XDP, its capabilities and how it integrates with the rest of the
-Linux kernel. Our performance analysis shows raw packet processing performance
-on a single core of up to 25 million packets per second. In addition,
-performance scales both downwards, by decreasing CPU usage as the traffic load
-drops, and upwards, by increasing performance with the number of cores dedicated
-to packet processing.
+XDP has been gradually integrated into the Linux kernel over several releases.
+However, no complete architectural description of the system as a whole exists
+in the literature. In this work we present such a high-level design decription
+of XDP, its capabilities and how it integrates with the rest of the Linux
+kernel. Our performance analysis shows raw packet processing performance on a
+single core of up to 25 million packets per second. In addition, performance
+scales both downwards, by decreasing CPU usage as the traffic load drops, and
+upwards, by increasing performance with the number of cores dedicated to packet
+processing.
 
 Because of its integration with the kernel's networking stack, and its high
 performance, XDP allows for implementing applications such as DDoS protection
@@ -250,39 +249,33 @@ some of the same performance enhancing techniques used by the kernel bypass
 frameworks, such as packet batching and the ability to process packets
 immediately after they are received from the hardware.
 
-%FIXME: Cite the "lessons learned with BPF" paper.
-
 \section{The design of XDP}
 \label{sec:design}
-XDP is designed to integrate with the Linux networking stack, enhancing it with
-high-performance programmable hooks in strategic places. This makes it possible
-to take advantage of the extensive and robust features of the operating system,
-while adding custom packet processing as required. For this reason, XDP should
-not be seen as a monolithic system one injects a single program into, but rather
-a composition of individual parts that operate in concert to achieve the desired
-outcome.
+XDP is designed to integrate with the Linux networking stack, making it possible
+to take advantage of the extensive feature set of the operating system, while
+adding custom packet processing as required. This section describes how these
+parts of XDP work, and how they fit together to create the full system. The
+major components of the XDP system are:
+
+\begin{itemize}
+\item The XDP driver hooks
+\item The eBPF virtual machine
+\item The eBPF verifier
+\item BPF maps
+\end{itemize}
 
 \begin{figure}[t]
 \centering
 \includegraphics[width=\linewidth]{figures/kernel-diagram.pdf}
-\caption{\label{fig:xdp-kernel} Diagram of how XDP integrates into the Linux
-  kernel network receive path.}
+\caption{\label{fig:xdp-kernel} XDP's integration with the Linux network stack.}
 \end{figure}
 
 
-This section describes the various parts of the XDP system and how they fit
-together. We begin with a high-level overview of the XDP programming model and
-how various features of the kernel combine to form a powerful programmable data
-plane. Following this, we look in detail at the extended BSD Packer Filter
-(eBPF) virtual machine providing the execution model, and the in-kernel verifier
-that ensures the safety of loaded eBPF programs. Finally, we give an overview of
-some of the performance optimisations that are part of the XDP system, and which
-help ensure high performance.
-
-Figure~\ref{fig:xdp-kernel} shows a diagram of how XDP integrates into the Linux
-kernel, and Figure~\ref{fig:xdp-execution} shows the execution flow of a typical
-XDP program. Together, they give an overview of the full XDP system, and they
-will be referenced throughout the exposition below.
+We describe each of these components below. Figure~\ref{fig:xdp-kernel} shows a
+diagram of how XDP integrates into the Linux kernel, and
+Figure~\ref{fig:xdp-execution} shows the execution flow of a typical XDP
+program. Together, they give an overview of the XDP system, and they will be
+referenced throughout the exposition below.
 
 \subsection{The XDP programming model}
 \label{sec:prog-model}
@@ -298,13 +291,13 @@ together.
 \begin{figure*}[t]
 \centering
 \includegraphics[width=\linewidth]{figures/xdp-execution-diagram.pdf}
-\caption{\label{fig:xdp-execution} Execution diagram of a typical XDP program.
-  When a packet arrives, the program starts by parsing packet headers to extract
-  the information it will react on. Based on this, combined with information
-  from one or more of the metadata facilities, a packet can be rewritten and a
-  final verdict for the packet determined. The program can alternate between
-  packet parsing, metadata lookup and rewriting, all of which are optional. The
-  final verdict is given in the form of a program return code.}
+\caption{\label{fig:xdp-execution} Execution flow of a typical XDP program. When
+  a packet arrives, the program starts by parsing packet headers to extract the
+  information it will react on. Based on this, combined with information from
+  one or more of the metadata facilities, a packet can be rewritten and a final
+  verdict for the packet determined. The program can alternate between packet
+  parsing, metadata lookup and rewriting, all of which are optional. The final
+  verdict is given in the form of a program return code.}
 \end{figure*}
 
 
@@ -483,73 +476,51 @@ kernel. The verifier (described in the next section) ensures that user-supplied
 programs cannot harm the running kernel, which enables a wide array of
 integrations between the running kernel and the XDP system.
 
-The eBPF modifies the BPF virtual machine as follows:
+The eBPF extends the BPF virtual machine by adding more registers and more
+instructions. The number of registers is increased to eleven (numbered
+\texttt{R0}--\texttt{R10}, where \texttt{R10} is reserved for a read-only frame
+pointer), and register widths are increased to 64 bits, with 32-bit
+sub-registers accessible through certain instructions to provide compatibility
+with classic BPF programs. The 64-bit registers map one-to-one to hardware
+registers on all 64-bit architectures supported by the kernel, which eases JIT
+compilation.
 
-\begin{table}[tbp]
-\caption{\label{tbl:reg-map}
-eBPF to x86\_64 register mapping.}
-\centering
-\begin{tabular}{ll|ll|ll}
-\toprule
-eBPF & x86\_64 & eBPF & x86\_64 & eBPF & x86\_64\\
-\midrule
-R0 & rax & R4 & rcx & R8 & r14\\
-R1 & rdi & R5 & r8 &  R9 & r15\\
-R2 & rsi & R6 & rbx & R10 & rbp\\
-R3 & rdx & R7 & r13\\
-\bottomrule
-\end{tabular}
-\end{table}
-
-
-\begin{itemize}
-\item The number of registers is increased to eleven, and register widths are
-increased to 64 bits, with 32-bit sub-registers accessible through certain
-instructions to provide compatibility with classic BPF programs. The 64-bit
-registers map one-to-one to hardware registers on all 64-bit architectures
-supported by the kernel, which eases JIT compilation. For instance, the x86\_64
-JIT compiler uses the mapping shown in Table~\ref{tbl:reg-map}.
-
-\item eBPF adds a \emph{call} instruction for function calls, and adopts the same calling
-convention as the C language conventions used on the architectures supported
-by the kernel. Along with the register mapping mentioned above, this makes it
+The added instructions are primarily arithmetic and logic instructions that
+allows efficient manipulation of the larger register sizes. However, eBPF also
+adds a \emph{call} instruction for function calls, and adopts the same calling
+convention as the C language conventions used on the architectures supported by
+the kernel. Along with the register mapping mentioned above, this makes it
 possible to map a BPF call instruction to a single native call instruction,
-enabling function calls to native kernel functions with close to zero
-overhead. This facility is used by eBPF to support helpers that eBPF programs
-can call to interact with the kernel while processing.
+enabling function calls with close to zero additional overhead. This facility is
+used by eBPF to support helpers that eBPF programs can call to interact with the
+kernel while processing, as well as for function calls within the same eBPF
+program.
 
-The eBPF calling convention is as follows:
-\begin{itemize}
-\item \texttt{R0} contains the function return value
-\item \texttt{R1}-\texttt{R5} contains function arguments
-\item \texttt{R6}-\texttt{R9} are callee saved registers that will be preserved across the call
-\item \texttt{R10} is a read-only frame pointer to the beginning of the eBPF stack space
-\end{itemize}
-\end{itemize}
+A BPF program starts its execution with \texttt{R1} containing a pointer to a
+\emph{context} object, the contents of which varies with the type of program. As
+explained above, for XDP programs the context object is a structure that allows
+the BPF program to access the packet data itself, as well as various items of
+metadata, including space for arbitrary data that is carried along with the
+packet and is accessible by other BPF programs that operate on the packet at
+later stages of processing.
 
-
-A BPF program starts its execution with \texttt{R1} containing a pointer to a \emph{context}
-object, the contents of which varies with the type of program. For XDP, this
-points to a structure that allows the BPF program to access the packet data
-itself, as well as various items of metadata, including space for arbitrary data
-that is carried along with the packet and is accessible by other BPF programs
-that operate on the packet at later stages of processing.
-
-\textbf{FIXME: Add table of current helpers.}
-
-
-\subsection{The eBPF program verifier}
+\subsection{The eBPF Program Verifier}
 \label{sec:bpf-verifier}
 As mentioned in the previous section, eBPF code runs directly in the kernel
 address space, which means that it theoretically has full access to the running
-kernel and can either crash or compromise this. To avoid this unpleasant
-situation, the kernel enforces a single entry point for loading all BPF programs
-(through the \texttt{bpf()} system call). When loading a BPF program it is first
-analysed by the in-kernel \emph{BPF verifier}, which ensures that the program
-performs no actions that are unsafe (such as reading arbitrary memory), and that
-the program will terminate by disallowing loops and limiting the maximum program
-size. The verifier works by first building a directed acyclic graph (DAG) of the
-control flow of the program. This DAG is then verified as follows:
+kernel and can both crash the system and compromise it by writing corrupting
+kernel memory. To avoid this unpleasant situation, the kernel enforces a single
+entry point for loading all BPF programs (through the \texttt{bpf()} system
+call). When loading a BPF program it is first analysed by the in-kernel
+\emph{BPF verifier}. The verifier performs a static analysis of the program byte
+code to ensure that the program performs no actions that are unsafe (such as
+reading arbitrary memory), and that the program will terminate. The latter is
+ensured by disallowing loops and limiting the maximum program
+size.\footnote{Verifying termination of arbitrary programs (that are not limited
+  in this way) implies solving the halting problem, which we consider to be out
+  of scope for this work.} The verifier works by first building a directed acyclic
+graph (DAG) of the control flow of the program. This DAG is then verified as
+follows:
 
 \begin{table}[tbp]
 \caption{\label{tbl:vrf-state-vars}
@@ -643,16 +614,24 @@ derefence the pointer.
 Using the information contained in the state variables, it is possible for the
 verifier to predict the ranges of memory that it is possible for each load
 instruction to access. It uses this information to ensure that only safe memory
-accesses are performed. For pointers to context objects, the execution context
-of the eBPF program indicates allowed memory offsets for their context objects
-through a callback performed by the verifier. For map values, the map definition
-defines the size of the values, which is used to bound the allowed memory
-accesses. For pointers to stack values, only ranges previously stored on the
-stack are valid. And finally, for pointers to packet data, only ranges known to
-be less than the packet length (by appropriate compares against the packet end
-pointer) are allowed. Any eBPF program that makes memory accesses that the
+accesses are performed. Any eBPF program that makes memory accesses that the
 verifier cannot prove are safe are simply rejected at load time. The verifier
 also uses the range information to enforce aligned memory accesses.
+
+For pointers to context objects, the execution context of the eBPF program
+indicates allowed memory offsets for their context objects through a callback
+performed by the verifier. For map values, the map definition defines the size
+of the values, which is used to bound the allowed memory accesses. For pointers
+to stack values, only ranges previously stored on the stack are valid. And
+finally, for pointers to packet data, only ranges known to be less than the
+packet length are allowed. The latter is enforced by ensuring that the program
+makes appropriate range checks through comparison with the special
+\texttt{PACKET\_END} pointer that is included in the context structure. This
+approach means that the program can be statically verified to make safe length
+checks on the variable-length packet data, which enables program instructions to
+directly access packet data. This is an important reason for the high
+performance of eBPF programs that are used for packet processing, as they are in
+XDP.
 
 When pointers are copied to other registers, a bounds check on one copy can be
 used to infer the valid ranges of the other copies, even after the copy
@@ -671,39 +650,40 @@ a check against NULL will be valid for all of them.
 
 Much of the performance improvement that XDP represents over the standard Linux
 networking stack is due to the processing happening before data structures are
-created and memory allocated. However, there are also a couple of performance
-enhancement techniques that have specifically been applied over the development
-of XDP (although some of them also benefit the normal stack). In this section we
-outline these techniques, and how they apply to XDP.
+created and the associated memory allocated. However, there are also a couple of
+performance enhancement techniques that have specifically been applied in the
+development of XDP (although some of them also benefit the normal stack). In
+this section we outline these techniques and how they apply to XDP.
 
 Packet processing on general-purpose hardware, as is done with XDP, inevitably
-carries some overhead costs related to getting the packets transferred to the
-system memory, processing them by the CPU, and sending them back to the
-hardware. Amortising these costs over multiple packets through bulking is an
-essential technique to achieve high performance. In Linux, there are two main
-ways bulking is achieved: On the receive path, the NAPI mechanism~\cite{napi}
-amortises the cost of interrupts from the hardware, by temporarily turning off
-interrupts each time a packet is received, and instead polling to receive a
-batch of packets at once. This mechanism has been available in Linux for a
-long time, added as part of the Linux 2.6 kernel series; but for XDP it carries
-with it additional benefits, since the XDP program can be executed directly in
-the NAPI poll context.
-% FIXME: bulking or batching?
+carries some overhead costs related to transferring packets to system memory,
+processing them by the host CPU, and sending them back to the hardware.
+Amortising these costs over multiple packets through batching is an essential
+technique to achieve high performance. In Linux, there are two main ways
+batching is achieved: NAPI interrupt modulation on receive, and packet buffer
+batching on transmit.
+
+On the receive path, the NAPI mechanism~\cite{napi} modulates the cost of
+interrupts from the hardware, by temporarily turning off interrupts each time a
+packet is received, and instead polling to receive a batch of packets at once.
+This mechanism has been available in Linux for a long time, added as part of the
+Linux 2.6 kernel series; but for XDP it carries with it additional benefits,
+since the XDP program can be executed directly in the NAPI poll context.
 
 A similar issue is seen on the transmit path, where updating the tail pointer in
 the device ring buffer initiates a transmit operation to the hardware, which
 carries with it some overhead. To amortise this, XDP uses two mechanisms: When
-the XDP program indicates that the packet should be transmitted out on the same
-interface it came in on, it is put into the transmit ring buffer immediately,
-but the tail pointer update is deferred until the end of the NAPI poll sequence,
-which causes batching of all packets in the same sequence on transmit as well.
-When redirecting packets to a different interface, another mechanism is used to
-achieve the same thing: the redirect mechanism can use a BPF map to lookup the
-destination interface. When doing so, the map also contains a buffer that will
-be used to batch packets from subsequent calls, and defer the actual
-transmission out of the destination interface until the end of the NAPI poll
-sequence. Using the map structure to achieve this makes it transparent to the
-calling program and even the device driver.
+the XDP program indicates that the packet should be transmitted out the same
+interface it was received on, the received packet is put into the transmit ring
+buffer immediately. However, the tail pointer update is deferred until the end
+of the NAPI poll sequence, which causes batching of all packets in the same
+sequence on transmit as well. When redirecting packets to a different interface,
+another mechanism is used to achieve the same thing: the redirect mechanism can
+use a BPF map to lookup the destination interface. When doing so, the map also
+contains a buffer that will be used to batch packets from subsequent calls, and
+defer the actual transmission out of the destination interface until the end of
+the NAPI poll sequence. Using the map structure to achieve this makes it
+transparent to the calling program and even the device driver.
 
 \textbf{FIXME: Is the above correct? And is there anything else we need to add
   to this section?}
@@ -869,13 +849,13 @@ As Figure~\ref{fig:redirect-test} shows, we again see linear scaling the number
 of cores up to a global performance bottleneck. The absolute performance is
 somewhat lower than for the packet drop case, which shows the overhead of packet
 forwarding. We also see that the XDP performance improves significantly when
-packets are sent out on the same NIC that it came in on, especially as the
-number of cores in use increases. This is primarily due to differences in memory
-handling: packet buffers are allocated by the device driver and associated with
-the receiving interface. And so, when the packet is forwarded out a different
-interface, the memory buffer needs to be returned to the interface that it is
-associated with, which has some overhead. Work is ongoing to reduce this
-overhead.
+packets are sent out on the same interface that it was received on, especially
+as the number of cores in use increases. This is primarily due to differences in
+memory handling: packet buffers are allocated by the device driver and
+associated with the receiving interface. And so, when the packet is forwarded
+out a different interface, the memory buffer needs to be returned to the
+interface that it is associated with, which has some overhead. Work is ongoing
+to reduce this overhead.
 
 \begin{figure}[t]
 \centering
@@ -1075,88 +1055,96 @@ saturate a 10\,Gbps link using three CPU cores.
 \end{table}
 
 
-
-
 \section{Limitations and future work}
 \label{sec:limitations}
-As we have shown above, XDP has excellent performance, and is already useful in
-a variety of real-world use cases. However, XDP is also relatively new
-technology that is being incrementally added to a general purpose operating
-system kernel. As such, it is constantly evolving, and still has some rough
-edges. In this section we present some of the known limitations, and future
-directions for XDP's development. These include: User experience and debugging;
-driver support; improvements to NAPI; and better handling of rate transitions.
-Each of the following subsections discuss each of these issues in turn.
-
-\textbf{FIXME: This needs to strike the right balance between ``look, we are
-  improving things'' and ``there are lots of issues''. I fear it leans a bit too
-far towards the latter as is, so maybe some text needs to be cut.}
+As we have shown above, XDP offers high performance and can be used to implement
+a variety of real-world use cases. However, this does not mean that XDP is a
+finished system. On the contrary, as part of the Linux kernel, XDP undergoes
+continuing improvement. Some of this development effort goes into softening the
+rough edges that are the inevitable result of XDP being incrementally
+incorporated into a general purpose operating system kernel. Other efforts
+continue to push the boundaries of XDP's capabilities. In this section we give a
+(non-exhaustive) overview of the efforts in both areas of development. These
+include: User experience and debugging; driver support; performance
+improvements; QoS and better handling of rate transitions; and acceleration of
+transport protocols. The following subsections discuss each of these issues in
+turn.
 
 \subsection{User Experience and Debugging}
 \label{sec:user-exper-debugg}
 Since an XDP program runs in the kernel, the debugging tools available to a
-regular userspace program are not generally applicable. The tendency for some
-operations to fail silently and just drop packets doesn't help this situation.
-In addition, the subset of C that is generally used to write BPF programs can be
-limiting, for instance due to the need to unroll all loops. Finally, the
-verifier will sometimes reject valid programs because it cannot prove validity,
-and its error messages are not always helpful. Together, these issues combine to
-make writing a useful XDP application harder than it needs to be, especially for
-someone not familiar with the Linux ecosystem.
+regular userspace program are not generally applicable. Instead, the debugging
+and introspection features included in the kernel can be applied to XDP (and
+other eBPF) programs as well. These tools include tracepoints and
+kprobes~\cite{kernel-tracing} as well as the performance counts that are part of
+the \emph{perf} subsystem~\cite{perf}. However, developers who are not familiar
+with the kernel ecosystem and ``just wants to write packet processing programs''
+can find this ecosystem of kernel-specific tools a limitation, as others have
+noted~\cite{miano2018creating}. To ease the transition, a wide variety of tools
+exist, including the BPF Compiler Collection~\cite{bcc}, the \emph{bpftool}
+introspection program~\cite{bpftool} and the \emph{libbpf} library of utility
+functions~\cite{libbpf}. These have already seen significant improvements since
+their inception, but more work is needed in this area.
 
-\textbf{FIXME: The issue is not so much that no debugging tools exist, but
-  rather than it is a very different ecosystem.}
-
-Work is ongoing to improve this situation, and indeed it already has improved
-some. The XDP subsystem includes a number of tracepoints, that can be accessed
-by the debugging tools used for the rest of the kernel to give information about
-failures of XDP actions, usage of helper functions, etc. The tools to support
-this continue to improve, as does the documentation. In addition, the verifier
-continuously improving to recognise more correct programs that were previously
-rejected as invalid. Support for function calls in eBPF has recently been added,
-and the addition of support for bounded loops is planned. However, we recognise
-that this is still an area in need of improvement.
+Another area that sees continual improvement is the eBPF program verifier. The
+primary focus of the verifier is naturally to ensure the correctness and safety
+of the programs being loaded into the kernel. As such, a conservative approach
+is taken, where the verifier will reject any program that it cannot prove is
+correct. This can lead to false negatives, where correct programs are rejected.
+In addition, the restrictions on the program structure initially imposed by the
+verifier, such as the lack of support for function calls and loops, have been
+more limited than strictly necessary, in the interest of ensuring safety first.
+To improve upon this situation, there is ongoing to teach the verifier to
+recognise more correct programs that were previously rejected as invalid, and
+the error messages reported by the verifier have been made friendlier, to make
+it easier for developers to change their code to avoid verification errors. In
+addition, support for function calls in eBPF has recently been added, and the
+addition of support for bounded loops is planned. Efficiency improvements that
+will allow the verifier to operate on much larger programs are also being worked
+on.
 
 \subsection{Driver Support}
 \label{sec:driver-support}
 Each device driver needs to add support for running XDP programs, by supporting
 an API exposed by the core networking stack. Support is continuously being added
-to more and more drivers.\footnote{At the time of writing Linux 4.17 has XDP
+to more and more drivers,\footnote{At the time of writing Linux 4.17 has XDP
   support in 12 different drivers, including the most popular high-speed network
   adapters. An updated list of supported drivers is included in
-  \url{http://cilium.readthedocs.io/en/latest/bpf}.} However, not having
-universal support is limiting and can be confusing for users. One particular
-issue with this is that it is possible for drivers to support only subsets of
-the XDP functionality. This is because drivers need to implement support for
-each of the possible return code. This is further complicated by the fact that
-support for redirection has separate implementations in the receive path and the
-transmit path, so it is possible for a driver to support redirecting packets to
-other interfaces, but not being the target of a redirection from elsewhere.
+  \url{http://cilium.readthedocs.io/en/latest/bpf}.} but at the time of writing,
+some care is still needed when selecting hardware to use with XDP. However,
+since XDP is integrated into the kernel device driver model, it imposes no
+particular capability constraints on the hardware, which means that full support
+in all drivers is possible; and indeed we believe that is how this limitation
+will eventually be resolved.
 
-Ultimately, we believe that these issues will be resolved by having full support
-for XDP in all device drivers. However, for obvious reasons this takes time, and
-holding back the development of the system until all drivers have caught up is
-not feasible. As the XDP system has evolved, the need to keep the API support
-required in drivers to a minimum has become increasingly clear, and some steps
-have been taken in this direction. For instance, support for new targets can be
-added to the redirection action without any changes needed from the drivers.
+As the XDP system has evolved, the need to keep the changes required in drivers
+to support XDP to a minimum has become increasingly clear, and some steps have
+been taken in this direction. For instance, support for new targets can be added
+to the redirection action without any changes needed from the drivers. Finally,
+the Genereic XDP feature~\cite{generic-xdp} makes it possible to run XDP
+programs at reduced performance even if the networking driver lacks the proper
+support, by moving execution into the core networking stack.
 
-\textbf{FIXME: Mention closing the performance gap with DPDK.}
-
-\subsection{Improvements to NAPI}
+\subsection{Performance Improvements}
 \label{sec:improvements-napi}
-As we saw in Section~\ref{sec:perf-eval}, DPDK still achieves markedly better
-raw packet processing performance than XDP. The main reason for this is that the
-NAPI mechanism that Linux uses to selectively switch between interrupt-based
-packet processing and polling is insufficient to mitigate the large number of
-interrupts that happen at high packet rates. In some cases it would be
-beneficial to switch to a full busy polling mode, if one is willing to dedicate
-a full CPU core to packet processing.
+As we discussed in Section~\ref{sec:perf-discussion}, there is still a
+performance gap between XDP and DPDK in some use cases. Efforts to improve this
+are ongoing, which includes micro-optimisations of driver code as well as
+changes to the core XDP code to avoid unnecessary operations where possible, and
+otherwise amortise the costs through improved batching of operations.
 
+One particular area that needs improvement is the NAPI mechanism, which
+selectively switches between interrupt-based packet processing and polling. This
+is insufficient to mitigate the large number of interrupts that happen at high
+packet rates, which means that in some cases it would be beneficial to switch to
+a full busy polling mode, where one or more full CPU cores are dedicated to
+polling the hardware receive rings and process packets as soon as they appear.
 There have been some efforts to selective switch a network adapter to busy
-polling mode, which has shown promising results~\cite{dumazet17:_busyp}. We
-believe continuing this work, and integrating it with XDP, will make it possible
-to reach raw packet processing performance equal to that of DPDK.
+polling mode, which has shown promising results~\cite{dumazet17:_busyp}. As we
+noted in Section~\ref{sec:perf-discussion}, we believe that integrating this
+work with XDP, will, along with the other performance optimisations mentioned
+above, make it possible to reach raw packet processing performance at least
+equal to that of DPDK.
 
 \subsection{QoS and Rate Transitions}
 \label{sec:handl-rate-trans}
@@ -1166,9 +1154,27 @@ attempting to forward packets to a destination that has exhausted its capacity.
 This limitation can be exasperated when joining networks with different speeds
 or other mismatched network characteristics.
 
-We are exploring various solutions to this issue, however no consensus on the
-best approach has been reached in the community at this time.
+While QoS is lacking from XDP, the Linux kernel networking stack features
+best-in-class Active Queue Management (AQM) and packet scheduling
+algorithms~\cite{good-bad-wifi}. While not all of these features are a good fit
+for the XDP architecture, we believe that selectively integrating features in
+this area from the networking stack into XDP is an opportunity to provide
+excellent support for QoS and AQM in XDP in a way that can be completely
+transparent to the packet processing applications themselves. We are planning to
+explore this further in the future.
 
+\subsection{Accelerating Transport Protocols}
+\label{sec:accel-transp-prot}
+
+With XDP we have shown how high-speed packet processing can be integrated
+cooperatively into the operating system to accelerate processing while making
+use of existing features of the operating system where it makes sense. XDP
+focuses on stateless packet processing, but extending the same model to stateful
+transport protocols such as TCP would provide many of the same performance
+benefits to applications that require reliable (and thus stateful) transports.
+There has been some initial discussion of this in the community~\cite{txdp};
+expanding this presents an exciting opportunity for expanding the scope of the
+XDP system.
 
 \section{Conclusions}
 \label{sec:conclusion}
