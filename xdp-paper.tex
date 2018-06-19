@@ -96,13 +96,13 @@
 High-performance packet processing in software has very tight bounds on the time
 spent processing each packet ($\simeq6$~ns per packet at 100 Gbps). Network
 stacks in general purpose operating systems are typically optimised for
-flexibility, which means they perform too many operations per packet to be able
-to keep up with this packet rate. This has led to the increased popularity of
-special-purpose toolkits for software packet processing, such as the Data Plane
-Development Kit (DPDK)~\cite{dpdk}. Such toolkits generally bypass the operating
-system completely, instead passing control of the network hardware directly to
-the network application and dedicating one, or several, CPU cores exclusively to
-packet processing.
+flexibility, trading off performance by performing too many operations per
+packet to be able to keep up with these high packet rates. This has led to the
+increased popularity of special-purpose toolkits for software packet processing,
+such as the Data Plane Development Kit (DPDK)~\cite{dpdk}. Such toolkits
+generally bypass the operating system completely, instead passing control of the
+network hardware directly to the network application and dedicating one, or
+several, CPU cores exclusively to packet processing.
 
 The kernel bypass approach can significantly improve performance, but has the
 drawback that it is more difficult to integrate with the existing networking
@@ -131,38 +131,54 @@ safety and performance by statically verifying the program before it is loaded,
 and dynamically just-in-time-compiling the virtual machine bytecode into native
 machine instructions.
 
-XDP has been gradually integrated into the Linux kernel over several releases.
-However, no complete architectural description of the system as a whole exists
-in the literature. In this work we present such a high-level design decription
-of XDP, its capabilities and how it integrates with the rest of the Linux
-kernel. Our performance analysis shows raw packet processing performance on a
-single core of up to 25 million packets per second. In addition, performance
-scales both downwards, by decreasing CPU usage as the traffic load drops, and
-upwards, by increasing performance with the number of cores dedicated to packet
-processing.
+XDP has been gradually integrated into the Linux kernel over several releases,
+but no complete architectural description of the system as a whole exists in the
+literature. In this work we present such a high-level design description of XDP,
+its capabilities and how it integrates with the rest of the Linux kernel. Our
+performance evaluation shows raw packet processing performance of up to 25
+million packets per second per CPU core, which does not quite match the highest
+achievable performance in a DPDK-based application on the same hardware.
+However, we argue that the remaining performance gap is quite feasible to close
+using the current XDP architecture. And, more importantly, the XDP system offers
+several compelling advantages over DPDK and other kernel bypass solutions.
+Specifically, XDP:
 
-Because of its integration with the kernel's networking stack, and its high
-performance, XDP allows for implementing applications such as DDoS protection
-and load balancing that previously required their own networking appliance to
-run directly on application servers. It also enables a hybrid approach, where
-certain fast path processing is offloaded to XDP while retaining normal network
-stack processing for other packets. In addition, XDP supports atomic application
-updates without traffic interruption or service restarts, which allows for high
-performance processing without sacrificing flexibility.
+\begin{itemize}
+\item Integrates cooperatively with the regular networking stack, retaining full
+  control of the hardware in the kernel. This means that the kernel security
+  boundary is intact, and no changes to network configuration and management
+  tools are needed.
 
-To illustrate the various facets of XDP, we supplement our synthetic performance
-benchmarks with three non-exhaustive examples of real-world use cases that can
-be implemented in XDP: inline DDoS protection on a hypervisor host or
-application server; full layer-3 packet forwarding capabilities; and layer-4
-load balancing by encapsulating packets and reinjecting them into the network.
+\item Makes it possible to selectively utilise kernel network stack features
+  such as the routing table, keeping the same configuration interface, while
+  accelerating the critical performance paths.
 
-The rest of this paper is structured as follows: Section~\ref{sec:related-work}
-first outlines related work. Section~\ref{sec:design} then presents the design
-of XDP and Section~\ref{sec:perf-eval} presents the raw packet processing
-performance analysis. Section~\ref{sec:usecases} presents the real-world use
-cases and their performance. Finally, Section~\ref{sec:limitations} presents
-current limitations of XDP and future work, and Section~\ref{sec:conclusion}
-concludes.
+\item Provides a stable programming interface for packet processing
+  applications, which carries the same stability guarantees as every other
+  kernel interface.
+
+\item Is completely transparent to applications running on the host, enabling
+  new deployment scenarios such as inline DDoS protection on application
+  servers.
+
+\item Can be dynamically re-programmed without service interruption, which means
+  that features can be removed completely when they are not needed, and programs
+  can react to conditions in other parts of the kernel as well as events from
+  userspace.
+
+\item Does not require dedicating full CPU cores to packet processing, which
+  means lower traffic levels translates directly into lower CPU usage. This has
+  important efficiency and power saving implications.
+\end{itemize}
+
+In the rest of this paper we present the design of XDP and our performance
+analysis, and is structured as follows: Section~\ref{sec:related-work} first
+outlines related work. Section~\ref{sec:design} presents the design of the XDP
+system and Section~\ref{sec:perf-eval} presents our evaluation of its raw packet
+processing performance. Section~\ref{sec:usecases} supplements this with
+examples of real-world use cases that can be implemented with XDP. Finally,
+Section~\ref{sec:limitations} presents some known limitations of XDP and future
+work to address them, and Section~\ref{sec:conclusion} concludes.
 
 \section{Related Work}%
 \label{sec:related-work}
