@@ -128,8 +128,8 @@ that is based on an extended version of the Berkeley Packet Filter. This
 environment executes custom programs directly in the device driver context,
 before the kernel performs any other packet processing tasks. The kernel ensures
 safety and performance by statically verifying the program before it is loaded,
-and dynamically just-in-time-compiling the virtual machine bytecode into native
-machine instructions.
+and dynamically compiles the virtual machine bytecode into native machine
+instructions.
 
 XDP has been gradually integrated into the Linux kernel over several releases,
 but no complete architectural description of the system as a whole exists in the
@@ -147,7 +147,8 @@ Specifically, XDP:
 \item Integrates cooperatively with the regular networking stack, retaining full
   control of the hardware in the kernel. This means that the kernel security
   boundary is intact, and no changes to network configuration and management
-  tools are needed.
+  tools are needed. In addition, any network adapter with a Linux driver can be
+  supported by XDP; no special hardware features are needed.
 
 \item Makes it possible to selectively utilise kernel network stack features
   such as the routing table, keeping the same configuration interface, while
