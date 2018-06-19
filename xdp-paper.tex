@@ -419,15 +419,15 @@ lookups for common tasks.
 \label{sec:redir}
 
 Forwarding a packet via \texttt{XDP\_TX} is a very simple form of forwarding,
-with a fixed egress device (equal ingress device).  This inflexibility yields
+with a fixed egress device (equal ingress).  This inflexibility yields
 performance advantages, and production use-cases~\cite{katran} have shown a
 need.
 
 XDP redirect was designed as a more flexible form of forwarding, in a novel way
 that allows us to extend the kernel with new types of redirects, without
-changing the driver code.
+changing the driver code, by using eBPF maps as the redirect target.
 %
-Currently three types of redirect exists.  Redirecting can be used to (1)
+Currently three types of map redirect exists.  Redirecting can be used to (1)
 transmit the raw packet out a different network interface, (2) to pass it to
 a different CPU for further processing, or (3) to pass it directly to a special
 userspace socket address family (\texttt{AF\_XDP}).
@@ -441,14 +441,12 @@ option 3 (\texttt{AF\_XDP}).
 These different ways packets can be passed on are shown with solid lines in
 Figure~\ref{fig:xdp-kernel}.
 
-The novelty that allow redirecting without changing drivers is achieved by using
-BPF maps as the redirect target.  The XDP/bpf program redirect to an index in a
-map via a helper call (\texttt{bpf\_redirect\_map}) and ends execution with
-\texttt{XDP\_REDIRECT} return code. The helper call setup kernel side state,
-which makes the kernel lookup the map index and call the specific map type
-enqueue function.  The above mentioned redirect types have each associated
-separate map type implementations.  Adding new types of redirect, thus only
-require implementing a new type of redirect map to the core kernel.
+The XDP program redirect to an index in a map via a helper call
+(\texttt{bpf\_redirect\_map}) and ends execution with \texttt{XDP\_REDIRECT}
+return code. The helper call setup kernel side state, which makes the kernel
+lookup the map index and call the specific map type enqueue function.  Adding
+new types of redirect, only require implementing a new type of redirect map to
+the core kernel.
 
 Redirect via maps also implement RX bulking, but without requiring the drivers
 to construct a bulk of packets.  Instead the drivers must call a map flush
