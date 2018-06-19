@@ -18,6 +18,22 @@
    inkscape:version="0.92.2 2405546, 2018-03-11">
   <defs
      id="defs4925">
+    <pattern
+       inkscape:stockid="Stripes 1:1"
+       id="Strips1_1"
+       patternTransform="translate(0,0) scale(10,10)"
+       height="1"
+       width="2"
+       patternUnits="userSpaceOnUse"
+       inkscape:collect="always">
+      <rect
+         id="rect4232"
+         height="2"
+         width="1"
+         y="-0.5"
+         x="0"
+         style="fill:black;stroke:none" />
+    </pattern>
     <marker
        inkscape:stockid="TriangleOutM"
        orient="auto"
@@ -671,7 +687,7 @@
       <path
          inkscape:connector-curvature="0"
          id="path7173-35-81-9"
-         style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:0.625;stroke-linejoin:round;stroke-opacity:1"
+         style="fill:url(#Strips1_1);fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:0.625;stroke-linejoin:round;stroke-opacity:1"
          d="M 8.7185878,4.0337352 -2.2072895,0.01601326 8.7185884,-4.0017078 c -1.7454984,2.3720609 -1.7354408,5.6174519 -6e-7,8.035443 z"
          transform="matrix(-0.3,0,0,-0.3,0.69,0)" />
     </marker>
@@ -750,6 +766,51 @@
          d="M 8.7185878,4.0337352 -2.2072895,0.01601326 8.7185884,-4.0017078 c -1.7454984,2.3720609 -1.7354408,5.6174519 -6e-7,8.035443 z"
          transform="matrix(-0.3,0,0,-0.3,0.69,0)" />
     </marker>
+    <marker
+       inkscape:stockid="Arrow2Send"
+       orient="auto"
+       refY="0"
+       refX="0"
+       id="Arrow2Send-8-70-4-2-9-3"
+       style="overflow:visible"
+       inkscape:isstock="true">
+      <path
+         inkscape:connector-curvature="0"
+         id="path7173-35-81-9-0-6-6"
+         style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:0.625;stroke-linejoin:round;stroke-opacity:1"
+         d="M 8.7185878,4.0337352 -2.2072895,0.01601326 8.7185884,-4.0017078 c -1.7454984,2.3720609 -1.7354408,5.6174519 -6e-7,8.035443 z"
+         transform="matrix(-0.3,0,0,-0.3,0.69,0)" />
+    </marker>
+    <marker
+       inkscape:stockid="Arrow2Sstart"
+       orient="auto"
+       refY="0"
+       refX="0"
+       id="Arrow2Sstart-76-5"
+       style="overflow:visible"
+       inkscape:isstock="true">
+      <path
+         inkscape:connector-curvature="0"
+         id="path7170-3-3"
+         style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:0.625;stroke-linejoin:round;stroke-opacity:1"
+         d="M 8.7185878,4.0337352 -2.2072895,0.01601326 8.7185884,-4.0017078 c -1.7454984,2.3720609 -1.7354408,5.6174519 -6e-7,8.035443 z"
+         transform="matrix(0.3,0,0,0.3,-0.69,0)" />
+    </marker>
+    <marker
+       inkscape:stockid="Arrow2Send"
+       orient="auto"
+       refY="0"
+       refX="0"
+       id="Arrow2Send-5-5"
+       style="overflow:visible"
+       inkscape:isstock="true">
+      <path
+         inkscape:connector-curvature="0"
+         id="path7173-08-6"
+         style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:0.625;stroke-linejoin:round;stroke-opacity:1"
+         d="M 8.7185878,4.0337352 -2.2072895,0.01601326 8.7185884,-4.0017078 c -1.7454984,2.3720609 -1.7354408,5.6174519 -6e-7,8.035443 z"
+         transform="matrix(-0.3,0,0,-0.3,0.69,0)" />
+    </marker>
   </defs>
   <sodipodi:namedview
      id="base"
@@ -758,16 +819,16 @@
      borderopacity="1.0"
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
-     inkscape:zoom="1.4"
-     inkscape:cx="645.96419"
-     inkscape:cy="256.37608"
+     inkscape:zoom="0.7"
+     inkscape:cx="907.95967"
+     inkscape:cy="526.03976"
      inkscape:document-units="mm"
      inkscape:current-layer="layer1"
      showgrid="false"
-     inkscape:window-width="2560"
-     inkscape:window-height="1416"
-     inkscape:window-x="1440"
-     inkscape:window-y="24"
+     inkscape:window-width="1600"
+     inkscape:window-height="864"
+     inkscape:window-x="0"
+     inkscape:window-y="0"
      inkscape:window-maximized="0"
      fit-margin-top="10"
      fit-margin-left="10"
@@ -788,7 +849,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
+        <dc:title />
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -1167,6 +1228,17 @@
            y="116.68489"
            style="font-size:4.93888903px;stroke-width:0.26458332px"
            id="tspan8292-4">- Tail calls to split processing</tspan></text>
+      <text
+         xml:space="preserve"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:5.64444447px;line-height:125%;font-family:'Gentium Book Basic';-inkscape-font-specification:'Gentium Book Basic';letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+         x="306.22913"
+         y="-40.878098"
+         id="text6477"><tspan
+           sodipodi:role="line"
+           id="tspan6475"
+           x="306.22913"
+           y="-35.909439"
+           style="stroke-width:0.26458332px"></tspan></text>
     </g>
     <g
        id="g1036"
@@ -1461,17 +1533,17 @@
        id="path8925-3"
        inkscape:connector-curvature="0" />
     <path
-       style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:1.6;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#Arrow2Send-8-70-4)"
+       style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:1.59999999;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:3.19999999,1.59999999;stroke-opacity:1;marker-end:url(#Arrow2Send-8-70-4);fill-opacity:1;stroke-dashoffset:0"
        d="M 64.63455,85.958456 V 67.7117"
        id="path8925-6-9-0"
        inkscape:connector-curvature="0" />
     <path
-       style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:1.59999979;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#Arrow2Send-8-70-4-2)"
+       style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:1.59999974;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:3.19999948,1.59999974;stroke-opacity:1;marker-end:url(#Arrow2Send-8-70-4-2);stroke-dashoffset:0"
        d="M 182.69017,65.39823 V 83.644986"
        id="path8925-6-9-0-1"
        inkscape:connector-curvature="0" />
     <path
-       style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:1.59999979;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#Arrow2Send-8-70-4-2-9)"
+       style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:1.59999974;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:3.19999948,1.59999974;stroke-opacity:1;marker-end:url(#Arrow2Send-8-70-4-2-9);stroke-dashoffset:0"
        d="M 133.94247,110.52495 H 115.69571"
        id="path8925-6-9-0-1-2"
        inkscape:connector-curvature="0" />
@@ -1600,5 +1672,62 @@
            style="fill:#979797;fill-opacity:1;stroke:none;stroke-opacity:1" />
       </g>
     </g>
+    <path
+       style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:1.59999979;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:3.19999951, 1.59999976;stroke-dashoffset:0;stroke-opacity:1;marker-end:url(#Arrow2Send-8-70-4-2-9-3)"
+       d="M 264.83784,-47.120634 H 283.0846"
+       id="path8925-6-9-0-1-2-7"
+       inkscape:connector-curvature="0" />
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:5.64444447px;line-height:125%;font-family:'Gentium Book Basic';-inkscape-font-specification:'Gentium Book Basic';letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       x="289.88104"
+       y="-45.678623"
+       id="text6481"><tspan
+         sodipodi:role="line"
+         id="tspan6479"
+         x="289.88104"
+         y="-45.678623"
+         style="stroke-width:0.26458332px">XDP execution phase transitions</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:5.64444447px;line-height:125%;font-family:'Gentium Book Basic';-inkscape-font-specification:'Gentium Book Basic';letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       x="289.78183"
+       y="-33.188572"
+       id="text6485"><tspan
+         sodipodi:role="line"
+         id="tspan6483"
+         x="289.78183"
+         y="-33.188572"
+         style="stroke-width:0.26458332px">Communication with rest of system</tspan></text>
+    <path
+       style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:1.60000026;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#Arrow2Send-5-5)"
+       d="m 265.25127,-34.630582 h 17.4199"
+       id="path8925-0-2"
+       inkscape:connector-curvature="0" />
+    <g
+       transform="matrix(0.16324611,0,0,0.17120432,269.80234,-27.722963)"
+       id="g5805-1-9"
+       style="fill:#979797;fill-opacity:1;stroke:none;stroke-width:3.29533768;stroke-opacity:1">
+      <g
+         id="g5803-3-1"
+         style="fill:#979797;fill-opacity:1;stroke:none;stroke-width:3.29533768;stroke-opacity:1">
+        <path
+           inkscape:connector-curvature="0"
+           d="M 31.781,65.124 V 46.096 H 0.787 V 19.027 H 31.781 V 0 L 64.337,32.564 Z M 3.123,43.76 H 34.119 V 59.484 L 61.035,32.565 34.118,5.643 V 21.365 H 3.123 Z"
+           id="path5801-8-2"
+           style="fill:#979797;fill-opacity:1;stroke:none;stroke-width:3.29533768;stroke-opacity:1" />
+      </g>
+    </g>
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:5.64444447px;line-height:125%;font-family:'Gentium Book Basic';-inkscape-font-specification:'Gentium Book Basic';letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       x="289.85901"
+       y="-20.053591"
+       id="text7735"><tspan
+         sodipodi:role="line"
+         id="tspan7733"
+         x="289.85901"
+         y="-20.053591"
+         style="stroke-width:0.26458332px">Packet flow</tspan></text>
   </g>
 </svg>

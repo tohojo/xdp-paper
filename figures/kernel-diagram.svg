@@ -598,9 +598,9 @@
      borderopacity="1.0"
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
-     inkscape:zoom="1"
-     inkscape:cx="474.5613"
-     inkscape:cy="507.89743"
+     inkscape:zoom="2.8284271"
+     inkscape:cx="126.92711"
+     inkscape:cy="352.58549"
      inkscape:document-units="mm"
      inkscape:current-layer="layer1"
      showgrid="false"
@@ -1355,5 +1355,16 @@
        ry="2.0713389"
        rx="2.0713389"
        transform="rotate(-90)" />
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:3.30729151px;line-height:125%;font-family:'Gentium Book Basic';-inkscape-font-specification:'Gentium Book Basic';letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       x="23.891697"
+       y="238.66904"
+       id="text1014"><tspan
+         sodipodi:role="line"
+         id="tspan1012"
+         x="23.891697"
+         y="238.66904"
+         style="stroke-width:0.26458332px">Drop</tspan></text>
   </g>
 </svg>
