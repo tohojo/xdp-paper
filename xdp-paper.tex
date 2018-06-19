@@ -349,24 +349,18 @@ During its execution, an XDP program also has access to kernel facilities that
 provide helper functions and additional metadata. These allow the XDP program to
 gather additional metadata through helper functions and maps (dotted lines in
 Figure~\ref{fig:xdp-kernel} and the top part of Figure~\ref{fig:xdp-execution}).
+New helpers are actively been added by the kernel development community in
+response to user requests, continuously expanding the functionality that XDP
+programs can make use of.
+
+% Detail: Helper calls are not callbacks and not indirect-function
+% pointer calls (thus not affected by retpoline)
 %
-% I'm not sure it's 100% correct to call helper functions "callbacks"?
-%
-% Please correct me: AFAIK the verifier translates helper ID numbers into
-% real kernel function calls (change insn->imm = bpf_func_proto->func).
+% The verifier translates helper ID numbers into real kernel function calls
+% (change insn->imm = bpf_func_proto->func).
 % (After the verifier have checked that R1-R5 argument passing registers
 % are correct and compliant).
-% (based on reading kernel/bpf/verifier.c function call fixup_bpf_calls
-%
-% I'm not sure if the CPU still sees this as an indirect-function pointer call,
-% when JIT translated?
-%
-Helper functions are callbacks implemented in the kernel that an XDP program can
-call to make use of kernel functionality in its processing. These helpers
-serve various purposes, ranging from simple checksum computation and hashing, to
-full access to the kernel routing table. New helpers are actively been added by
-the kernel development community in response to user requests, continuously
-expanding the functionality that XDP programs can make use of.
+% (based on reading kernel/bpf/verifier.c function call fixup_bpf_calls)
 
 Maps are key/value stores that are defined by the user before loading an XDP
 program, and can be referred to from within the eBPF code. Maps are shared, both
