@@ -381,7 +381,7 @@ enqueue function.  The above mentioned redirect types have each associated
 separate map type implementation.  Adding new types of redirect, thus only
 require implementing a new type of redirect map to the core kernel.
 
-Redirect via maps also implement RX bulking, but without requiring the drivers
+Redirect via maps also implement RX batching, but without requiring the drivers
 to construct a bulk of frames.  Instead the drivers must call a map flush
 operation (\texttt{xdp\_do\_flush\_map}) when it ends the NAPI poll context.
 This API approach was choosen to simplify adding XDP redirect to driver code.
@@ -676,16 +676,15 @@ outline these techniques, and how they apply to XDP.
 Packet processing on general-purpose hardware, as is done with XDP, inevitably
 carries some overhead costs related to getting the packets transferred to the
 system memory, processing them by the CPU, and sending them back to the
-hardware. Amortising these costs over multiple packets through bulking is an
+hardware. Amortising these costs over multiple packets through batching is an
 essential technique to achieve high performance. In Linux, there are two main
-ways bulking is achieved: On the receive path, the NAPI mechanism~\cite{napi}
+ways batching is achieved: On the receive path, the NAPI mechanism~\cite{napi}
 amortises the cost of interrupts from the hardware, by temporarily turning off
 interrupts each time a packet is received, and instead polling to receive a
 batch of packets at once. This mechanism has been available in Linux for a
 long time, added as part of the Linux 2.6 kernel series; but for XDP it carries
 with it additional benefits, since the XDP program can be executed directly in
 the NAPI poll context.
-% FIXME: bulking or batching?
 
 A similar issue is seen on the transmit path, where updating the tail pointer in
 the device ring buffer initiates a transmit operation to the hardware, which
