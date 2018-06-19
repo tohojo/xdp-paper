@@ -472,60 +472,33 @@ kernel. The verifier (described in the next section) ensures that user-supplied
 programs cannot harm the running kernel, which enables a wide array of
 integrations between the running kernel and the XDP system.
 
-The eBPF modifies the BPF virtual machine as follows:
+The eBPF extends the BPF virtual machine by adding more registers and more
+instructions. The number of registers is increased to eleven (numbered
+\texttt{R0}--\texttt{R10}, where \texttt{R10} is reserved for a read-only frame
+pointer), and register widths are increased to 64 bits, with 32-bit
+sub-registers accessible through certain instructions to provide compatibility
+with classic BPF programs. The 64-bit registers map one-to-one to hardware
+registers on all 64-bit architectures supported by the kernel, which eases JIT
+compilation.
 
-\begin{table}[tbp]
-\caption{\label{tbl:reg-map}
-eBPF to x86\_64 register mapping.}
-\centering
-\begin{tabular}{ll|ll|ll}
-\toprule
-eBPF & x86\_64 & eBPF & x86\_64 & eBPF & x86\_64\\
-\midrule
-R0 & rax & R4 & rcx & R8 & r14\\
-R1 & rdi & R5 & r8 &  R9 & r15\\
-R2 & rsi & R6 & rbx & R10 & rbp\\
-R3 & rdx & R7 & r13\\
-\bottomrule
-\end{tabular}
-\end{table}
-
-
-\begin{itemize}
-\item The number of registers is increased to eleven, and register widths are
-increased to 64 bits, with 32-bit sub-registers accessible through certain
-instructions to provide compatibility with classic BPF programs. The 64-bit
-registers map one-to-one to hardware registers on all 64-bit architectures
-supported by the kernel, which eases JIT compilation. For instance, the x86\_64
-JIT compiler uses the mapping shown in Table~\ref{tbl:reg-map}.
-
-\item eBPF adds a \emph{call} instruction for function calls, and adopts the same calling
-convention as the C language conventions used on the architectures supported
-by the kernel. Along with the register mapping mentioned above, this makes it
+The added instructions are primarily arithmetic and logic instructions that
+allows efficient manipulation of the larger register sizes. However, eBPF also
+adds a \emph{call} instruction for function calls, and adopts the same calling
+convention as the C language conventions used on the architectures supported by
+the kernel. Along with the register mapping mentioned above, this makes it
 possible to map a BPF call instruction to a single native call instruction,
-enabling function calls to native kernel functions with close to zero
-overhead. This facility is used by eBPF to support helpers that eBPF programs
-can call to interact with the kernel while processing.
+enabling function calls with close to zero additional overhead. This facility is
+used by eBPF to support helpers that eBPF programs can call to interact with the
+kernel while processing, as well as for function calls within the same eBPF
+program.
 
-The eBPF calling convention is as follows:
-\begin{itemize}
-\item \texttt{R0} contains the function return value
-\item \texttt{R1}-\texttt{R5} contains function arguments
-\item \texttt{R6}-\texttt{R9} are callee saved registers that will be preserved across the call
-\item \texttt{R10} is a read-only frame pointer to the beginning of the eBPF stack space
-\end{itemize}
-\end{itemize}
-
-
-A BPF program starts its execution with \texttt{R1} containing a pointer to a \emph{context}
-object, the contents of which varies with the type of program. For XDP, this
-points to a structure that allows the BPF program to access the packet data
-itself, as well as various items of metadata, including space for arbitrary data
-that is carried along with the packet and is accessible by other BPF programs
-that operate on the packet at later stages of processing.
-
-\textbf{FIXME: Add table of current helpers.}
-
+A BPF program starts its execution with \texttt{R1} containing a pointer to a
+\emph{context} object, the contents of which varies with the type of program. As
+explained above, for XDP programs the context object is a structure that allows
+the BPF program to access the packet data itself, as well as various items of
+metadata, including space for arbitrary data that is carried along with the
+packet and is accessible by other BPF programs that operate on the packet at
+later stages of processing.
 
 \subsection{The eBPF Program Verifier}
 \label{sec:bpf-verifier}
