@@ -380,11 +380,16 @@ enqueue function.  The above mentioned redirect types have each associated
 separate map type implementation.  Adding new types of redirect, thus only
 require implementing a new type of redirect map to the core kernel.
 
-% TODO: Mention xdp_do_flush_map
-Redirect via maps also implement RX bulking, without requiring the drivers to
-construct a bulk of frames.  Instead the drivers must call a map flush operation
-(\texttt{xdp\_do\_flush\_map}) when it ends the NAPI poll context.
-% FIXME: EXPLAIN MORE ... ran out of time...
+Redirect via maps also implement RX bulking, but without requiring the drivers
+to construct a bulk of frames.  Instead the drivers must call a map flush
+operation (\texttt{xdp\_do\_flush\_map}) when it ends the NAPI poll context.
+This API approach was choosen to simplify adding XDP redirect to driver code.
+The driver pass frames individually upto the XDP redirect core, where they can
+be aggregated and map-flushed within the same NAPI context.
+
+% TODO: Explain what redirect is a sorting problem, and there for more advanted
+% than XDP_TX.... this fits better as an intro to a separate section about
+% redirect.
 
 During its execution, an XDP program also has access to kernel facilities that
 provide helper functions and additional metadata. These allow the XDP program to
