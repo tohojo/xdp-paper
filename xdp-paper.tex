@@ -418,12 +418,14 @@ lookups for common tasks.
 \subsubsection{XDP redirect model}
 \label{sec:redir}
 
-% TODO: Explain what redirect is a sorting problem, and there for more advanted
-% than XDP_TX.... this fits better as an intro to a separate section about
-% redirect.
+Forwarding a packet via \texttt{XDP\_TX} is a very simple form of forwarding,
+with a fixed egress device (equal ingress device).  This inflexibility yields
+performance advantages, and production use-cases~\cite{katran} have shown a
+need.
 
-The redirect facility is novel in the way is allows us to extend the kernel with
-new types of redirects, without changing the driver code.
+XDP redirect was designed as a more flexible form of forwarding, in a novel way
+that allows us to extend the kernel with new types of redirects, without
+changing the driver code.
 %
 Currently three types of redirect exists.  Redirecting can be used to (1)
 transmit the raw packet out a different network interface, (2) to pass it to
@@ -445,18 +447,19 @@ map via a helper call (\texttt{bpf\_redirect\_map}) and ends execution with
 \texttt{XDP\_REDIRECT} return code. The helper call setup kernel side state,
 which makes the kernel lookup the map index and call the specific map type
 enqueue function.  The above mentioned redirect types have each associated
-separate map type implementation.  Adding new types of redirect, thus only
+separate map type implementations.  Adding new types of redirect, thus only
 require implementing a new type of redirect map to the core kernel.
 
 Redirect via maps also implement RX bulking, but without requiring the drivers
-to construct a bulk of frames.  Instead the drivers must call a map flush
+to construct a bulk of packets.  Instead the drivers must call a map flush
 operation (\texttt{xdp\_do\_flush\_map}) when it ends the NAPI poll context.
 This API approach was choosen to simplify adding XDP redirect to driver code.
-The driver pass frames individually upto the XDP redirect core, where they can
-be aggregated and map-flushed within the same NAPI context.
+The driver pass packets individually upto the XDP redirect core, where they can
+be aggregated and map-flushed within the same NAPI context.  This map demux
+approach helps to build packet bulks per map destination index.
+\\
 
-
-
+% Section summary:
 The various pieces of the XDP system outlined above combine to form a powerful
 programmable data plane, with integration into the Linux kernel aiding
 deployment on existing systems. The following sections describe the eBPF virtual
