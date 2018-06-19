@@ -62,6 +62,22 @@ to go out onto the internet), but covers everything.
 |     5 |              7848970 |            6451024 |                       19364863 |                      23225298 |                      26056821 |                    17870856 |
 |     6 |              9285971 |            7809312 |                       22852944 |                      25916115 |                      30416566 |                    21227330 |
 
+The performance difference in nanosec between single and full-table:
+
+Linux routing:
+ (1/1739672-1/1373550)*10^9 = -153.22 ns
+
+XDP-routing:
+ (1/5357696-1/3446336)*10^9 = -103.52 ns
+
+This overhead of the full-table is significantly larger than expected.
+The overhead different was expected in the 10-15 ns range, based on
+Vincent Bernat's blogposts:
+
+ https://vincent.bernat.im/en/blog/2017-performance-progression-ipv4-route-lookup-linux
+
+See:
+ https://d1g3mdmxf8zbo9.cloudfront.net/images/linux/lpc-trie-perf-recent-v2.svg
 
 #+BEGIN_SRC ipython :session :exports both :results raw drawer :var data=fwd_data
 d = list(map(lambda x: x/10**6, [data[0][2], data[0][1], data[0][6], data[0][5]]))
