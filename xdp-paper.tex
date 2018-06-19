@@ -1125,19 +1125,24 @@ XDP system.
 \section{Conclusions}
 \label{sec:conclusion}
 We have presented XDP, a system for safely integrating high-speed programmable
-packet processing directly in the Linux kernel. This represents an alternative
-solution to all-or-nothing kernel bypass solutions, which makes it easier to
-integrate the packet processing with normal applications.
+packet processing directly into the operating system kernel, which represents an
+alternative solution to all-or-nothing kernel bypass solutions.
 
 Our evaluation has shown that XDP achieves raw packet processing performance of
-up to 25 million packets per second on a single CPU core. We have also
-demonstrated three examples of real-world use cases that can be implemented with
-XDP: Inline DDOS mitigation, layer-3 forwarding, and layer-4 load balancing.
+up to 25 million packets per second on a single CPU core. While this is not
+quite on par with DPDK-based solutions, we argue that there is nothing
+preventing the XDP architecture from fully achieving the same performance; and
+more importantly, that XDP offers other compelling features that more than makes
+up for this. These features include retaining kernel security and management
+compatibility, selectively utilising existing kernel stack features as needed,
+providing a stable programming interface, and complete transparency to
+applications. In addition, XDP can be dynamically re-programmed without service
+interruption, and requires neither specialised hardware nor dedicating whole CPU
+cores to packet processing.
 
-XDP continues to be actively developed by the Linux community, and we believe
-that it offers a compelling alternative to other high-speed packet processing
-frameworks, especially where integrating with existing systems and applications
-is important.
+To demonstrate how XDP can be used to build applications, we have demonstrated
+three example implementations of real-world use cases: layer-3 forwarding,
+inline DDOS mitigation and layer-4 load balancing.
 
 \bibliographystyle{ACM-Reference-Format}
 \bibliography{xdp}
