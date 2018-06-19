@@ -258,10 +258,17 @@ parts of XDP work, and how they fit together to create the full system. The
 major components of the XDP system are:
 
 \begin{itemize}
-\item The XDP driver hooks
-\item The eBPF virtual machine
-\item The eBPF verifier
-\item BPF maps
+\item \textbf{The XDP driver hook} is the main entry point for an XDP program,
+  and is executed as soon as a packet is received from the hardware.
+
+\item \textbf{The eBPF virtual machine} executes the byte code of the XDP
+  program, and just-in-time-compiles it for added performance.
+
+\item \textbf{The eBPF verifier} statically verifies programs before they are
+  loaded to make sure they do not crash or corrupt the running kernel.
+
+\item \textbf{BPF maps} are key/value stores that serve as the primary
+  communication channel to the rest of the system.
 \end{itemize}
 
 \begin{figure}[t]
@@ -277,16 +284,8 @@ Figure~\ref{fig:xdp-execution} shows the execution flow of a typical XDP
 program. Together, they give an overview of the XDP system, and they will be
 referenced throughout the exposition below.
 
-\subsection{The XDP programming model}
+\subsection{The XDP Driver Hook}
 \label{sec:prog-model}
-The XDP system enables high-performance packet processing integrated tightly
-with the rest of the Linux networking stack. This makes XDP unique compared to
-other high-performance software packet processing frameworks, because it makes
-it possible to selectively leverage features already implemented in Linux, while
-writing custom programs to perform application-dependent processing, or to
-accelerate certain parts of the data path. This section gives a conceptual
-overview of the XDP programming model, explaining how the different parts fit
-together.
 
 \begin{figure*}[t]
 \centering
@@ -301,157 +300,71 @@ together.
 \end{figure*}
 
 
-An XDP program is run in the eBPF virtual machine and is entirely event driven.
-The program is executed directly in context of the device driver, without
-context switching to userspace. As shown in Figure~\ref{fig:xdp-kernel}, the
-program is executed at the earliest possible moment after a packet is received
-from the hardware, before the kernel allocates its per-packet \emph{sk\_buff}
-data structure or performs any parsing of the packet. This allows for high
-performance, but the program has to parse raw packet data itself.
+An XDP program is run by a hook in the network device driver when a packet
+arrives, and so is entirely event-driven. The program is executed directly in
+context of the device driver, without context switching to userspace. As shown
+in Figure~\ref{fig:xdp-kernel}, the program is executed at the earliest possible
+moment after a packet is received from the hardware, before the kernel allocates
+its per-packet \emph{sk\_buff} data structure or performs any parsing of the
+packet. This allows for high performance, but the program has to parse raw
+packet data itself.
 
-Figure~\ref{fig:xdp-execution} shows the various processing steps an XDP program
-can perform. The program starts its execution with access to a pointer to a
-context object. This object contains pointers to the raw packet data (direct
-packet access bounds are checked by the verifier), along with metadata fields
-describing which interface and receive queue the packet came in on, etc.
-%
-The program typically begins by parsing packet data, can invoke
-BPF helper functions (e.g., to perform a map lookup), or can pass control to a
-different XDP program, through tail calls, thus splitting processing into
-logical sub-units (based on, say, IP header version). The context object also
-contains a pointer to a special memory area is available for XDP to store
-arbitrary metadata that will be available to other XDP programs, as well as to
-other parts of the kernel and userspace (under certain circumstances). The
-program can also write any parts of the packet data buffer, including expanding
-or shrinking the packet to add or remove headers.
-%
-% FIXME: More clear desc of header vs tail expand vs shrink support
-%
-% ALSO Describe: that we recently added truncating the packet tail
-% length, but not expanding the tail.
-%
-These three steps (reading,
-metadata processing, and writing packet data) correspond to the light grey boxes
-on the left side of Figure~\ref{fig:xdp-execution}, and can of course alternate
-and repeat in a arbitrary ways.
+Figure~\ref{fig:xdp-execution} shows the various processing steps typically
+performed by an XDP program. The program starts its execution with access to a
+pointer to a context object. This object contains pointers to the raw packet
+data (direct packet access bounds are checked by the verifier), along with
+metadata fields describing which interface and receive queue the packet came in
+on, etc.
+
+The program typically begins by parsing packet data, and can pass control to a
+different XDP program through tail calls, thus splitting processing into
+logical sub-units (based on, say, IP header version).
+
+After parsing the packet data, the XDP program can read or write metadata
+associated with the packet itself, or available in other parts of the operating
+system. The former is accessible through the context object, which contains a
+pointer to a special memory area is available for XDP to store arbitrary
+metadata that will be available to other XDP programs, as well as to other parts
+of the kernel and userspace. In addition to this, an XDP program also has access
+to kernel facilities that provide helper functions and additional metadata.
+These allow the XDP program to gather additional metadata through helper
+functions and maps (dotted lines in Figure~\ref{fig:xdp-kernel} and the top part
+of Figure~\ref{fig:xdp-execution}). New helpers are actively been added by the
+kernel development community in response to user requests, continuously
+expanding the functionality that XDP programs can make use of.
+
+Finally, the program can write any parts of the packet data buffer, including
+expanding or shrinking the packet to add or remove headers. This allows it to
+perform encapsulation or decapsulation, as well as, for instance, rewrite
+address fields for forwarding. Various kernel helpers are available to assist in
+things like checksum calculation for a modified packet.
+
+These three steps (reading, metadata processing, and writing packet data)
+correspond to the light grey boxes on the left side of
+Figure~\ref{fig:xdp-execution}. Since XDP programs can contain arbitrary
+instructions, the different steps can alternate and repeat in arbitrary ways.
+However, to achieve high performance, it is generally necessary to structure the
+execution order as described here.
 
 Similar to a regular userspace program, an XDP program ends its execution with a
 return code, instructing the kernel what to do with the packet. This is shown on
 the right-hand side of the figure. There are three simple return codes which
-either drop the packet (\texttt{XDP\_DROP}), immediately re-transmit it out the
-same network interface (\texttt{XDP\_TX}), or allow the packet to be processed
-by the kernel networking stack (\texttt{XDP\_PASS}).  In addition to these
-simple actions, the XDP program can \emph{redirect} the packet
-(\texttt{XDP\_REDIRECT}), which controls its further processing (covered in
-Section~\ref{sec:redir}).
+either drops the packet, immediately re-transmits it out the same network
+interface, or allows the packet to be processed by the kernel networking stack.
+In addition to these simple actions, the XDP program can \emph{redirect} the
+packet, which controls its further processing.
 
-During its execution, an XDP program also has access to kernel facilities that
-provide helper functions and additional metadata. These allow the XDP program to
-gather additional metadata through helper functions and maps (dotted lines in
-Figure~\ref{fig:xdp-kernel} and the top part of Figure~\ref{fig:xdp-execution}).
-New helpers are actively been added by the kernel development community in
-response to user requests, continuously expanding the functionality that XDP
-programs can make use of.
+The redirect facility is designed as a flexible forwarding mechanism, which can
+be extended with new redirect targets without changing the driver code. This is
+achieved by using BPF maps to store the redirect targets, which also allows
+these targets to be dynamically updated from userspace. Currently, redirecting
+can be used (1) to transmit the raw packet out a different network interface
+(including virtual interfaces which are connected to virtual machines), (2) to
+pass it to a different CPU for further processing, or (3) to pass it directly to
+a special userspace socket address family (\texttt{AF\_XDP}). These different
+packet paths are shown as solid lines in Figure~\ref{fig:xdp-kernel}.
 
-% Detail: Helper calls are not callbacks and not indirect-function
-% pointer calls (thus not affected by retpoline)
-%
-% The verifier translates helper ID numbers into real kernel function calls
-% (change insn->imm = bpf_func_proto->func).
-% (After the verifier have checked that R1-R5 argument passing registers
-% are correct and compliant).
-% (based on reading kernel/bpf/verifier.c function call fixup_bpf_calls)
-
-Maps are key/value stores that are defined by the user before loading an XDP
-program, and can be referred to from within the eBPF code. Maps are shared, both
-between different eBPF programs running at various places in the kernel, as well
-as between eBPF and userspace. The map types include generic hash maps, arrays
-and radix trees, as well as specialised types containing pointers to eBPF
-programs (used for tail calls), or even recursive pointers to other maps. Maps
-serve several purposes: they are a persistent data store between invocations of
-the same eBPF program; a global coordination tool, where eBPF programs in one
-part of the kernel can update state that changes the behaviour in another; and a
-communication mechanism between userspace programs and the kernel eBPF programs,
-similar to the communication between control plane and data plane in other
-programmable package processing frameworks.
-
-Another piece of the XDP picture is the ability to run eBPF programs in other
-parts of the kernel. These include packet processing in the Traffic Control (TC)
-subsystem, where eBPF programs can filter packets after they have been parsed by
-the kernel, or before they are passed to the hardware from applications. This is
-marked as ``TC BPF'' in Figure~\ref{fig:xdp-kernel}. In addition, eBPF programs
-can be attached to various places in the kernel that are unrelated to networking
-(not shown in the figures). These include \emph{cgroups}, which control resource
-usage for groups of processes (used for implementing containers on Linux, for
-instance), as well the \emph{tracepoint} and \emph{kprobe} introspection
-subsystems which allow attaching eBPF programs to arbitrary kernel functions.
-Because all eBPF programs can share the same set of maps, this makes it possible
-for XDP programs to react to arbitrary events in the kernel, for instance by
-dropping packets if processing load increases. Because of this integration, the
-XDP programming model is considerably more powerful than just the XDP programs
-itself.
-
-A final important feature of the XDP system is the ability to dynamically load
-eBPF programs. Because the kernel manages the life cycle of all eBPF programs,
-they can be dynamically loaded and reloaded at runtime. Combined with dynamic
-dispatch to other programs using tail calls, this makes it possible to limit the
-amount of processing actually performed on packets. A processing pipeline can
-simply split its processing into separate XDP programs and dynamically load and
-unload them as features are enabled or disabled through control plane
-configuration. This also makes it possible to dynamically compile programs with
-hard-coded values derived from configuration, avoiding expensive data structure
-lookups for common tasks.
-
-\subsubsection{XDP redirect model}
-\label{sec:redir}
-
-Forwarding a packet via \texttt{XDP\_TX} is a very simple form of forwarding,
-with a fixed egress device (equal ingress).  This inflexibility yields
-performance advantages, and production use-cases~\cite{katran} have shown a
-need.
-
-XDP redirect was designed as a more flexible form of forwarding, in a novel way
-that allows us to extend the kernel with new types of redirects, without
-changing the driver code, by using eBPF maps as the redirect target.
-%
-Currently three types of map redirect exists.  Redirecting can be used to (1)
-transmit the raw packet out a different network interface, (2) to pass it to
-a different CPU for further processing, or (3) to pass it directly to a special
-userspace socket address family (\texttt{AF\_XDP}).
-%
-Redirecting into a KVM virtual machine is currently achieved by using above
-option 1, redirecting to the network interface of the virtual
-machine\footnote{Does require the virtual NIC driver supports the XDP operation
-  ndo\_xdp\_xmit}.  Later we imagine that KVM/qemu gets explicit support for
-option 3 (\texttt{AF\_XDP}).
-%
-These different ways packets can be passed on are shown with solid lines in
-Figure~\ref{fig:xdp-kernel}.
-
-The XDP program redirect to an index in a map via a helper call
-(\texttt{bpf\_redirect\_map}) and ends execution with \texttt{XDP\_REDIRECT}
-return code. The helper call setup kernel side state, which makes the kernel
-lookup the map index and call the specific map type enqueue function.  Adding
-new types of redirect, only require implementing a new type of redirect map to
-the core kernel.
-
-Redirect via maps also implement RX bulking, but without requiring the drivers
-to construct a bulk of packets.  Instead the drivers must call a map flush
-operation (\texttt{xdp\_do\_flush\_map}) when it ends the NAPI poll context.
-This API approach was choosen to simplify adding XDP redirect to driver code.
-The driver pass packets individually upto the XDP redirect core, where they can
-be aggregated and map-flushed within the same NAPI context.  This map demux
-approach helps to build packet bulks per map destination index.
-\\
-
-% Section summary:
-The various pieces of the XDP system outlined above combine to form a powerful
-programmable data plane, with integration into the Linux kernel aiding
-deployment on existing systems. The following sections describe the eBPF virtual
-machine itself, and the verifier that ensures that loaded programs are safe to
-run in kernel space.
-
-\subsection{The eBPF virtual machine}
+\subsection{The eBPF Virtual Machine}
 \label{sec:bpf-vm}
 The eBPF virtual machine is an evolution of the original BSD packet filter (BPF)
 \cite{mccanne_bsd_1993} which has seen extensive use in various packet filtering
@@ -462,33 +375,47 @@ filtering operations, but limited as a general purpose virtual machine. eBPF
 extends the original BPF virtual machine to allow full general purpose execution
 and efficient just-in-time (JIT) compilation into native machine code. Support
 for compiling (restricted) C code into eBPF is included in the LLVM compiler
-suite
+suite.
 
-The code running in the virtual machine is executed directly in the kernel
-address space, which makes eBPF useful for a wide variety of tasks in the Linux
-kernel. The verifier (described in the next section) ensures that user-supplied
-programs cannot harm the running kernel, which enables a wide array of
-integrations between the running kernel and the XDP system.
+The verifier (described in the next section) ensures that user-supplied programs
+cannot harm the running kernel. With this in place, it is safe to execute the
+code directly in the kernel address space, which makes eBPF useful for a wide
+variety of tasks in the Linux kernel. Apart from the XDP driver hook, this
+includes packet processing in the Traffic Control (TC) subsystem, where eBPF
+programs can filter packets after they have been parsed by the kernel, or before
+they are passed to the hardware from applications. This is marked as ``TC BPF''
+in Figure~\ref{fig:xdp-kernel}. In addition, eBPF programs can be attached to
+various places in the kernel that are unrelated to networking (not shown in the
+figures). These include \emph{cgroups}, which control resource usage for groups
+of processes (used for implementing containers on Linux, for instance), as well
+the \emph{tracepoint} and \emph{kprobe} introspection subsystems which allow
+attaching eBPF programs to arbitrary kernel functions. Because all eBPF programs
+can share the same set of maps, this makes it possible for programs to react to
+arbitrary events in other parts of the kernel. For instance, and XDP program
+could drop packets if processing load increases above a certain threshold.
 
-The eBPF extends the BPF virtual machine by adding more registers and more
-instructions. The number of registers is increased to eleven (numbered
-\texttt{R0}--\texttt{R10}, where \texttt{R10} is reserved for a read-only frame
-pointer), and register widths are increased to 64 bits, with 32-bit
-sub-registers accessible through certain instructions to provide compatibility
-with classic BPF programs. The 64-bit registers map one-to-one to hardware
-registers on all 64-bit architectures supported by the kernel, which eases JIT
-compilation.
+At the instruction set level, eBPF extends the original BPF virtual machine by
+adding more registers and more instructions. The number of registers is
+increased from two to eleven (numbered \texttt{R0}--\texttt{R10}, where
+\texttt{R10} is reserved for a read-only frame pointer), and register widths are
+increased to 64 bits, with 32-bit sub-registers accessible through certain
+instructions to provide compatibility with classic BPF programs. The 64-bit
+registers map one-to-one to hardware registers on all 64-bit architectures
+supported by the kernel, which eases JIT compilation.
 
 The added instructions are primarily arithmetic and logic instructions that
-allows efficient manipulation of the larger register sizes. However, eBPF also
-adds a \emph{call} instruction for function calls, and adopts the same calling
-convention as the C language conventions used on the architectures supported by
-the kernel. Along with the register mapping mentioned above, this makes it
-possible to map a BPF call instruction to a single native call instruction,
-enabling function calls with close to zero additional overhead. This facility is
-used by eBPF to support helpers that eBPF programs can call to interact with the
-kernel while processing, as well as for function calls within the same eBPF
-program.
+allows efficient manipulation of the larger register sizes. In addition to this,
+eBPF adds a \emph{call} instruction for function calls, and adopts the same
+calling convention as the C language conventions used on the architectures
+supported by the kernel. Along with the register mapping mentioned above, this
+makes it possible to map a BPF call instruction to a single native call
+instruction, enabling function calls with close to zero additional overhead.
+This facility is used by eBPF to support helpers that eBPF programs can call to
+interact with the kernel while processing, as well as for function calls within
+the same eBPF program. A special case of function calls are tail calls, which
+replaces the running eBPF program with the target of the call. This can be used
+to split up processing into logical sub-parts, where execution is dispatched to
+subsequent parts and never returns to the caller.
 
 A BPF program starts its execution with \texttt{R1} containing a pointer to a
 \emph{context} object, the contents of which varies with the type of program. As
@@ -498,23 +425,30 @@ metadata, including space for arbitrary data that is carried along with the
 packet and is accessible by other BPF programs that operate on the packet at
 later stages of processing.
 
-\subsection{The eBPF Program Verifier}
+Finally, the eBPF virtual machine supports dynamically loading and re-loading
+programs, and the kernel manages the life cycle of all programs. Combined with
+dynamic dispatch to other programs using tail calls, this makes it possible to
+limit the amount of processing actually performed for a given situation, and
+also to dynamically update how processing is performed. This also makes it
+possible to dynamically compile programs with hard-coded values derived from
+configuration, avoiding expensive data structure lookups for common tasks.
+
+\subsection{The eBPF Verifier}
 \label{sec:bpf-verifier}
 As mentioned in the previous section, eBPF code runs directly in the kernel
-address space, which means that it theoretically has full access to the running
-kernel and can both crash the system and compromise it by writing corrupting
-kernel memory. To avoid this unpleasant situation, the kernel enforces a single
-entry point for loading all BPF programs (through the \texttt{bpf()} system
-call). When loading a BPF program it is first analysed by the in-kernel
-\emph{BPF verifier}. The verifier performs a static analysis of the program byte
-code to ensure that the program performs no actions that are unsafe (such as
-reading arbitrary memory), and that the program will terminate. The latter is
-ensured by disallowing loops and limiting the maximum program
+address space, which means that it can directly address, and potentially
+corrupt, arbitrary kernel memory. To prevent this from happening, the kernel
+enforces a single entry point for loading all BPF programs (through the
+\texttt{bpf()} system call). When loading a BPF program it is first analysed by
+the in-kernel eBPF verifier. The verifier performs a static analysis of the
+program byte code to ensure that the program performs no actions that are unsafe
+(such as accessing arbitrary memory), and that the program will terminate. The
+latter is ensured by disallowing loops and limiting the maximum program
 size.\footnote{Verifying termination of arbitrary programs (that are not limited
   in this way) implies solving the halting problem, which we consider to be out
-  of scope for this work.} The verifier works by first building a directed acyclic
-graph (DAG) of the control flow of the program. This DAG is then verified as
-follows:
+  of scope for this work.} The verifier works by first building a directed
+acyclic graph (DAG) of the control flow of the program. This DAG is then
+verified as follows:
 
 \begin{table}[tbp]
 \caption{\label{tbl:vrf-state-vars}
@@ -638,49 +572,52 @@ all copies of a pointer returned from the same map lookup share their \emph{id},
 a check against NULL will be valid for all of them.
 
 
+\subsection{BPF Maps}
+\label{sec:bpf-maps}
 
-\subsection{Performance Optimisations in XDP}
-\label{sec:perf-optim-xdp}
+BPF maps are key/value stores that are defined by the user upon loading an eBPF
+program, and can be referred to from within the eBPF code. Maps are shared, both
+between different eBPF programs running at various places in the kernel, as well
+as between eBPF and userspace. The map types include generic hash maps, arrays
+and radix trees, as well as specialised types containing pointers to eBPF
+programs (used for tail calls), or even recursive pointers to other maps.
+
+Maps serve several purposes: they are a persistent data store between
+invocations of the same eBPF program; a global coordination tool, where eBPF
+programs in one part of the kernel can update state that changes the behaviour
+in another; and a communication mechanism between userspace programs and the
+kernel eBPF programs, similar to the communication between control plane and
+data plane in other programmable package processing frameworks.
+
+
+\subsection{Summary}
+\label{sec:design-summary}
+
+As outlined above, the XDP system consists of a device driver hook that executes
+custom eBPF code directly after a packet is received from the hardware. The eBPF
+virtual machine is used to execute the XDP program, as well as for executing
+programs in other parts of the kernel. All these programs are statically
+verified by the eBPF verifier, ensuring they do not perform any operations that
+can harm the running kernel. Programs running in various parts of the kernel can
+communicate with each other, and with userspace, through the use of BPF maps,
+generic key/value stores that can hold a variety of data.
 
 Much of the performance improvement that XDP represents over the standard Linux
 networking stack is due to the processing happening before data structures are
-created and the associated memory allocated. However, there are also a couple of
-performance enhancement techniques that have specifically been applied in the
-development of XDP (although some of them also benefit the normal stack). In
-this section we outline these techniques and how they apply to XDP.
-
-Packet processing on general-purpose hardware, as is done with XDP, inevitably
-carries some overhead costs related to transferring packets to system memory,
-processing them by the host CPU, and sending them back to the hardware.
-Amortising these costs over multiple packets through batching is an essential
-technique to achieve high performance. In Linux, there are two main ways
-batching is achieved: NAPI interrupt modulation on receive, and packet buffer
-batching on transmit.
-
-On the receive path, the NAPI mechanism~\cite{napi} modulates the cost of
-interrupts from the hardware, by temporarily turning off interrupts each time a
-packet is received, and instead polling to receive a batch of packets at once.
-This mechanism has been available in Linux for a long time, added as part of the
+created and the associated memory allocated. However, while designing the XDP
+system we also incorporated other performance optimisations that help achieve
+high performance. The most important of these is amortising fixed overhead costs
+by processing packets in larger batches. The primary mechanism to achieve this
+on Linux is the NAPI system~\cite{napi}, which modulates the cost of interrupts
+from the hardware, by temporarily turning off interrupts each time a packet is
+received, and instead uses polling to receive a batch of packets at once. This
+mechanism has been available in Linux for a long time, added as part of the
 Linux 2.6 kernel series; but for XDP it carries with it additional benefits,
-since the XDP program can be executed directly in the NAPI poll context.
+since the XDP program can be executed directly in the NAPI poll context. In a
+similar way transmission can be deferred until the end of the current NAPI poll
+context, which extends the batching to the transmit side in a packet forwarding
+application.
 
-A similar issue is seen on the transmit path, where updating the tail pointer in
-the device ring buffer initiates a transmit operation to the hardware, which
-carries with it some overhead. To amortise this, XDP uses two mechanisms: When
-the XDP program indicates that the packet should be transmitted out the same
-interface it was received on, the received packet is put into the transmit ring
-buffer immediately. However, the tail pointer update is deferred until the end
-of the NAPI poll sequence, which causes batching of all packets in the same
-sequence on transmit as well. When redirecting packets to a different interface,
-another mechanism is used to achieve the same thing: the redirect mechanism can
-use a BPF map to lookup the destination interface. When doing so, the map also
-contains a buffer that will be used to batch packets from subsequent calls, and
-defer the actual transmission out of the destination interface until the end of
-the NAPI poll sequence. Using the map structure to achieve this makes it
-transparent to the calling program and even the device driver.
-
-\textbf{FIXME: Is the above correct? And is there anything else we need to add
-  to this section?}
 
 \section{Performance evaluation}
 \label{sec:perf-eval}
