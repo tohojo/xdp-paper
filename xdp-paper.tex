@@ -194,32 +194,45 @@ hardware. The P4 language~\cite{bosshart2014p4} seeks to extend this
 programmability to a wider variety of packet processing hardware.
 
 However, even though specialised hardware has begun to gain data plane
-programmability, the flexibility of commodity hardware has obvious advantages,
-and as performance increases and cost decreases, this becomes ever more popular.
-To achieve the maximum possible performance in this setting, it is necessary to
-remove any bottlenecks between the networking interface card (NIC) and the
-program performing the packet processing. Since one of the main sources of
-performance bottlenecks is the interface between the operating system kernel and
-the userspace applications running on top of it (because of the high overhead of
-a system call), most packet processing frameworks are focused on managing this
-in various ways. The approaches taken fall into three broad categories: (a)
-implementing parts of the application as a module inside the kernel itself, (b)
-providing an interface for userspace to access packet data with lower overhead
-than with traditional sockets, or (c) bypassing the kernel entirely and handing
-over control of the networking device directly to userspace.
+programmability, the flexibility of common off-the-shelf (COTS) hardware has
+obvious advantages, and as performance increases and cost decreases, packet
+processing systems running on COTS hardware become ever more common. These
+include applications performing single functions, such as
+switching~\cite{rizzo2012vale}, routing~\cite{han2010packetshader}, named-based
+forwarding~\cite{kirchner2016augustus}, classification~\cite{santiago2012wire},
+caching~\cite{mansilha2015hierarchical} or traffic
+generation~\cite{emmerich2015moongen}. They also include more general solutions
+which are highly customisable and can operate on packets from a variety of
+sources~\cite{han2012megapipe,marian2012netslices,linguaglossa2017high,morris1999click,dobrescu2009routebricks}.
+
+The applications listed above are all higher level applications or frameworks
+focused on implementing specific packet processing applications, or classes
+thereof. Whereas XDP is a lower-level framework that focuses on how to build a
+high-performing base for packet processing applications to run on. To achieve
+such high performance on COTS hardware, it is necessary to remove any
+bottlenecks between the networking interface card (NIC) and the program
+performing the packet processing. Since one of the main sources of performance
+bottlenecks is the interface between the operating system kernel and the
+userspace applications running on top of it (because of the high overhead of a
+system call), low-level packet processing frameworks have to manage this
+overhead in one way or another. The approaches taken fall into three broad
+categories: (a) implementing parts of the application as a module inside the
+kernel itself, (b) providing an interface for userspace to access packet data
+with lower overhead than with traditional sockets, or (c) bypassing the kernel
+entirely and handing over control of the networking device directly to
+userspace.
 
 In the first category, systems such as the OpenVswitch~\cite{openvswitch}
-virtual switch and the Click~\cite{martins2014clickos} software router provide
-kernel modules that offload part of their functionality into the kernel. These
-are implemented as loadable kernel modules that provide configuration APIs to
-userspace, but performs packet processing directly in the kernel. The drawback
-of implementing packet processing applications in this way, is that it requires
-deep familiarity with internal kernel APIs, and a failure of the network
-processing application in most cases leads to a failure of the entire system.
-Both OpenVswitch and Click are general frameworks that can be configured to do a
-variety of tasks, which makes this cost easier to bear; thus it is no
-coincidence that these are the prominent examples of the in-kernel processing
-approach.
+virtual switch and the Click~\cite{morris1999click} virtual router framework
+provide kernel modules that offload part of their functionality into the kernel.
+These are implemented as loadable kernel modules that provide configuration APIs
+to userspace, but performs packet processing directly in the kernel. The
+drawback of implementing packet processing applications in this way, is that it
+requires deep familiarity with internal kernel APIs, and a failure of the
+network processing application in most cases leads to a failure of the entire
+system. In addition, such systems generally integrate into the kernel networking
+stack, which means that the overhead of the network stack processing itself is
+retained.
 
 In the second category, various systems introduce kernel modules that do not
 perform packet processing themselves, but instead focus on moving packet data
@@ -227,10 +240,12 @@ out to userspace with as little overhead as possible, typically via shared
 memory. This allows the packet processing application to operate in userspace
 with no risk of crashing the system. Examples of this approach include
 PF\_RING~\cite{deri2009modern}, the Packet I/O engine that is part of
-PacketShader~\cite{han2010packetshader}, and the Netmap~\cite{rizzo2012netmap}
-framework. The drawback of this approach is that even if the frameworks
-mentioned above improve performance significantly, they still lack behind in
-performance compared to kernel bypass
+PacketShader~\cite{han2010packetshader}, the Netmap~\cite{rizzo2012netmap}
+framework, as well as special-purpose operating systems as
+Arrakis~\cite{peter2016arrakis} and ClickOS~\cite{martins2014clickos}. The
+drawback of this approach is that it requires extensive changes to the operating
+system. In addition, even if the frameworks mentioned above improve performance
+significantly, they still lack behind in performance compared to kernel bypass
 solutions~\cite{gallenmuller_comparison_2015}.
 
 In the third category of kernel bypass techniques, we find the PF\_RING ZC
@@ -249,13 +264,12 @@ avoided, but also the overhead of the regular kernel networking stack. By using
 a custom byte code format for the programming, which can be statically verified
 to not adversely affect the functioning of the rest of the kernel, most of the
 fragility issues normally faced by in-kernel packet processing implementations
-(mentioned above) are avoided. In addition, the byte code format and execution
-context are part of the kernel Application Binary Interface (ABI) to userspace,
-which means that the usual stability guarantees of kernel ABI applies; and so
-application do not have to keep up with future changes in the kernel to be able
-to continue to function.
+are avoided. In addition, the byte code format and execution context are part of
+the kernel Application Binary Interface (ABI) to userspace, which means that the
+usual ABI stability guarantees apply; and so application do not have to keep up
+with future changes in the kernel to be able to continue to function.
 
-While XDP is primarily an instance of the first of the three approaches metioned
+While XDP is primarily an instance of the first of the three approaches mentioned
 above, it also borrows aspects from the other two: For applications that prefer
 receiving the full packet contents in userspace, XDP also contains features that
 offer higher performance when redirecting packets to applications, virtual
