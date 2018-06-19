@@ -349,47 +349,8 @@ either drop the packet (\texttt{XDP\_DROP}), immediately re-transmit it out the
 same network interface (\texttt{XDP\_TX}), or allow the packet to be processed
 by the kernel networking stack (\texttt{XDP\_PASS}).  In addition to these
 simple actions, the XDP program can \emph{redirect} the packet
-(\texttt{XDP\_REDIRECT}), which controls its further processing.
-
-The redirect facility is novel in the way is allows us to extend the kernel with
-new types of redirects, without changing the driver code.
-%
-Currently three types of redirect exists.  Redirecting can be used to (1)
-transmit the raw packet out a different network interface, (2) to pass it to
-a different CPU for further processing, or (3) to pass it directly to a special
-userspace socket address family (\texttt{AF\_XDP}).
-%
-Redirecting into a KVM virtual machine is currently achieved by using above
-option 1, redirecting to the network interface of the virtual
-machine\footnote{Does require the virtual NIC driver supports the XDP operation
-  ndo\_xdp\_xmit}.  Later we imagine that KVM/qemu gets explicit support for
-option 3 (\texttt{AF\_XDP}).
-%
-These different ways packets can be passed on are shown with solid lines in
-Figure~\ref{fig:xdp-kernel}.
-
-\textbf{FIXME: Highlight that redirect via maps is
-  a generic facility with many cool uses.}
-
-The novelty that allow redirecting without changing drivers is achieved by using
-BPF maps as the redirect target.  The XDP/bpf program redirect to an index in a
-map via a helper call (\texttt{bpf\_redirect\_map}) and ends execution with
-\texttt{XDP\_REDIRECT} return code. The helper call setup kernel side state,
-which makes the kernel lookup the map index and call the specific map type
-enqueue function.  The above mentioned redirect types have each associated
-separate map type implementation.  Adding new types of redirect, thus only
-require implementing a new type of redirect map to the core kernel.
-
-Redirect via maps also implement RX bulking, but without requiring the drivers
-to construct a bulk of frames.  Instead the drivers must call a map flush
-operation (\texttt{xdp\_do\_flush\_map}) when it ends the NAPI poll context.
-This API approach was choosen to simplify adding XDP redirect to driver code.
-The driver pass frames individually upto the XDP redirect core, where they can
-be aggregated and map-flushed within the same NAPI context.
-
-% TODO: Explain what redirect is a sorting problem, and there for more advanted
-% than XDP_TX.... this fits better as an intro to a separate section about
-% redirect.
+(\texttt{XDP\_REDIRECT}), which controls its further processing (covered in
+Section~\ref{sec:redir}).
 
 During its execution, an XDP program also has access to kernel facilities that
 provide helper functions and additional metadata. These allow the XDP program to
@@ -453,6 +414,50 @@ unload them as features are enabled or disabled through control plane
 configuration. This also makes it possible to dynamically compile programs with
 hard-coded values derived from configuration, avoiding expensive data structure
 lookups for common tasks.
+
+\subsubsection{XDP redirect model}
+\label{sec:redir}
+
+The redirect facility is novel in the way is allows us to extend the kernel with
+new types of redirects, without changing the driver code.
+%
+Currently three types of redirect exists.  Redirecting can be used to (1)
+transmit the raw packet out a different network interface, (2) to pass it to
+a different CPU for further processing, or (3) to pass it directly to a special
+userspace socket address family (\texttt{AF\_XDP}).
+%
+Redirecting into a KVM virtual machine is currently achieved by using above
+option 1, redirecting to the network interface of the virtual
+machine\footnote{Does require the virtual NIC driver supports the XDP operation
+  ndo\_xdp\_xmit}.  Later we imagine that KVM/qemu gets explicit support for
+option 3 (\texttt{AF\_XDP}).
+%
+These different ways packets can be passed on are shown with solid lines in
+Figure~\ref{fig:xdp-kernel}.
+
+\textbf{FIXME: Highlight that redirect via maps is
+  a generic facility with many cool uses.}
+
+The novelty that allow redirecting without changing drivers is achieved by using
+BPF maps as the redirect target.  The XDP/bpf program redirect to an index in a
+map via a helper call (\texttt{bpf\_redirect\_map}) and ends execution with
+\texttt{XDP\_REDIRECT} return code. The helper call setup kernel side state,
+which makes the kernel lookup the map index and call the specific map type
+enqueue function.  The above mentioned redirect types have each associated
+separate map type implementation.  Adding new types of redirect, thus only
+require implementing a new type of redirect map to the core kernel.
+
+Redirect via maps also implement RX bulking, but without requiring the drivers
+to construct a bulk of frames.  Instead the drivers must call a map flush
+operation (\texttt{xdp\_do\_flush\_map}) when it ends the NAPI poll context.
+This API approach was choosen to simplify adding XDP redirect to driver code.
+The driver pass frames individually upto the XDP redirect core, where they can
+be aggregated and map-flushed within the same NAPI context.
+
+% TODO: Explain what redirect is a sorting problem, and there for more advanted
+% than XDP_TX.... this fits better as an intro to a separate section about
+% redirect.
+
 
 The various pieces of the XDP system outlined above combine to form a powerful
 programmable data plane, with integration into the Linux kernel aiding
