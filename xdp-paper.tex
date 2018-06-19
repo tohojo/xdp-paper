@@ -1003,7 +1003,9 @@ echoed back from the server, repeating as soon as a reply is received. The
 output is the number of transactions per second, which is a good proxy for an
 interactive TCP session, such as small remote procedure calls.
 
-We run our experiment on a single core and apply a baseline load of 35.000 TCP
+We run our experiment on a single core using a single hardware RX-queue.  This
+creates the worst possible DoS situation, where good and bad traffic must
+compete for the same hardware resources. We apply a baseline load of 35.000 TCP
 transactions per second. We then offer an increasing load of small UDP packets
 matching our packet filter, which simulates the DoS attack, and measure the
 number of TCP transactions achieved as the attack traffic volume increases. We
