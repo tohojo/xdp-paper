@@ -418,6 +418,10 @@ lookups for common tasks.
 \subsubsection{XDP redirect model}
 \label{sec:redir}
 
+% TODO: Explain what redirect is a sorting problem, and there for more advanted
+% than XDP_TX.... this fits better as an intro to a separate section about
+% redirect.
+
 The redirect facility is novel in the way is allows us to extend the kernel with
 new types of redirects, without changing the driver code.
 %
@@ -435,9 +439,6 @@ option 3 (\texttt{AF\_XDP}).
 These different ways packets can be passed on are shown with solid lines in
 Figure~\ref{fig:xdp-kernel}.
 
-\textbf{FIXME: Highlight that redirect via maps is
-  a generic facility with many cool uses.}
-
 The novelty that allow redirecting without changing drivers is achieved by using
 BPF maps as the redirect target.  The XDP/bpf program redirect to an index in a
 map via a helper call (\texttt{bpf\_redirect\_map}) and ends execution with
@@ -454,9 +455,6 @@ This API approach was choosen to simplify adding XDP redirect to driver code.
 The driver pass frames individually upto the XDP redirect core, where they can
 be aggregated and map-flushed within the same NAPI context.
 
-% TODO: Explain what redirect is a sorting problem, and there for more advanted
-% than XDP_TX.... this fits better as an intro to a separate section about
-% redirect.
 
 
 The various pieces of the XDP system outlined above combine to form a powerful
