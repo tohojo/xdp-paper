@@ -632,24 +632,7 @@ programs in other parts of the kernel. All these programs are statically
 verified by the eBPF verifier, ensuring they do not perform any operations that
 can harm the running kernel. Programs running in various parts of the kernel can
 communicate with each other, and with userspace, through the use of BPF maps,
-generic key/value stores that can hold a variety of data.
-
-Much of the performance improvement that XDP represents over the standard Linux
-networking stack is due to the processing happening before data structures are
-created and the associated memory allocated. However, while designing the XDP
-system we also incorporated other performance optimisations that help achieve
-high performance. The most important of these is amortising fixed overhead costs
-by processing packets in larger batches. The primary mechanism to achieve this
-on Linux is the NAPI system~\cite{napi}, which modulates the cost of interrupts
-from the hardware, by temporarily turning off interrupts each time a packet is
-received, and instead uses polling to receive a batch of packets at once. This
-mechanism has been available in Linux for a long time, added as part of the
-Linux 2.6 kernel series; but for XDP it carries with it additional benefits,
-since the XDP program can be executed directly in the NAPI poll context. In a
-similar way transmission can be deferred until the end of the current NAPI poll
-context, which extends the batching to the transmit side in a packet forwarding
-application.
-
+generic key/value stores that can hold a variety of data types.
 
 \section{Performance evaluation}
 \label{sec:perf-eval}
@@ -749,8 +732,8 @@ The hardware performance counters indicate that the global performance
 bottleneck is the PCI bus capacity. The reason why DPDK achieves a higher
 maximum performance before hitting the limit is that its busy-polling operating
 mode allows it to make better use of the available capacity on the bus, while
-the NAPI mechanism that the Linux kernel (and hence XDP) uses, intermittently
-waits for interrupts, which leads to idle periods on the PCI bus.
+the NAPI mechanism~\cite{napi} that the Linux kernel (and hence XDP) uses,
+intermittently waits for interrupts, which leads to idle periods on the PCI bus.
 
 The figure also shows the performance of the Linux networking stack in two
 configurations: One where we use the ``raw'' mode of the \emph{iptables}
