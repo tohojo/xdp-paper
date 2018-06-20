@@ -423,3 +423,77 @@ Ethtool(mlx5p1  ) stat:   5171087787 (  5,171,087,787) <= rx_vport_unicast_bytes
 Ethtool(mlx5p1  ) stat:     86184793 (     86,184,793) <= rx_vport_unicast_packets /sec
 Ethtool(mlx5p1  ) stat:     86114444 (     86,114,444) <= rx_xdp_drop /sec
 #+END_EXAMPLE
+
+
+* Perf record notes
+
+** Micro optimization possibilities mlx5
+
+#+BEGIN_EXAMPLE
+Running XDP on dev:mlx5p1 (ifindex:8) action:XDP_DROP options:read
+XDP stats       CPU     pps         issue-pps  
+XDP-RX CPU      0       18879925    0          
+XDP-RX CPU      2       18848656    0          
+XDP-RX CPU      4       14047461    0          
+XDP-RX CPU      5       14048655    0          
+XDP-RX CPU      total   65824699   
+
+RXQ stats       RXQ:CPU pps         issue-pps  
+rx_queue_index    0:0   18879897    0          
+rx_queue_index    0:sum 18879897   
+rx_queue_index    2:2   18848642    0          
+rx_queue_index    2:sum 18848642   
+rx_queue_index    4:4   14047746    0          
+rx_queue_index    4:sum 14047746   
+rx_queue_index    5:5   14048712    0          
+rx_queue_index    5:sum 14048712   
+#+END_EXAMPLE
+
+Looking closer at CPU-0, clearly shows that mlx5 driver have many
+function calls.  These each only contribute approx 1.3ns each, but at
+these speeds they add up!
+
+
+#+BEGIN_EXAMPLE
+$ perf report --sort cpu,symbol --kallsyms=/proc/kallsyms --no-children -C0
+
+Samples: 20K of event 'cycles:ppp', Event count (approx.): 18342640436
+  Overhead  CPU  Symbol
++   16.29%  000  [k] bpf_prog_1a32f9805bcb7bb7_xdp_prognum0
++   15.27%  000  [k] mlx5e_post_rx_wqes
++   14.12%  000  [k] mlx5e_poll_rx_cq
++   14.11%  000  [k] mlx5e_skb_from_cqe_linear
++   11.77%  000  [k] mlx5e_handle_rx_cqe
++    8.48%  000  [k] mlx5e_xdp_handle
++    7.54%  000  [k] mlx5e_page_release
++    2.37%  000  [k] swiotlb_sync_single
++    1.87%  000  [k] percpu_array_map_lookup_elem
++    1.02%  000  [k] net_rx_action
++    0.92%  000  [k] swiotlb_sync_single_for_device
++    0.87%  000  [k] swiotlb_sync_single_for_cpu
++    0.79%  000  [k] intel_idle
+     0.41%  000  [k] mlx5e_poll_xdpsq_cq
+     0.40%  000  [k] mlx5e_napi_poll
+     0.31%  000  [k] __softirqentry_text_start
+     0.20%  000  [k] smpboot_thread_fn
+     0.19%  000  [k] mlx5e_poll_tx_cq
+     0.16%  000  [k] __sched_text_start
+     0.15%  000  [k] cpuidle_enter_state
+#+END_EXAMPLE
+
+| function                       | called per packet? | called by                 |
+|--------------------------------+--------------------+---------------------------|
+| mlx5e_post_rx_wqes             | bulk               |                           |
+| mlx5e_poll_rx_cq               | bulk NAPI budget   |                           |
+| mlx5e_handle_rx_cqe            | per packet         | mlx5e_poll_rx_cq          |
+| mlx5e_skb_from_cqe_linear      | per packet         | mlx5e_handle_rx_cqe       |
+| mlx5e_xdp_handle               | per packet         | mlx5e_skb_from_cqe_linear |
+| mlx5e_page_release             | per packet         | mlx5e_handle_rx_cqe       |
+| swiotlb_sync_single            | 2x per packet      | mlx5e_skb_from_cqe_linear |
+| swiotlb_sync_single            | (above)            | mlx5e_post_rx_wqes        |
+| swiotlb_sync_single_for_cpu    | per packet         | mlx5e_skb_from_cqe_linear |
+| swiotlb_sync_single_for_device | per packet         | mlx5e_post_rx_wqes        |
+| percpu_array_map_lookup_elem   | per packet         | bpf_prog_xx_xdp_prognum0  |
+| bpf_prog_xx_xdp_prognum0       | per packet         | (cannot be avoided)       |
+
+Thus, 10 function calls that have a per packet invocation.
