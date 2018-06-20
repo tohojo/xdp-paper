@@ -987,8 +987,8 @@ repeat each experiment four times and report the mean value.
 The results of this is shown in Figure~\ref{fig:ddos-results}. Without the XDP
 filter, performance drops significantly, being halved at 3\,Mpps and effectively
 zero at just below 3.5\,Mpps. However, with the XDP filter in place, the TCP
-transaction performance is kept high, gradually increasing towards 25.000
-transactions per second at 20\,Mpps, after which it drops rapidly. This shows
+transaction performance is kept high (around 28.500), fairly stable until
+19.5\,Mpps, after which it drops rapidly. This shows
 that effective DDoS filtering is quite feasible to perform in XDP, and
 comfortably handles packet rates above 10\,Gbps of DoS traffic (with minimum
 packet sizes) on a single CPU core. Deploying DDoS mitigation this way leads to
