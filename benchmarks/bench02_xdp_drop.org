@@ -497,3 +497,50 @@ Samples: 20K of event 'cycles:ppp', Event count (approx.): 18342640436
 | bpf_prog_xx_xdp_prognum0       | per packet         | (cannot be avoided)       |
 
 Thus, 10 function calls that have a per packet invocation.
+
+
+* DPDK uses SSE instructions
+
+The DPDK implementation uses SSE instructions, how much does this
+matter?
+
+Compiled DPDK PMD (Poll Mode driver) mlx5 with this patch:
+
+#+BEGIN_EXAMPLE
+diff --git a/drivers/net/mlx5/mlx5_ethdev.c b/drivers/net/mlx5/mlx5_ethdev.c
+index 90488af33b81..53c2ff086799 100644
+--- a/drivers/net/mlx5/mlx5_ethdev.c
++++ b/drivers/net/mlx5/mlx5_ethdev.c
+@@ -1165,7 +1165,8 @@ mlx5_select_rx_function(struct rte_eth_dev *dev)
+ 
+        assert(dev != NULL);
+        if (mlx5_check_vec_rx_support(dev) > 0) {
+-               rx_pkt_burst = mlx5_rx_burst_vec;
++               rx_pkt_burst = mlx5_rx_burst;                ;
+                DRV_LOG(DEBUG, "port %u selected Rx vectorized function",
+                        dev->data->port_id);
+        } else if (mlx5_mprq_enabled(dev)) {
+#+END_EXAMPLE
+
+| RXQs/cores |  DPDK SSE | DPDK no-sse |
+|------------+-----------+-------------|
+|          1 |  42314910 |    43301465 |
+|          2 |  74510689 |    75804436 |
+|          3 |  97570907 |    86492148 |
+|          4 | 109448595 |   105838967 |
+|          5 | 115487272 |   109945465 |
+|            |           |             |
+
+Issue, above results are NOT stable for the DPDK no-sse case.  DPDK is
+not processing packets on all cores.  This can be seen when ctrl-C the
+testpmd program, and it shows counters for each queue, make special
+notice if a queue number is not present.
+
+I believe there a setup race condition in DPDK no-sse case, because
+went I stop all traffic before starting testpmd results are stable.
+
+Also got this assert failure:
+
+testpmd: /home/jbrouer/git/dpdk/dpdk-hacks/drivers/net/mlx5/mlx5_rxtx.c:1980: mlx5_rx_burst: Assertion `len >= (rxq->crc_present << 2)' failed.
+
+
