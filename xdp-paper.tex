@@ -830,12 +830,16 @@ function calls, that could be applied specifically to the mlx5 driver. Indeed
 other drivers, such as the \emph{i40e} driver for 40\,Gbps Intel cards, show a
 smaller performance delta between XDP and DPDK.
 
-Given the above points, we believe it is quite feasible for XDP to close the
-performance gap to DPDK completely. In addition, given the fact that this gap is
-no longer a matter of orders of magnitude (as is the case between DPDK and the
-regular Linux network stack), we believe that given its benefits in terms of
-flexibility and integration with the rest of the system, XDP is already a
-compelling choice for many use cases. We show some examples of this in the next
+Given the above points, we believe it is quite feasible for XDP to further
+decrease the performance delta to DPDK. In fact, the only performance
+optimisation employed by DPDK which is unavailable to XDP, is the use of the
+Streaming SIMD Extensions (SSE) processor instructions, which are unavailable in
+kernel mode due to the lack of any floating point support in the kernel.
+Disabling these reduces DPDK's performance by \textbf{FIXME: X\%} in our tests,
+which indicates that this is a lower bound on the performance difference. Given
+the benefits of XDP in terms of flexibility and integration with the rest of the
+system, we believe this is an acceptable tradeoff. In fact, XDP is already a
+compelling choice for many use cases; we show some examples of this in the next
 section.
 
 \section{Real-world use cases}
