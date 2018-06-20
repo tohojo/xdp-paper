@@ -502,6 +502,52 @@ Generator command:
 |         5 |         86830822 |        86973055 |     49905645 |    87341248 |
 |         6 |         86608045 |        87101116 |     56323684 |    87585333 |
 
+Update (<2018-06-19 Tue>): Jesper found that the maximum scaled drop
+rate can be improved by enabling the mlx5 priv-flags
+rx_cqe_compress=on (and rx_striding_rq=off).  This confirms the PCIe
+bottleneck, as rx_cqe_compress reduce the transactions on PCIe by
+compressing the RX descriptors.
+
+One issue is that with rx_cqe_compress=on, the per core performance is
+slightly slower as it requires more CPU cycles to "decompress" the
+descriptors.
+
+#+NAME: xdp_drop_data_rx_cqe_compress
+| RXQs DROP | no_touch RX=1024 | no_touch RX=512 | read RX=1024 | read RX=512 |
+|-----------+------------------+-----------------+--------------+-------------|
+|         1 |         23902641 |        23863471 | 22653821     |             |
+|         2 |         45463076 |        45514709 | 44345271     |             |
+|         3 |         65800412 |        67796536 | cache-misses |             |
+|         4 |         84563313 |        88821307 | starts...    |             |
+|         5 |         99105872 |        99357978 |              |    98758694 |
+|         6 |        108118978 |       108607056 |              |   105077478 |
+
+Observations: Even with these extremely high numbers we are still
+seeing idle CPU cycles.
+
+Enable rx_cqe_compress=on cmdline:
+
+: ethtool --set-priv-flags mlx5p1 rx_cqe_compress on
+
+#+BEGIN_EXAMPLE
+$ ethtool --show-priv-flags mlx5p1
+Private flags for mlx5p1:
+rx_cqe_moder   : on
+tx_cqe_moder   : off
+rx_cqe_compress: on
+rx_striding_rq : off
+#+END_EXAMPLE
+
+Issues: With the rx_cqe_compress=on setting, I'm seeing errors in the
+kernel dmesg, and individial RX-queues are stopping to work. (Stopping
+and starting XDP application enables queues again).
+
+#+BEGIN_EXAMPLE
+ (dmesg errors)
+  mlx5_core 0000:03:00.0: mlx5_eq_int:540:(pid 0): CQ error on CQN 0x41d, syndrome 0x1
+  mlx5_core 0000:03:00.0 mlx5p1: mlx5e_cq_error_event: cqn=0x00041d event=0x04
+  mlx5_core 0000:03:00.0: mlx5_cmd_check:714:(pid 28036): MODIFY_CQ(0x403) op_mod(0x0) failed, status bad resource state(0x9), syndrome (0x2f1396)
+#+END_EXAMPLE
 
 The default NIC driver mlx5 RX-ring size of 1024 frames turned out to
 be a performance problem. When scaling to multiple RX-queues, then the
