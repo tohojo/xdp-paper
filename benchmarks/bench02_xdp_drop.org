@@ -544,3 +544,82 @@ Also got this assert failure:
 testpmd: /home/jbrouer/git/dpdk/dpdk-hacks/drivers/net/mlx5/mlx5_rxtx.c:1980: mlx5_rx_burst: Assertion `len >= (rxq->crc_present << 2)' failed.
 
 
+* Test 100G bandwidth
+
+Make sure our machine have memory bandwidth to handle:
+ 100Gbit/s = 12.5 GBytes/sec
+
+Below show a single CPU can handle this.  I needed two generator
+machines, each sending a single flow, but I changed RXq to 1 in-order
+to only use 1 CPU.
+
+#+BEGIN_EXAMPLE
+Running XDP on dev:mlx5p1 (ifindex:8) action:XDP_DROP options:read
+XDP stats       CPU     pps         issue-pps  
+XDP-RX CPU      0       8210806     0          
+XDP-RX CPU      total   8210806    
+
+RXQ stats       RXQ:CPU pps         issue-pps  
+rx_queue_index    0:0   8210762     0          
+rx_queue_index    0:sum 8210762    
+#+END_EXAMPLE
+
+
+#+BEGIN_EXAMPLE
+Show adapter(s) (mlx5p1 mlx5p2) statistics (ONLY that changed!)
+Ethtool(mlx5p1  ) stat:        59146 (         59,146) <= ch0_arm /sec
+Ethtool(mlx5p1  ) stat:        75717 (         75,717) <= ch0_events /sec
+Ethtool(mlx5p1  ) stat:       164685 (        164,685) <= ch0_poll /sec
+Ethtool(mlx5p1  ) stat:        59144 (         59,144) <= ch_arm /sec
+Ethtool(mlx5p1  ) stat:        75716 (         75,716) <= ch_events /sec
+Ethtool(mlx5p1  ) stat:       164684 (        164,684) <= ch_poll /sec
+Ethtool(mlx5p1  ) stat:         7676 (          7,676) <= rx0_cache_empty /sec
+Ethtool(mlx5p1  ) stat:         7676 (          7,676) <= rx0_cache_full /sec
+Ethtool(mlx5p1  ) stat:      8203123 (      8,203,123) <= rx0_cache_reuse /sec
+Ethtool(mlx5p1  ) stat:          959 (            959) <= rx0_congst_umr /sec
+Ethtool(mlx5p1  ) stat:      8210784 (      8,210,784) <= rx0_xdp_drop /sec
+Ethtool(mlx5p1  ) stat:      8210812 (      8,210,812) <= rx_1024_to_1518_bytes_phy /sec
+Ethtool(mlx5p1  ) stat:  12336063433 ( 12,336,063,433) <= rx_bytes_phy /sec
+Ethtool(mlx5p1  ) stat:         7676 (          7,676) <= rx_cache_empty /sec
+Ethtool(mlx5p1  ) stat:         7676 (          7,676) <= rx_cache_full /sec
+Ethtool(mlx5p1  ) stat:      8203039 (      8,203,039) <= rx_cache_reuse /sec
+Ethtool(mlx5p1  ) stat:          959 (            959) <= rx_congst_umr /sec
+Ethtool(mlx5p1  ) stat:          120 (            120) <= rx_out_of_buffer /sec
+Ethtool(mlx5p1  ) stat:      8210812 (      8,210,812) <= rx_packets_phy /sec
+Ethtool(mlx5p1  ) stat:  12336123874 ( 12,336,123,874) <= rx_prio0_bytes /sec
+Ethtool(mlx5p1  ) stat:      8210852 (      8,210,852) <= rx_prio0_packets /sec
+Ethtool(mlx5p1  ) stat:  12303230973 ( 12,303,230,973) <= rx_vport_unicast_bytes /sec
+Ethtool(mlx5p1  ) stat:      8210819 (      8,210,819) <= rx_vport_unicast_packets /sec
+Ethtool(mlx5p1  ) stat:      8210705 (      8,210,705) <= rx_xdp_drop /sec
+#+END_EXAMPLE
+
+#+BEGIN_EXAMPLE
+mpstat -P ALL -u -I SCPU -I SUM 2
+
+04:33:34 PM  CPU    %usr   %nice    %sys %iowait    %irq   %soft   %idle
+04:33:36 PM  all    0.08    0.00    1.01    0.00    0.93    7.66   90.32
+04:33:36 PM    0    0.00    0.00    3.70    0.00    2.65   47.62   46.03
+04:33:36 PM    1    0.00    0.00    0.50    0.00    0.00    0.00   99.50
+04:33:36 PM    2    0.00    0.00    0.50    0.00    0.00    0.00   99.50
+04:33:36 PM    3    0.00    0.00    0.50    0.00    2.51    0.00   96.98
+04:33:36 PM    4    0.00    0.00    1.01    0.00    0.00    0.00   98.99
+04:33:36 PM    5    0.00    0.00    0.50    0.00    0.00    0.50   99.00
+
+04:33:34 PM  CPU    intr/s
+04:33:36 PM  all  99682.00
+04:33:36 PM    0 241079.00
+04:33:36 PM    1    438.00
+04:33:36 PM    2    203.00
+04:33:36 PM    3    758.50
+04:33:36 PM    4    534.00
+04:33:36 PM    5    133.00
+
+04:33:34 PM  CPU       HI/s    TIMER/s   NET_TX/s   NET_RX/s    BLOCK/s IRQ_POLL/s  TASKLET/s    SCHED/s  HRTIMER/s      RCU/s
+04:33:36 PM    0       0.00    1000.00       0.50  164745.00       0.00       0.00   75221.50     102.50       0.00       9.50
+04:33:36 PM    1       0.00     306.50       0.50       2.00      39.00       0.00       0.00      76.50       0.00      13.50
+04:33:36 PM    2       0.00     175.00       0.00       2.50       0.00       0.00       0.00      15.00       0.00      10.50
+04:33:36 PM    3       0.00     734.00       0.00       3.50       0.00       0.00       0.00      11.50       0.00       9.50
+04:33:36 PM    4       0.00     451.00       0.50      23.00       0.00       0.00      13.50      40.50       0.00       5.50
+04:33:36 PM    5       0.00     116.50       0.00       8.00       0.00       0.00       0.00       0.00       0.00       8.50
+#+END_EXAMPLE
+
