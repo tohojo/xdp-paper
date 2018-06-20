@@ -713,10 +713,12 @@ XDP compared to the other systems in Section~\ref{sec:perf-discussion}.
 \label{sec:basel-pack-proc}
 Figure~\ref{fig:drop-test} shows the packet processing performance as a function
 of the number of cores. The baseline performance of XDP for a single core is
-26\,Mpps, while for DPDK it is 43.5\,Mpps. Both scale their performance linearly
-up to three cores, but hit global performance bottlenecks above this, which
-leads to the sub-linear scaling up to four cores, and no additional improvements
-from adding a fifth or sixth core.
+24\,Mpps, while for DPDK it is 43.5\,Mpps. Both scale their performance linearly
+up to the global performance limit of the system, at 115\,Mpps. The hardware
+performance counters indicate that this global performance bottleneck is the PCI
+bus capacity; and indeed it is necessary to enable PCI descriptor compression in
+the hardware (which trades CPU cycles for PCI bus bandwidth) to achieve the
+maximum rates.
 
 \begin{figure}[t]
 \centering
@@ -727,13 +729,6 @@ from adding a fifth or sixth core.
   when it has to generate more streams.}
 \end{figure}
 
-
-The hardware performance counters indicate that the global performance
-bottleneck is the PCI bus capacity. The reason why DPDK achieves a higher
-maximum performance before hitting the limit is that its busy-polling operating
-mode allows it to make better use of the available capacity on the bus, while
-the NAPI mechanism~\cite{napi} that the Linux kernel (and hence XDP) uses,
-intermittently waits for interrupts, which leads to idle periods on the PCI bus.
 
 The figure also shows the performance of the Linux networking stack in two
 configurations: One where we use the ``raw'' mode of the \emph{iptables}
@@ -819,9 +814,9 @@ performance than the regular Linux networking stack. Even so, for most use cases
 XDP doesn't quite match the performance of DPDK. We believe this is primarily
 because DPDK has incorporated more performance optimisations at the lowest level
 of the code. To illustrate this, consider the packet drop example: XDP achieves
-26\,Mpps, which corresponds to 38.4 nanoseconds per packet, while DPDK achieves
-43.5\,Mpps, or 22.9 nanoseconds per packet. The difference of 15.5 nanoseconds
-corresponds to 56 clock cycles on the 3.6\,Ghz processor in our test machine;
+24\,Mpps, which corresponds to 41.6 nanoseconds per packet, while DPDK achieves
+43.5\,Mpps, or 22.9 nanoseconds per packet. The difference of 18.7 nanoseconds
+corresponds to 67 clock cycles on the 3.6\,Ghz processor in our test machine;
 thus, it is clear that every micro-optimisation counts.
 
 Specifically, we identify three areas where the performance of XDP can be
