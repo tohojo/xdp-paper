@@ -618,8 +618,7 @@ makes appropriate range checks through comparison with the special
 approach means that the program can be statically verified to make safe length
 checks on the variable-length packet data, which enables program instructions to
 directly access packet data. This is an important reason for the high
-performance of eBPF programs that are used for packet processing, as they are in
-XDP.
+performance of eBPF programs that are used for packet processing.
 
 When pointers are copied to other registers, a bounds check on one copy can be
 used to infer the valid ranges of the other copies, even after the copy
