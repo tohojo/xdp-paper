@@ -82,7 +82,7 @@
   translates into native instructions.
 
   We show that XDP achieves single-core packet processing performance as high as
-  25 million packets per second, and illustrate the flexibility of the
+  24 million packets per second, and illustrate the flexibility of the
   programming model through three example use cases: layer-3 routing, inline
   DDoS protection and layer-4 load balancing.
 \end{abstract}
@@ -164,7 +164,7 @@ XDP has been gradually integrated into the Linux kernel over several releases,
 but no complete architectural description of the system as a whole exists in the
 literature. In this work we present such a high-level design description of XDP,
 its capabilities and how it integrates with the rest of the Linux kernel. Our
-performance evaluation shows raw packet processing performance of up to 25
+performance evaluation shows raw packet processing performance of up to 24
 million packets per second per CPU core, which does not quite match the highest
 achievable performance in a DPDK-based application on the same hardware.
 However, we argue that the remaining performance gap is quite feasible to close
@@ -1151,7 +1151,7 @@ packet processing directly into the operating system kernel, which represents an
 alternative solution to all-or-nothing kernel bypass solutions.
 
 Our evaluation has shown that XDP achieves raw packet processing performance of
-up to 25 million packets per second on a single CPU core. While this is not
+up to 24 million packets per second on a single CPU core. While this is not
 quite on par with DPDK-based solutions, we argue that there is nothing
 preventing the XDP architecture from fully achieving the same performance; and
 more importantly, that XDP offers other compelling features that more than makes
