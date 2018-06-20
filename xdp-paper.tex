@@ -146,11 +146,11 @@ provided by the operating system network stack. In the worst case, this leads to
 the need to operate two separate stacks; one to perform high-speed packet
 processing and one to run normal application or container workloads. Doing so
 results in increased systems complexity, management and maintainability costs,
-and at the same time blur strict security boundaries otherwise enforced by the
-operating system kernel. The latter is in particular problematic as today's
-infrastructure is moving towards container-based workloads coupled with
-orchestration systems such as Docker or Kubernetes, where the kernel plays a
-dominant role in resource abstraction and isolation.
+and blurs strict security boundaries otherwise enforced by the operating system
+kernel. The latter is in particular problematic as infrastructure moves towards
+container-based workloads coupled with orchestration systems such as Docker or
+Kubernetes, where the kernel plays a dominant role in resource abstraction and
+isolation.
 
 As an alternative to the all-or-nothing kernel bypass packet processing
 technique, we present a system that adds programmability directly in the
