@@ -1067,25 +1067,19 @@ programs at reduced performance even if the networking driver lacks the proper
 support, by moving execution into the core networking stack.
 
 \subsection{Performance Improvements}
-\label{sec:improvements-napi}
+\label{sec:perf-improvements}
 As we discussed in Section~\ref{sec:perf-discussion}, there is still a
 performance gap between XDP and DPDK in some use cases. Efforts to improve this
 are ongoing, which includes micro-optimisations of driver code as well as
 changes to the core XDP code to avoid unnecessary operations where possible, and
 otherwise amortise the costs through improved batching of operations.
 
-One particular area that needs improvement is the NAPI mechanism, which
-selectively switches between interrupt-based packet processing and polling. This
-is insufficient to mitigate the large number of interrupts that happen at high
-packet rates, which means that in some cases it would be beneficial to switch to
-a full busy polling mode, where one or more full CPU cores are dedicated to
-polling the hardware receive rings and process packets as soon as they appear.
-There have been some efforts to selective switch a network adapter to busy
-polling mode, which has shown promising results~\cite{dumazet17:_busyp}. As we
-noted in Section~\ref{sec:perf-discussion}, we believe that integrating this
-work with XDP, will, along with the other performance optimisations mentioned
-above, make it possible to reach raw packet processing performance at least
-equal to that of DPDK.
+One example of this is the interaction with the DMA subsystem of the kernel,
+which controls mapping of memory chunks for device DMA access. In the current
+design, there is some unnecessary overhead associated with this. Some of this
+overhead can be eliminated entirely, by improved tracking of packet memory
+chunk, while other parts can be amortised through batching. There is ongoing
+work to improve this.
 
 \subsection{QoS and Rate Transitions}
 \label{sec:handl-rate-trans}
