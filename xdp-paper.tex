@@ -725,8 +725,8 @@ maximum rates.
 \includegraphics[width=\linewidth]{figures/drop-test.pdf}
 \caption{\label{fig:drop-test} Packet drop performance. DPDK uses one core for
   control tasks, which is why it only goes to 5. The slight downward trend at
-  above 4 cores is because the performance of our packet generator decreases
-  when it has to generate more streams.}
+  above 4 cores is because PCIe limits (DPDK use descriptor compression
+  technique)}
 \end{figure}
 
 
