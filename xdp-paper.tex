@@ -117,21 +117,21 @@
 \ccsdesc[300]{Hardware~Networking hardware}
 \ccsdesc[300]{Software and its engineering~Operating systems}
 
-\keywords{XDP, BPF, Programmable Networking}
+%\keywords{XDP, BPF, Programmable Networking}
 \maketitle
 
 \section{Introduction}%
 \label{sec:introduction}
 High-performance packet processing in software has very tight bounds on the time
-spent processing each packet ($\simeq6$~ns per packet at 100 Gbps). Network
-stacks in general purpose operating systems are typically optimised for
-flexibility, and to achieve this they perform too many operations per packet to
-be able to keep up with these high packet rates. This has led to the increased
-popularity of special-purpose toolkits for software packet processing, such as
-the Data Plane Development Kit (DPDK)~\cite{dpdk}. Such toolkits generally
-bypass the operating system completely, instead passing control of the network
-hardware directly to the network application and dedicating one, or several, CPU
-cores exclusively to packet processing.
+spent processing each packet. Network stacks in general purpose operating
+systems are typically optimised for flexibility, and to achieve this they
+perform too many operations per packet to be able to keep up with these high
+packet rates. This has led to the increased popularity of special-purpose
+toolkits for software packet processing, such as the Data Plane Development Kit
+(DPDK)~\cite{dpdk}. Such toolkits generally bypass the operating system
+completely, instead passing control of the network hardware directly to the
+network application and dedicating one, or several, CPU cores exclusively to
+packet processing.
 
 The kernel bypass approach can significantly improve performance, but has the
 drawback that it is more difficult to integrate with the existing system, and
@@ -888,9 +888,9 @@ The first use case shows how XDP's kernel helpers can be used to accelerate
 common use cases, using the example of a software router. In the second use
 case, we show how an inline Denial of Service (DoS) mitigation application can
 be used to protect against attacks directly at the application server. And
-finally, the third use case shows how the XDP forwarding mode that sends packets
-out the same interface as they arrived on can be used to implement a layer-3
-load balancer.
+finally, the third use case shows how the forwarding mode that sends packets out
+the same interface as they arrived on can be used to implement a layer-3 load
+balancer.
 
 \subsection{The Software Router Use Case}
 \label{sec:fwd-usecase}
@@ -909,18 +909,17 @@ which makes it possible for the XDP program to immediately forward the packet if
 the lookup succeeds. If no next-hop MAC is known (because neighbour lookup
 hasn't been performed yet), the XDP program can instead pass the packet to the
 networking stack, which will perform the neighbour lookup, allowing subsequent
-packets to be forwarded by the XDP fast path.
+packets to be forwarded by XDP.
 
 To show the performance of this use case, we use the XDP routing example that is
 included in the Linux kernel source~\cite{fwd-example} and compare its
-performance to the regular Linux networking stack routing. We perform two tests:
-one with a single route installed in the routing table and all packets set to
-the same destination address. And another where we use a full dump of the global
-BGP routing table from \emph{\url{routeviews.org}}, which we import into the
-kernel routing table with all next-hop addresses set to the address of the test
-system connected to our egress interface. The routing table dump contains
-752,138 distinct routes, and for our tests we generate 4000 random destination
-IP addresses to make sure the full lookup table is exercised.
+performance to routing in the regular Linux network stack. We perform two tests:
+one with a single route installed in the routing table, and another where we use
+a full dump of the global BGP routing table from \emph{\url{routeviews.org}}. In
+both cases, all next-hop addresses are set to the address of the test system
+connected to our egress interface. The full table contains 752,138 distinct
+routes, and for our tests we generate 4000 random destination IP addresses to
+make sure we exercise the full table.
 
 The performance of this use case is seen in Figure~\ref{fig:router-fwd}. Using
 XDP for the forwarding plane improves performance with a factor of 2.5 for a
@@ -967,21 +966,21 @@ To test the performance of such a solution, we use an XDP program that parses
 the packet headers and performs a small number of tests\footnote{A total of four
   tests are performed after the header parsing. For details, see the online
   appendix.} to identify attack traffic and drop it, and uses the CPU redirect
-feature to pass all other packets on to the network stack for processing on a
-different CPU core. To simulate a baseline application load we use the Netperf
-benchmarking tool~\cite{netperf}. Netperf contains a TCP-based round-trip
-benchmark, which opens a TCP connection and sends a small payload which is
-echoed back from the server, repeating as soon as a reply is received. The
-output is the number of transactions per second, which is a good proxy for an
-interactive TCP session, such as small remote procedure calls.
+feature to pass all other packets on for processing on a different CPU core. To
+simulate a baseline application load we use the Netperf benchmarking
+tool~\cite{netperf}. Netperf contains a TCP-based round-trip benchmark, which
+opens a TCP connection and sends a small payload which is echoed back from the
+server, repeating as soon as a reply is received. The output is the number of
+transactions per second, which represents performance of an interactive use
+case, such as small remote procedure calls.
 
 We run our experiment on a single core, to illustrate the situation where
 legitimate traffic has to compete for the same hardware resources as attack
 traffic. We apply a baseline load of 35.000 TCP transactions per second, then
 offer an increasing load of small UDP packets matching our packet filter, which
-simulates the DoS attack. We measure the number of TCP transactions achieved as
-the attack traffic volume increases, repeating each experiment four times and
-reporting the mean value.
+simulates the DoS attack. We measure the TCP transactions performance as the
+attack traffic volume increases, reporting the average of four test repetitions
+per data point.
 
 \begin{figure}[t]
 \centering
@@ -1014,11 +1013,11 @@ the XDP program can perform the packet encapsulation, and immediately return the
 packet out the same interface.
 
 To test this use case, we configure the Katran XDP program with a fixed number
-of destination hosts\footnote{We configure one virtual IP per CPU core, with 100
-  destination application servers per virtual IP.}, and run it on our test
-machine. This performance is shown in Table~\ref{tbl:load-balancer}, which, as
-in the other examples, shows linear scaling with the number of CPUs, and the
-ability to saturate a 10\,Gbps link using three CPU cores.
+of destination hosts\footnote{We use one virtual IP per CPU core, and 100
+  destinations per virtual IP.}, and run it on our test machine. This
+performance is shown in Table~\ref{tbl:load-balancer}, which, as in the other
+examples, shows linear scaling with the number of CPUs, and the ability to
+saturate a 10\,Gbps link using three CPU cores.
 
 \begin{table}[htbp]
 \caption{\label{tbl:load-balancer}Load balancer performance.}
@@ -1040,12 +1039,11 @@ finished system. On the contrary, as part of the Linux kernel, XDP undergoes
 continuous improvement. Some of this development effort goes into softening the
 rough edges that are the inevitable result of XDP being incrementally
 incorporated into a general purpose operating system kernel. Other efforts
-continue to push the boundaries of XDP's capabilities. In this section we give a
-(non-exhaustive) overview of the efforts in both areas of development. These
-include: User experience and debugging; driver support; performance
-improvements; QoS and better handling of rate transitions; and acceleration of
-transport protocols. The following subsections discuss each of these issues in
-turn.
+continue to push the boundaries of XDP's capabilities. In this section we give
+an overview of some of these efforts. These include: User experience and
+debugging; driver support; performance improvements; QoS and better handling of
+rate transitions; and acceleration of transport protocols. The following
+subsections discuss each effort in turn.
 
 \subsection{User Experience and Debugging}
 \label{sec:user-exper-debugg}
@@ -1055,30 +1053,29 @@ and introspection features included in the kernel can be applied to XDP (and
 other eBPF programs) as well. These tools include tracepoints and
 kprobes~\cite{kernel-tracing} as well as the performance counters that are part
 of the \emph{perf} subsystem~\cite{perf}. However, developers who are not
-familiar with the kernel ecosystem and ``just wants to write packet processing
-programs'' can find this ecosystem of kernel-specific tools a limitation, as
-others have noted~\cite{miano2018creating}. To ease the transition, a wide
-variety of tools exist, including the BPF Compiler Collection~\cite{bcc}, the
-\emph{bpftool} introspection program~\cite{bpftool} and the \emph{libbpf}
-library of utility functions~\cite{libbpf}. These have already seen significant
-improvements since their inception, but more work is needed in this area.
+familiar with the kernel ecosystem may find this ecosystem of kernel-specific
+tools a limitation. To ease the transition, a variety of tools exist, including
+the BPF Compiler Collection~\cite{bcc}, the \emph{bpftool} introspection
+program~\cite{bpftool} and the \emph{libbpf} library of utility
+functions~\cite{libbpf}. These have already seen significant improvements, but
+more work is needed in this area.
 
 Another area that sees continual improvement is the eBPF program verifier. The
 primary focus of the verifier is naturally to ensure the safety of the kernel
 from programs being loaded into the kernel. As such, a conservative approach is
 taken, where the verifier will reject any program that it cannot prove is safe.
 This can lead to false negatives, where safe programs are needlessly rejected.
-In addition, the restrictions on the program structure initially imposed by the
-verifier, such as the lack of support for function calls and loops, have been
-more limited than strictly necessary, in the interest of ensuring safety first.
-To improve upon this situation, there is an ongoing effort to teach the verifier
-to recognise more programs as safe that were previously rejected as invalid. In
-addition, the error messages reported by the verifier have been made friendlier,
-to make it easier for developers to change their code to avoid verification
-errors. In addition, support for function calls in eBPF has recently been added,
-and the addition of support for bounded loops is planned. Efficiency
-improvements that will allow the verifier to operate on much larger programs are
-also being worked on.
+In addition, as others have noted~\cite{miano2018creating}, the restrictions on
+the program structure imposed by the verifier, such as the lack of support for
+function calls and loops, have been more limited than strictly necessary, in the
+interest of ensuring safety first. To improve upon this situation, there is an
+ongoing effort to teach the verifier to recognise more programs as safe that
+were previously rejected as invalid. In addition, the error messages reported by
+the verifier have been made friendlier, to make it easier for developers to
+change their code to avoid verification errors. In addition, support for
+function calls in eBPF has recently been added, and the addition of support for
+bounded loops is planned. Efficiency improvements that will allow the verifier
+to operate on larger programs are also being worked on.
 
 \subsection{Driver Support}
 \label{sec:driver-support}
@@ -1096,9 +1093,9 @@ As the XDP system has evolved, the need to keep the changes required in drivers
 to support XDP to a minimum has become increasingly clear, and some steps have
 been taken in this direction. For instance, support for new targets can be added
 to the redirection action without any changes needed from the drivers. Finally,
-the Generic XDP feature~\cite{generic-xdp} makes it possible to run XDP programs
-even if the networking driver lacks the proper support, by moving execution into
-the core networking stack (which naturally reduces performance).
+the Generic XDP feature~\cite{generic-xdp} makes it possible to run (reduced
+performance) XDP programs even if the networking driver lacks the proper
+support, by moving execution into the core networking stack.
 
 \subsection{Performance Improvements}
 \label{sec:perf-improvements}
@@ -1109,27 +1106,26 @@ changes to the core XDP code to avoid unnecessary operations where possible, and
 otherwise amortise the costs through improved batching of operations.
 
 One example of this is the interaction with the DMA subsystem of the kernel,
-which controls mapping of memory regions for device DMA access. In the current
-design, there is some unnecessary overhead associated with this. Some of this
-overhead can be eliminated entirely, by improved tracking of packet memory
-regions, while other parts can be amortised through batching.
+which controls mapping of memory regions for DMA access. In the current design,
+there is some unnecessary overhead associated with this. Improved tracking of
+packet memory can eliminate some of this overhead entirely, while the rest can
+be amortised through batching.
 
 \subsection{QoS and Rate Transitions}
 \label{sec:handl-rate-trans}
 Currently, XDP does not implement any mechanism for supporting different Quality
 of Service (QoS) levels. Specifically, an XDP program receives no back-pressure
 when attempting to forward packets to a destination that has exhausted its
-capacity. This limitation can be exacerbated when joining networks with
-different speeds or other mismatched network characteristics.
+capacity, such as when joining networks with different speeds or other
+mismatched network characteristics.
 
 While QoS is lacking from XDP, the Linux kernel networking stack features
 best-in-class Active Queue Management (AQM) and packet scheduling
-algorithms~\cite{good-bad-wifi}. While not all of these features are a good fit
-for the XDP architecture, we believe that selectively integrating features in
-this area from the networking stack into XDP is an opportunity to provide
-excellent support for QoS and AQM in XDP in a way that can be completely
-transparent to the packet processing applications themselves. We are planning to
-explore this further in the future.
+algorithms~\cite{good-bad-wifi}. Not all of these features are a good fit for
+the XDP architecture, but we believe that selectively integrating features from
+the networking stack into XDP is an opportunity to provide excellent support for
+QoS and AQM in XDP in a way that can be completely transparent to the packet
+processing applications themselves. We are planning to explore this further.
 
 \subsection{Accelerating Transport Protocols}
 \label{sec:accel-transp-prot}
@@ -1147,25 +1143,25 @@ scope of the XDP system.
 \section{Conclusions}
 \label{sec:conclusion}
 We have presented XDP, a system for safely integrating fast programmable packet
-processing directly into the operating system kernel.
+processing directly into the operating system kernel. Our evaluation has shown
+that XDP achieves raw packet processing performance of up to 24 million packets
+per second on a single CPU core. While this is not quite on par with state of
+the art kernel bypass-based solutions, we argue that there is nothing preventing
+XDP from fully achieving the same performance.
 
-Our evaluation has shown that XDP achieves raw packet processing performance of
-up to 24 million packets per second on a single CPU core. While this is not
-quite on par with state of the art kernel bypass-based solutions, we argue that
-there is nothing preventing XDP from fully achieving the same performance; and
-more importantly, that XDP offers other compelling features that more than makes
-up for this. These features include retaining kernel security and management
-compatibility; selectively utilising existing kernel stack features as needed;
-providing a stable programming interface; and complete transparency to
-applications. In addition, XDP can be dynamically re-programmed without service
-interruption, and requires neither specialised hardware nor dedicating whole CPU
-cores to packet processing.
+More importantly, XDP offers other compelling features that more than make up
+for the performance delta. These features include retaining kernel security and
+management compatibility; selectively utilising existing kernel stack features
+as needed; providing a stable programming interface; and complete transparency
+to applications. In addition, XDP can be dynamically re-programmed without
+service interruption, and requires neither specialised hardware nor dedicating
+whole CPU cores to packet processing.
 
 We believe that these features make XDP a compelling alternative to
 all-or-nothing kernel bypass solutions, which is supported by its adoption in a
 variety of real-world applications, some of which we have shown examples of
-above. The XDP system is continually evolving, and we have outlined a number of
-developments which will make XDP an even more compelling platform in the future.
+above. The XDP system is still evolving, and we have outlined a number of
+developments which will continue to improve it in the future.
 
 
 \bibliographystyle{ACM-Reference-Format}
