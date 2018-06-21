@@ -287,12 +287,13 @@ solutions~\cite{gallenmuller_comparison_2015}.
 In the third category we find kernel bypass techniques, such as the PF\_RING ZC
 module~\cite{pfringzc}, the hardware-specific Solarflare
 OpenOnload~\cite{openonload} or, most prominently, the DataPlane Development Kit
-(DPDK)~\cite{dpdk}. This latter started out as an Intel-specific hardware
-support package, but has since seen a wide uptake under the stewardship of the
-Linux Foundation and represents the state of the art in high-performance packet
-processing. The kernel bypass approach offers excellent performance, but has the
-drawback that it is more difficult to integrate with the rest of the system, as
-mentioned in the introduction.
+(DPDK)~\cite{dpdk}. The latter started out as an Intel-specific hardware support
+package, but has since seen a wide uptake under the stewardship of the Linux
+Foundation and represents the state of the art in high-performance packet
+processing, commonly used with higher-level processing frameworks such as
+Cisco's VPP~\cite{linguaglossa2017high}. The kernel bypass approach offers
+excellent performance, but has the drawback that it is more difficult to
+integrate with the rest of the system, as mentioned in the introduction.
 
 Of these three approaches to increasing packet processing performance, XDP falls
 in the first category, and places the packet processing in kernel device driver
