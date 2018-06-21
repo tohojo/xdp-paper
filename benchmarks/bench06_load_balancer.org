@@ -231,7 +231,8 @@ plt.show()
 
 
 * IPVS
-Setting up the same with IPVS. Setup nexthop 
+Setting up the same with IPVS. Setup nexthop so the egress interface is the same
+as the ingress, to match Katran setup.
 
 - Make sure to use a dest IP that is assigned to the host
 - Disable rp_filter sysctl for varied source hosts
