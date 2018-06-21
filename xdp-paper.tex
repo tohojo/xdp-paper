@@ -998,38 +998,41 @@ filter, performance drops rapidly, being halved at 3\,Mpps and effectively zero
 at just below 3.5\,Mpps of attack traffic. However, with the XDP filter in
 place, the TCP transaction performance is stable at around 28.500 transactions
 per second until 19.5\,Mpps of attack traffic, after which it again drops
-rapidly. This shows that effective DDoS filtering is quite feasible to perform
-in XDP, which comfortably handles 10\,Gbps of minimum-packet DoS traffic on a
-single CPU core. Deploying DDoS mitigation this way leads to increased
-flexibility, since neither application changes or additional hardware is needed.
+rapidly. This shows that effective DDoS filtering is feasible to perform in XDP,
+which comfortably handles 10\,Gbps of minimum-packet DoS traffic on a single CPU
+core. Deploying DDoS mitigation this way leads to increased flexibility, since
+no special hardware or application changes are needed.
 
 \subsection{Load Balancer}
 \label{sec:load-balancer}
 For the load balancer use case, we use the XDP component of the Katran load
 balancer~\cite{katran} recently released as open source by Facebook. This works
 by announcing a virtual IP address to the world, which is then routed to the
-load balancer. At the load balancer, the XDP program hashes the layer-4 packet
-header using a stable hashing algorithm, which becomes a destination application
-server. The packet is then encapsulated in a new IP header and sent to the
-application server, which is responsible for decapsulating it, processing the
-request, and replying directly to the originator of the request. This means that
-the XDP program can perform the packet encapsulation, and immediately return the
-packet out the same interface.
+load balancer. At the load balancer, the XDP program hashes the source packet
+header using a stable hashing algorithm, to select a destination application
+server. The packet is then IPIP-encapsulated and sent to the application server,
+which is responsible for decapsulating it, processing the request, and replying
+directly to the originator of the request. This means that the XDP program can
+perform the packet encapsulation, and immediately return the packet out the same
+interface.
 
 To test this use case, we configure the Katran XDP program with a fixed number
 of destination hosts\footnote{We use one virtual IP per CPU core, and 100
-  destinations per virtual IP.}, and run it on our test machine. This
-performance is shown in Table~\ref{tbl:load-balancer}, which, as in the other
-examples, shows linear scaling with the number of CPUs, and the ability to
-saturate a 10\,Gbps link using three CPU cores.
+  destinations per virtual IP.}, and run it on our test machine. We compare it
+with the IPVS load balancer that is part of the Linux kernel, which can be
+configured in the same way. The performance of both is shown in
+Table~\ref{tbl:load-balancer}, which shows linear scaling with the number of
+CPUs, and that XDP offers a performance gain of 4.3x over IPVS.
 
-\begin{table}[htbp]
-\caption{\label{tbl:load-balancer}Load balancer performance.}
+\begin{table}[tbp]
+\caption{\label{tbl:load-balancer}Load balancer performance (Mpps).}
 \centering
 \begin{tabular}{lcccccc}
   \toprule
   CPU Cores & 1   &  2  &  3  &  4  &  5  &  6  \\
-  Mpps & 5.2 & 10.1 & 14.6 & 19.5 & 23.4 & 29.3 \\
+  \midrule
+  XDP (Katran) & 5.2 & 10.1 & 14.6 & 19.5 & 23.4 & 29.3 \\
+  Linux (IPVS) & 1.2 & 2.4 & 3.7 & 4.8 & 6.0 & 7.3 \\
 \bottomrule
 \end{tabular}
 \end{table}
