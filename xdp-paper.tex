@@ -693,7 +693,7 @@ subject of the next section.
 \section{Performance evaluation}
 \label{sec:perf-eval}
 In this section we present our performance evaluation of XDP, using synthetic
-benchmarks to examine specific aspects of system's capabilities. For all
+benchmarks to examine specific aspects of the system's capabilities. For all
 benchmarks, we use a machine equipped with a hexa-core Intel Xeon E5-1650 v4 CPU
 running at 3.60GHz, which supports Intel's Data Direct I/O (DDIO) technology
 allowing the networking hardware Direct Memory Access (DMA) system to place
@@ -778,7 +778,7 @@ CPU cycles for PCI bus bandwidth).
 The figure also shows the performance of the Linux networking stack in two
 configurations: One where we use the ``raw'' table of the \emph{iptables}
 firewall module to drop packets, which ensures the earliest possible drop in the
-network stack processing; and another where we enable the connection tracking
+network stack processing; and another where we use the connection tracking
 (\emph{conntrack}) module, which is enabled by default on most Linux
 distributions, but which carries a high overhead. These two modes illustrate the
 performance span of the Linux networking stack, from 1.8 Mpps of single-core
@@ -826,7 +826,7 @@ both modes in the graph. The DPDK example program only supports forwarding
 packets through a different interface, so we only include this operating mode in
 the test. Finally, the Linux networking stack does not support this minimal
 forwarding mode, but requires a full bridging or routing lookup to forward
-packets; this lookup is expensive, and since the other applications don't
+packets; this lookup is expensive, and since the other applications do not
 perform it, the results are not directly comparable. For this reason, we omit
 the Linux networking stack from these results, and instead include the Linux
 routing performance in our real-world use case presented in
@@ -857,7 +857,7 @@ is ongoing to reduce it.
 
 As we have seen in the previous sections, XDP achieve significantly higher
 performance than the regular Linux networking stack. Even so, for most use cases
-XDP doesn't quite match the performance of DPDK. We believe this is primarily
+XDP does not quite match the performance of DPDK. We believe this is primarily
 because DPDK has incorporated more performance optimisations at the lowest level
 of the code. To illustrate this, consider the packet drop example: XDP achieves
 24\,Mpps on a single core, which corresponds to 41.6 nanoseconds per packet,
@@ -913,7 +913,7 @@ which makes it possible to perform full routing table lookups directly from XDP.
 The result of the lookup is an egress interface and a next-hop MAC address,
 which makes it possible for the XDP program to immediately forward the packet if
 the lookup succeeds. If no next-hop MAC is known (because neighbour lookup
-hasn't been performed yet), the XDP program can instead pass the packet to the
+has not been performed yet), the XDP program can instead pass the packet to the
 networking stack, which will perform the neighbour lookup, allowing subsequent
 packets to be forwarded by XDP.
 
@@ -1068,7 +1068,7 @@ more work is needed in this area.
 
 Another area that sees continual improvement is the eBPF program verifier. The
 primary focus of the verifier is naturally to ensure the safety of the kernel
-from programs being loaded into the kernel. As such, a conservative approach is
+from programs being loaded into it. As such, a conservative approach is
 taken, where the verifier will reject any program that it cannot prove is safe.
 This can lead to false negatives, where safe programs are needlessly rejected.
 In addition, as others have noted~\cite{miano2018creating}, the restrictions on
