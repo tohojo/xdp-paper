@@ -210,9 +210,11 @@ my box.
 |     5 | 23444383 |
 |     6 | 29303202 |
 
-#+BEGIN_SRC ipython :session :exports both :results raw drawer :var data=results_katran
-d = np.array(data)
-plt.plot(d[:,0], d[:,1]/10**6, marker='o', label="Katran")
+#+BEGIN_SRC ipython :session :exports both :results raw drawer :var xdp_data=results_katran :var linux_data=results_ipvs
+xdp = np.array(xdp_data)
+linux = np.array(linux_data)
+plt.plot(xdp[:,0], xdp[:,1]/10**6, marker='o', label="Katran")
+plt.plot(linux[:,0], linux[:,1]/10**6, marker='o', label="IPVS")
 plt.xlabel("Number of cores")
 plt.ylabel("Mpps")
 #plt.legend()
@@ -223,8 +225,38 @@ plt.show()
 
 #+RESULTS:
 :results:
-# Out[188]:
-[[file:./obipy-resources/34o26Z.svg]]
+# Out[69]:
+[[file:./obipy-resources/LXiEgw.svg]]
 :end:
 
 
+* IPVS
+Setting up the same with IPVS. Setup nexthop 
+
+- Make sure to use a dest IP that is assigned to the host
+- Disable rp_filter sysctl for varied source hosts
+- Add manual dest route and neighbour entry to egress same interface. Neighbour
+  entry is needed since the DPDK traffic generator doesn't reply to ARPs.
+
+: sudo ip r add 10.0.0.0/16 via 10.70.1.2
+: sudo ip neigh replace 10.70.1.2 dev ens1f1 lladdr ec:0d:9a:db:11:ad
+
+Setup ipvs in encap mode with source-addr hashing for UDP services. The weight
+is how many source hosts that will be sent to each dest in sh-mode, needs to be
+higher than 1:
+
+: for p in $(seq 12 17); do sudo ipvsadm -A -u 10.70.1.1:$p -s sh -b sh-port; for i in $(seq 1 100); do sudo ipvsadm -a -u 10.70.1.1:$p -r 10.0.$p.$i -i -w 200 ; done; done
+
+
+** Results
+Using rx_packets_sec from ethtool stats:
+
+#+NAME: results_ipvs
+| Cores |    Mpps |
+|-------+---------|
+|     1 | 1237293 |
+|     2 | 2444876 |
+|     3 | 3651533 |
+|     4 | 4818678 |
+|     5 | 5997658 |
+|     6 | 7274468 |
