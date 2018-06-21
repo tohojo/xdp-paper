@@ -300,8 +300,8 @@ context. Since the packet processing program is executed before any other
 processing, this not only avoids the overhead of passing every packet to
 userspace, but also the overhead of the regular kernel networking stack. By
 using a custom byte code format for the programming, which can be statically
-verified ensure it does not adversely affect the functioning of the rest of the
-kernel, most of the fragility issues normally faced by in-kernel packet
+verified to ensure it does not adversely affect the functioning of the rest of
+the kernel, most of the fragility issues normally faced by in-kernel packet
 processing implementations are avoided. In addition, the byte code format and
 execution context are part of the kernel/userspace Application Binary Interface
 (ABI), which means that the usual ABI stability guarantees apply; and so
@@ -912,8 +912,8 @@ lookup is an egress interface and a next-hop MAC address, which makes it
 possible for the XDP program to immediately forward the packet if the lookup
 succeeds. If no next-hop MAC is known (because neighbour lookup has not been
 performed yet), the XDP program can pass the packet to the networking stack,
-which will perform the neighbour lookup, allowing subsequent packets to be
-forwarded by XDP.
+which will resolve the neighbour, allowing subsequent packets to be forwarded by
+XDP.
 
 To show the performance of this use case, we use the XDP routing example that is
 included in the Linux kernel source~\cite{fwd-example} and compare its
