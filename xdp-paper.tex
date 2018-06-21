@@ -301,13 +301,13 @@ context. Since the packet processing program is executed before any other
 processing, this not only avoids the overhead of passing every packet to
 userspace, but also the overhead of the regular kernel networking stack. By
 using a custom byte code format for the programming, which can be statically
-verified to not adversely affect the functioning of the rest of the kernel, most
-of the fragility issues normally faced by in-kernel packet processing
-implementations are avoided. In addition, the byte code format and execution
-context are part of the kernel Application Binary Interface (ABI) to userspace,
-which means that the usual ABI stability guarantees apply; and so applications
-do not have to keep up with future changes in the kernel to be able to continue
-to function.
+verified ensure it does not adversely affect the functioning of the rest of the
+kernel, most of the fragility issues normally faced by in-kernel packet
+processing implementations are avoided. In addition, the byte code format and
+execution context are part of the kernel Application Binary Interface (ABI) to
+userspace, which means that the usual ABI stability guarantees apply; and so
+applications do not have to keep up with future changes in the kernel to be able
+to continue to function.
 
 While falling into the first category mentioned above, XDP also borrows aspects
 from the other two. For applications that prefer receiving the full packet
@@ -386,24 +386,23 @@ Figure~\ref{fig:xdp-execution} shows the various processing steps typically
 performed by an XDP program. The program starts its execution with access to a
 pointer to a context object. This object contains pointers to the raw packet
 data, along with metadata fields describing which interface and receive queue
-the packet came in on, etc.
+the packet was received on, etc.
 
 The program typically begins by parsing packet data, and can pass control to a
 different XDP program through tail calls, thus splitting processing into
 logical sub-units (based on, say, IP header version).
 
 After parsing the packet data, the XDP program can read or write metadata
-associated with the packet itself, or available in other parts of the operating
-system. The former is accessible through the context object, which contains a
-pointer to a special memory area, that XDP programs can use to store arbitrary
-metadata that will be available to other XDP programs, as well as to other parts
-of the kernel and userspace. Additionally, an XDP program also has access to
-kernel facilities that provide helper functions and additional metadata. These
-allow the XDP program to gather additional metadata through helper functions and
-maps (dotted lines in Figure~\ref{fig:xdp-kernel} and the top part of
-Figure~\ref{fig:xdp-execution}). New helpers are actively been added by the
-kernel development community in response to user requests, continuously
-expanding the functionality that XDP programs can make use of.
+associated with the packet. This is accessible through the context object, which
+contains read-only metadata fields as well as a pointer to a special memory area
+that XDP programs can use to store arbitrary metadata. This will be available to
+other XDP programs, as well as to other parts of the kernel and userspace.
+Additionally, an XDP program has access to kernel facilities that provide
+additional metadata through helper functions and maps (dotted lines in
+Figure~\ref{fig:xdp-kernel} and the top part of Figure~\ref{fig:xdp-execution}).
+New helpers are actively been added by the kernel development community in
+response to user requests, continuously expanding the functionality that XDP
+programs can make use of.
 
 Finally, the program can write any parts of the packet data buffer, including
 expanding or shrinking the packet to add or remove headers. This allows it to
@@ -541,13 +540,13 @@ Variable & Contains\\
 \end{tabular}
 \end{table}
 
-First, the verifier performs a depth-first search on the DAG to ensure it
-contains no loops (no backwards jumps) and that it contains no unsupported or
-unreachable instructions. Then, in a second pass, the verifier walks all
-possible paths of the DAG while tracking the state of all registers. The purpose
-of this second pass is to ensure that the program performs only safe memory
-accesses, and that any helper functions are called with the right argument
-types. This is ensured by rejecting programs that perform load or call
+First, the verifier performs a depth-first search on the DAG to ensure it is in
+fact acyclic, i.e., that it contains no loops, and also that it contains no
+unsupported or unreachable instructions. Then, in a second pass, the verifier
+walks all possible paths of the DAG while tracking the state of all registers.
+The purpose of this second pass is to ensure that the program performs only safe
+memory accesses, and that any helper functions are called with the right
+argument types. This is ensured by rejecting programs that perform load or call
 instructions with invalid arguments. Argument validity is determined by tracking
 the state of all registers and stack variables through the execution of the
 program, as explained in the following.
