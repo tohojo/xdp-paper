@@ -100,3 +100,180 @@ plt.show()
 # Out[50]:
 [[file:./obipy-resources/A96bbg.svg]]
 :end:
+
+
+* Jesper reproduceing Layer3 routing test
+
+Setup fake "next-hop" gateway via a fake ARP/neigh entry.
+
+: ip neigh replace 198.18.100.66 dev mlx5p2 lladdr 00:11:22:33:00:66
+
+Ingress device is: mlx5p1
+
+: 198.18.1.0/24 dev mlx5p1 proto kernel scope link src 198.18.1.1 metric 100
+
+Engress device is: mlx5p2
+
+: 198.18.100.0/24 dev mlx5p2 proto kernel scope link src 198.18.100.2 metric 100
+
+Route everything through more specific route trick:
+
+: ip r add 0.0.0.0/1   via 198.18.100.66
+: ip r add 128.0.0.0/1 via 198.18.100.66
+
+** Installing full route table
+
+: wget https://kau.toke.dk/xdp/all-bgp-routes-20180419.txt.xz
+: xzcat all-bgp-routes-20180419.txt.xz | sudo ./read_route_table.sh 198.18.100.66
+
+#+BEGIN_EXAMPLE
+$ ip r | wc -l
+752147
+#+END_EXAMPLE
+
+** Starting xdp_fwd program
+
+ sudo ./xdp_fwd -D mlx5p1 mlx5p2 i40e1
+
+** Single queue performance
+
+: ethtool -L mlx5p1 combined 1
+
+With stream_count=20000 which is random dest-IPs:
+
+: trex>start -f /home/jbrouer/git/xdp-paper/benchmarks/udp_multi_ip02.py --port 0 -m 100% -t packet_len=64,stream_count=20000,port_count=1
+
+Performance RX-ring size 1024, stream_count=20000:
+ Ethtool(mlx5p1  ) stat:      3809490 (      3,809,490) <= rx_xdp_redirect /sec
+ Ethtool(mlx5p2  ) stat:      3815161 (      3,815,161) <= tx_xdp_xmit /sec
+
+Full ethtool_stats.pl output:
+
+#+BEGIN_EXAMPLE
+ Show adapter(s) (mlx5p1 mlx5p2) statistics (ONLY that changed!)
+ Ethtool(mlx5p1  ) stat:        59523 (         59,523) <= ch0_poll /sec
+ Ethtool(mlx5p1  ) stat:        59523 (         59,523) <= ch_poll /sec
+ Ethtool(mlx5p1  ) stat:      3809487 (      3,809,487) <= rx0_cache_empty /sec
+ Ethtool(mlx5p1  ) stat:      3809489 (      3,809,489) <= rx0_xdp_redirect /sec
+ Ethtool(mlx5p1  ) stat:     24691870 (     24,691,870) <= rx_64_bytes_phy /sec
+ Ethtool(mlx5p1  ) stat:   1580272579 (  1,580,272,579) <= rx_bytes_phy /sec
+ Ethtool(mlx5p1  ) stat:      3809508 (      3,809,508) <= rx_cache_empty /sec
+ Ethtool(mlx5p1  ) stat:     20882293 (     20,882,293) <= rx_out_of_buffer /sec
+ Ethtool(mlx5p1  ) stat:     24691763 (     24,691,763) <= rx_packets_phy /sec
+ Ethtool(mlx5p1  ) stat:   1580386044 (  1,580,386,044) <= rx_prio0_bytes /sec
+ Ethtool(mlx5p1  ) stat:     24693509 (     24,693,509) <= rx_prio0_packets /sec
+ Ethtool(mlx5p1  ) stat:   1481501437 (  1,481,501,437) <= rx_vport_unicast_bytes /sec
+ Ethtool(mlx5p1  ) stat:     24691704 (     24,691,704) <= rx_vport_unicast_packets /sec
+ Ethtool(mlx5p1  ) stat:      3809490 (      3,809,490) <= rx_xdp_redirect /sec
+ Ethtool(mlx5p2  ) stat:        59443 (         59,443) <= ch0_arm /sec
+ Ethtool(mlx5p2  ) stat:        59443 (         59,443) <= ch0_events /sec
+ Ethtool(mlx5p2  ) stat:        59442 (         59,442) <= ch0_poll /sec
+ Ethtool(mlx5p2  ) stat:        59443 (         59,443) <= ch_arm /sec
+ Ethtool(mlx5p2  ) stat:        59443 (         59,443) <= ch_events /sec
+ Ethtool(mlx5p2  ) stat:        59443 (         59,443) <= ch_poll /sec
+ Ethtool(mlx5p2  ) stat:        59612 (         59,612) <= tx0_xdp_cqes /sec
+ Ethtool(mlx5p2  ) stat:      3815163 (      3,815,163) <= tx0_xdp_xmit /sec
+ Ethtool(mlx5p2  ) stat:    244171295 (    244,171,295) <= tx_bytes_phy /sec
+ Ethtool(mlx5p2  ) stat:      3815169 (      3,815,169) <= tx_packets_phy /sec
+ Ethtool(mlx5p2  ) stat:    244172134 (    244,172,134) <= tx_prio0_bytes /sec
+ Ethtool(mlx5p2  ) stat:      3815185 (      3,815,185) <= tx_prio0_packets /sec
+ Ethtool(mlx5p2  ) stat:    228910118 (    228,910,118) <= tx_vport_unicast_bytes /sec
+ Ethtool(mlx5p2  ) stat:      3815169 (      3,815,169) <= tx_vport_unicast_packets /sec
+ Ethtool(mlx5p2  ) stat:        59612 (         59,612) <= tx_xdp_cqes /sec
+ Ethtool(mlx5p2  ) stat:      3815161 (      3,815,161) <= tx_xdp_xmit /sec
+#+END_EXAMPLE
+
+T-rex command variable stream_count=XXX :
+
+: start -f /home/jbrouer/git/xdp-paper/benchmarks/udp_multi_ip02.py --port 0 -m 100% -t packet_len=64,stream_count=XXX,port_count=1
+
+#+NAME: fwd_data_streams
+| Cores | stream_count (IPs) | XDP (full table rxring 512) |
+|-------+--------------------+-----------------------------|
+|     1 |                  1 |                     5767181 |
+|     1 |                  2 |                     5550183 |
+|     1 |                  4 |                     5425764 |
+|     1 |                 10 |                     5284065 |
+|     1 |                 20 |                     5051856 |
+|     1 |                 50 |                     4966618 |
+|     1 |                100 |                     4726404 |
+|     1 |                200 |                     4615598 |
+|     1 |                500 |                     4263151 |
+|     1 |               1000 |                     4060469 |
+|     1 |               2500 |                     3899194 |
+|     1 |               5000 |                     3888937 |
+|     1 |              10000 |                     3865736 |
+|     1 |              20000 |                     3850132 |
+|       |                    |                             |
+
+
+Watching perf stat during test, shows that the performance issue, is
+related to increase number of branch-misses and reduced insn per cycle
+efficiency.
+
+: perf stat -C0 -e cycles -e  instructions -e cache-references -e cache-misses -e branches -e branch-misses -r 3 sleep 1
+
+perf stat with stream_count=1:
+
+#+BEGIN_EXAMPLE
+$ sudo ~/perf stat -C0 -e cycles -e  instructions \
+                       -e cache-references -e cache-misses \
+                       -e branches -e branch-misses -r 3 sleep 1
+
+ Performance counter stats for 'CPU(s) 0' (3 runs):
+
+  3,804,456,431  cycles                                        ( +-  0.00% )
+  9,038,093,597  instructions      #2.38  insn per cycle       ( +-  0.02% )
+     45,804,413  cache-references                              ( +-  0.01% )
+            872  cache-misses      #0.002 % of all cache refs  ( +- 50.63% )
+  1,653,739,128  branches                                      ( +-  0.02% )
+      1,601,127  branch-misses     #0.10% of all branches      ( +-  0.19% )
+#+END_EXAMPLE
+
+
+perf stat with stream_count=1:
+
+#+BEGIN_EXAMPLE
+ Performance counter stats for 'CPU(s) 0' (3 runs):
+
+  3,804,676,127  cycles                                        ( +-  0.00% )
+  6,254,535,601  instructions      #1.64  insn per cycle       ( +-  0.07% )
+     83,942,715  cache-references                              ( +-  0.05% )
+         56,915  cache-misses      #0.068 % of all cache refs  ( +- 52.14% )
+  1,157,902,407  branches                                      ( +-  0.07% )
+     13,982,160  branch-misses     #1.21% of all branches      ( +-  0.05% )
+#+END_EXAMPLE
+
+
+Perf report shows that the issues is in fib_table_lookup(), and a
+closer look show that this is likely the prefix backtracking in the
+FIB lookup that is causing this.
+
+#+BEGIN_EXAMPLE
+Samples: 3M of event 'cycles:ppp', Event count (approx.): 3091862629036
+  Overhead  CPU  Command       Shared Object     Symbol
++   34.29%  000  ksoftirqd/0   [kernel.vmlinux]  [k] fib_table_lookup
++    6.00%  000  ksoftirqd/0   [kernel.vmlinux]  [k] bpf_ipv4_fib_lookup
++    4.20%  000  ksoftirqd/0   [mlx5_core]       [k] mlx5e_handle_rx_cqe_mpwrq
++    3.96%  000  ksoftirqd/0   [mlx5_core]       [k] mlx5e_skb_from_cqe_mpwrq_linear
++    3.66%  000  ksoftirqd/0   [kernel.vmlinux]  [k] __xdp_return
++    3.40%  000  ksoftirqd/0   [mlx5_core]       [k] mlx5e_xdp_handle
++    3.07%  000  ksoftirqd/0   [mlx5_core]       [k] mlx5e_xmit_xdp_frame
++    2.66%  000  ksoftirqd/0   [mlx5_core]       [k] mlx5e_xdp_xmit
++    2.56%  000  ksoftirqd/0   [kernel.vmlinux]  [k] swiotlb_map_page
++    2.46%  000  ksoftirqd/0   [kernel.vmlinux]  [k] xdp_do_redirect
++    2.43%  000  ksoftirqd/0   [kernel.vmlinux]  [k] __page_pool_put_page
++    2.38%  000  ksoftirqd/0   [kernel.vmlinux]  [k] dev_map_enqueue
++    2.37%  000  ksoftirqd/0   [mlx5_core]       [k] mlx5e_post_rx_mpwqes
++    2.36%  000  ksoftirqd/0   [mlx5_core]       [k] mlx5e_poll_xdpsq_cq
++    1.76%  000  ksoftirqd/0   [kernel.vmlinux]  [k] page_pool_alloc_pages
++    1.72%  000  ksoftirqd/0   [mlx5_core]       [k] mlx5e_poll_rx_cq
++    1.21%  000  ksoftirqd/0   [kernel.vmlinux]  [k] ip_mtu_from_fib_result
++    1.05%  000  ksoftirqd/0   [kernel.vmlinux]  [k] bpf_xdp_fib_lookup
+#+END_EXAMPLE
+
+
+If a change how the dst-IPs are generated, then the performance is
+significantly improved.  Thus, the T-rex test script is really good to
+exercise the FIB lookup.
+
