@@ -82,7 +82,7 @@
   execution environment for custom packet processing applications, executed in
   device driver context. This system, called the eXpress Data Path (XDP), has
   been merged into the mainline Linux kernel and provides a fully integrated
-  solution working in concert with the kernel's network stack. In XDP,
+  solution working in concert with the kernel's networking stack. In XDP,
   applications written in higher level languages such as C are compiled into
   custom bytecode which the kernel statically analyses for safety, and
   translates into native instructions.
@@ -158,13 +158,13 @@ operating system networking stack in a cooperative way. This makes it possible
 to perform high-speed packet processing that integrates seamlessly with existing
 systems, while selectively leveraging functionality in the operating system.
 This framework, called the eXpress Data Path (XDP), works by defining a limited
-execution environment in the form of a virtual machine running a custom bytecode
-that is based on an extended version of BPF, the original BSD Packet Filter.
-This environment executes custom programs directly in the device driver context,
-before the kernel performs any other packet processing tasks. The kernel also
-ensures the safety of the program by statically verifying it before it is
-loaded; and programs are dynamically compiled into native machine instructions
-to ensure high performance.
+execution environment in the form of a 'virtual machine' running a custom bytecode
+that is based on an extended version of BPF, the original BSD Packet Filter
+\cite{mccanne_bsd_1993}. This environment executes custom programs directly in
+the device driver context, before the kernel performs any other packet processing
+tasks. The kernel also ensures the safety of the program by statically verifying
+it before it is loaded; and programs are dynamically compiled into native machine
+instructions to ensure high performance.
 
 XDP has been gradually integrated into the Linux kernel over several releases,
 but no complete architectural description of the system as a whole has been
@@ -182,24 +182,30 @@ solutions. Specifically, XDP:
 \item Integrates cooperatively with the regular networking stack, retaining full
   control of the hardware in the kernel. This means that the kernel security
   boundary is intact, and no changes to network configuration and management
-  tools are needed. In addition, any network adapter with a Linux driver can be
-  supported by XDP; no special hardware features are needed.
+  tools are needed. In addition, any network adapter with a Linux driver can
+  be supported by XDP; no special hardware features or from scratch driver
+  implementation are needed.
 
 \item Makes it possible to selectively utilise kernel network stack features
   such as the routing table and TCP stack, keeping the same configuration
   interface while accelerating critical performance paths.
 
-\item Provides a stable programming interface for packet processing
+\item Provides a stable programming interface (API) for packet processing
   applications, which carries the same stability guarantees as every other
-  kernel interface.
+  kernel system call interface.
+
+\item Does not require expensive packet reinjection from user space into
+  kernel space when workloads based on the normal socket layer need to be
+  reached, since XDP already operates in kernel space.
 
 \item Is completely transparent to applications running on the host, enabling
   new deployment scenarios such as inline protection against denial of service
   attacks on application servers.
 
-\item Can be dynamically re-programmed without service interruption, which means
-  that features can be removed completely when they are not needed, and programs
-  can react to conditions in other parts of the kernel as well as events from
+\item Can be dynamically re-programmed without any service interruption, which
+  means that features can be added on the fly or removed completely when they
+  are not needed without interruption of network traffic, and programs can
+  react to conditions in other parts of the kernel as well as events from
   userspace.
 
 \item Does not require dedicating full CPU cores to packet processing, which
