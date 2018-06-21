@@ -217,7 +217,7 @@ plt.plot(xdp[:,0], xdp[:,1]/10**6, marker='o', label="Katran")
 plt.plot(linux[:,0], linux[:,1]/10**6, marker='o', label="IPVS")
 plt.xlabel("Number of cores")
 plt.ylabel("Mpps")
-#plt.legend()
+plt.legend()
 plt.savefig(BASEDIR+"/figures/load-balancer.pdf", bbox_inches='tight')
 plt.ylim(0,32)
 plt.show()
@@ -225,8 +225,8 @@ plt.show()
 
 #+RESULTS:
 :results:
-# Out[69]:
-[[file:./obipy-resources/LXiEgw.svg]]
+# Out[70]:
+[[file:./obipy-resources/c1B0jl.svg]]
 :end:
 
 
