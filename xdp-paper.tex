@@ -69,7 +69,7 @@
 
 \begin{abstract}
   % Max abstract length is 200 words
-  Programmable packet processing is most often implemented using kernel bypass
+  Programmable packet processing is increasingly implemented using kernel bypass
   techniques, where a userspace application takes complete control of the
   networking hardware to avoid expensive context switches between kernel and
   userspace. However, in this model the processing application has to either
@@ -77,15 +77,15 @@
   network traffic itself, making fast packet processing an all-or-nothing
   proposition.
 
-  To overcome this limitation, we propose a novel approach to programmable
-  packet processing where the operating system kernel itself provides a safe
-  execution environment for custom packet processing applications, executed in
-  device driver context. This system, called the eXpress Data Path (XDP), has
-  been merged into the mainline Linux kernel and provides a fully integrated
-  solution working in concert with the kernel's networking stack. In XDP,
-  applications written in higher level languages such as C are compiled into
-  custom bytecode which the kernel statically analyses for safety, and
-  translates into native instructions.
+  To overcome this limitation, we present the design of a novel approach to
+  programmable packet processing, called the eXpress Data Path (XDP). In XDP,
+  the operating system kernel itself provides a safe execution environment for
+  custom packet processing applications, executed in device driver context. XDP
+  has been merged into the mainline Linux kernel and provides a fully integrated
+  solution working in concert with the kernel's networking stack. Applications
+  are written in higher level languages such as C and compiled into custom
+  bytecode which the kernel statically analyses for safety, and translates into
+  native instructions.
 
   We show that XDP achieves single-core packet processing performance as high as
   24 million packets per second, and illustrate the flexibility of the
@@ -180,27 +180,26 @@ solutions. Specifically, XDP:
 
 \begin{itemize}
 \item Integrates cooperatively with the regular networking stack, retaining full
-  control of the hardware in the kernel. This means that the kernel security
-  boundary is intact, and no changes to network configuration and management
-  tools are needed. In addition, any network adapter with a Linux driver can
-  be supported by XDP; no special hardware features or from scratch driver
-  implementation are needed.
+  control of the hardware in the kernel. This retains the kernel security
+  boundary, and requires no changes to network configuration and management
+  tools. In addition, any network adapter with a Linux driver can be supported
+  by XDP; no special hardware features are needed, and drivers need not be
+  re-implemented from scratch.
 
 \item Makes it possible to selectively utilise kernel network stack features
   such as the routing table and TCP stack, keeping the same configuration
   interface while accelerating critical performance paths.
 
 \item Provides a stable programming interface (API) for packet processing
-  applications, which carries the same stability guarantees as every other
-  kernel system call interface.
+  applications, which carries the same stability guarantees as the kernel system
+  call interface.
 
-\item Does not require expensive packet reinjection from user space into
-  kernel space when workloads based on the normal socket layer need to be
-  reached, since XDP already operates in kernel space.
+\item Does not require expensive packet reinjection from user space into kernel
+  space when interacting with workloads based on the normal socket layer.
 
-\item Is completely transparent to applications running on the host, enabling
-  new deployment scenarios such as inline protection against denial of service
-  attacks on application servers.
+\item Is transparent to applications running on the host, enabling new
+  deployment scenarios such as inline protection against denial of service
+  attacks on servers.
 
 \item Can be dynamically re-programmed without any service interruption, which
   means that features can be added on the fly or removed completely when they
@@ -210,8 +209,7 @@ solutions. Specifically, XDP:
 
 \item Does not require dedicating full CPU cores to packet processing, which
   means lower traffic levels translate directly into lower CPU usage. This has
-  important efficiency and power saving implications. However, it still provides
-  the flexibility to dedicate and busy-poll on cores if preferred otherwise.
+  important efficiency and power saving implications.
 \end{itemize}
 
 In the rest of this paper we present the design of XDP and our performance
@@ -297,7 +295,7 @@ module~\cite{pfringzc}, the hardware-specific Solarflare
 OpenOnload~\cite{openonload} or, most prominently, the DataPlane Development Kit
 (DPDK)~\cite{dpdk}. The latter started out as an Intel-specific hardware support
 package, but has since seen a wide uptake under the stewardship of the Linux
-Foundation and represents the state of the art in high-performance packet
+Foundation. DPDK represents the state of the art in high-performance packet
 processing, commonly used with higher-level processing frameworks such as
 Cisco's VPP~\cite{linguaglossa2017high}. The kernel bypass approach offers
 excellent performance, but has the drawback that it is more difficult to
@@ -315,13 +313,13 @@ processing implementations are avoided. In addition, the byte code format and
 execution context are part of the kernel/userspace Application Binary Interface
 (ABI), which means that the usual ABI stability guarantees apply; and so
 existing applications do not have to keep up with future changes in the kernel
-to be able to continue to function.
+to continue to function.
 
 While falling into the first category mentioned above, XDP also borrows aspects
 from the other two. For applications that prefer receiving the full packet
 contents in userspace, XDP also contains features that offer higher performance
 when redirecting packets to applications, virtual machines and containers
-running in userspace. This include the ability to bypass parts of the network
+running in userspace. This includes the ability to bypass parts of the network
 stack processing, and even to perform zero-copy transfer of packets to userspace
 applications using a special socket type. These facilities roughly correspond to
 the second approach mentioned above. Finally, XDP applies some of the same
@@ -352,19 +350,18 @@ received from the hardware.
 
 
 
-XDP is designed to integrate with the Linux networking stack, making it possible
-to take advantage of the extensive feature set of the operating system, while
-adding custom packet processing as required. This section describes how the
-components of XDP work, and how they fit together to create the full system.
-This is illustrated by Figure~\ref{fig:xdp-kernel}, which shows a diagram of how
-XDP integrates into the Linux kernel, and Figure~\ref{fig:xdp-execution}, which
-shows the execution flow of a typical XDP program.
-
-There are four major components in the XDP system:
+XDP integrates the Linux networking stack, making it possible to perform custom
+packet processing while taking advantage of the extensive feature set of the
+operating system. This section describes how the major components of XDP work,
+and how they fit together to create the full system. This is illustrated by
+Figure~\ref{fig:xdp-kernel}, which shows a diagram of how XDP integrates into
+the Linux kernel, and Figure~\ref{fig:xdp-execution}, which shows the execution
+flow of a typical XDP program. There are four major components of the XDP
+system:
 
 \begin{itemize}
 \item \textbf{The XDP driver hook} is the main entry point for an XDP program,
-  and is executed as soon as a packet is received from the hardware.
+  and is executed when a packet is received from the hardware.
 
 \item \textbf{The eBPF virtual machine} executes the byte code of the XDP
   program, and just-in-time-compiles it for increased performance.
@@ -376,8 +373,6 @@ There are four major components in the XDP system:
   communication channel to the rest of the system.
 \end{itemize}
 
-
-We describe each of these components in the following.
 
 \subsection{The XDP Driver Hook}
 \label{sec:prog-model}
@@ -722,9 +717,9 @@ focus on three metrics:
 \begin{itemize}
 \item Packet drop performance. To show the maximum packet processing
   performance, we measure the performance of the simplest possible operation of
-  simply dropping the incoming packet. This effectively measures the overhead of
-  the system as a whole, and serves as an upper bound on the expected
-  performance of a real packet processing application.
+  dropping the incoming packet. This effectively measures the overhead of the
+  system as a whole, and serves as an upper bound on the expected performance of
+  a real packet processing application.
 
 \item CPU usage. As mentioned in the introduction, one of the benefits of XDP is
   that it scales the CPU usage with the packet load, instead of dedicating CPU
@@ -732,10 +727,10 @@ focus on three metrics:
   usage scales with the offered network load.
 
 \item Packet forwarding performance. A packet processing system that cannot
-  forward packets has limited utility. However, since forwarding introduces an
-  additional complexity compared to the simple processing case (e.g.,
-  interacting with more than one network adapter, rewriting link-layer headers,
-  etc.), a separate evaluation of forwarding performance is useful.
+  forward packets has limited utility. Since forwarding introduces an additional
+  complexity compared to the simple processing case (e.g., interacting with more
+  than one network adapter, rewriting link-layer headers, etc.), a separate
+  evaluation of forwarding performance is useful.
 \end{itemize}
 
 We have verified that with full-sized (1500 bytes) packets, our system can
@@ -842,7 +837,7 @@ As Figure~\ref{fig:redirect-test} shows, we again see linear scaling with the
 number of cores up to a global performance bottleneck. The absolute performance
 is somewhat lower than for the packet drop case, which shows the overhead of
 packet forwarding. We also see that the XDP performance improves significantly
-when packets are sent out on the same interface that it was received on,
+when packets are sent out on the same interface that they were received on,
 surpassing the DPDK forwarding performance at two cores and above. The
 performance difference is primarily due to differences in memory handling:
 packet buffers are allocated by the device driver and associated with the
@@ -861,7 +856,7 @@ associated with.
 \subsection{Discussion}
 \label{sec:perf-discussion}
 
-As we have seen in the previous sections, XDP achieves significantly higher
+As we have seen in the previous subsections, XDP achieves significantly higher
 performance than the regular Linux networking stack. Even so, for most use cases
 XDP does not quite match the performance of DPDK. We believe this is primarily
 because DPDK has incorporated more performance optimisations at the lowest level
@@ -879,10 +874,11 @@ architectural level, such as DMA map and unmap operations. (2) It is possible to
 improve batching of operations, such as packet buffer returns across network
 interfaces. And (3), there are some optimisations in the device driver code,
 such as inlining function calls, that could be applied specifically to the mlx5
-driver. Indeed other drivers, such as the \emph{i40e} driver for 40\,Gbps Intel
-cards, show a smaller performance delta between XDP and DPDK. However, this
-hardware has performance limits that prevent us from showing the maximum
-performance of the system, which is why we have not used it for our experiments.
+driver. Indeed with other drivers, such as the \emph{i40e} driver for 40\,Gbps
+Intel cards, we have seen a smaller performance delta between XDP and DPDK.
+However, this hardware has performance limits that prevent us from showing the
+maximum performance of the system, which is why we have not used it for the
+experiments presented here.
 
 Given the above points, we believe it is quite feasible for XDP to further
 decrease the performance delta to DPDK, and quite possibly eliminate it
@@ -892,11 +888,10 @@ many use cases; we show some examples of this in the next section.
 
 \section{Real-world use cases}
 \label{sec:usecases}
-To show how the various aspects of XDP can used to implement useful real-world
-applications, this section gives three examples of such applications. These use
-cases have all seen deployment in one form or another, although we use
-simplified versions in our evaluation so as to be able to make the code
-available.
+To show how the various aspects of XDP can be used to implement useful
+real-world applications, this section describes three example use cases. These
+use cases have all seen deployment in one form or another, although we use
+simplified versions in our evaluation to be able to make the code available.
 
 The first use case shows how XDP's kernel helpers can be used to accelerate
 common use cases, using the example of a software router. In the second use
@@ -1016,13 +1011,13 @@ no special hardware or application changes are needed.
 \label{sec:load-balancer}
 For the load balancer use case, we use the XDP component of the Katran load
 balancer~\cite{katran} recently released as open source by Facebook. This works
-by announcing a virtual IP address, which is routed to the load balancer. At the
-load balancer, the XDP program hashes the source packet header using a stable
-hashing algorithm, to select a destination application server. The packet is
-then encapsulated and sent to the application server, which is responsible for
-decapsulating it, processing the request, and replying directly to the
-originator. The XDP program performs the encapsulation, and returns the packet
-out the same interface on which it was received.
+by announcing an IP address for the service, which is routed to the load
+balancer. The load balancer hashes the source packet header to select a
+destination application server. The packet is then encapsulated and sent to the
+application server, which is responsible for decapsulating it, processing the
+request, and replying directly to the originator. The XDP program performs the
+hashing and encapsulation, and returns the packet out the same interface on
+which it was received.
 
 To test this use case, we configure the Katran XDP program with a fixed number
 of destination hosts\footnote{We use one virtual IP per CPU core, and 100
@@ -1085,13 +1080,13 @@ addition, as others have noted~\cite{miano2018creating}, the restrictions on the
 program structure imposed by the verifier, such as the lack of support for
 function calls and loops, have been more limited than strictly necessary, in the
 interest of ensuring safety first. To improve upon this situation, there is an
-ongoing effort to teach the verifier to recognise more programs as safe that
-were previously rejected. Furthermore, the error messages reported by the
-verifier have been made friendlier, to make it easier for developers to change
-their code to avoid verification errors. Support for function calls in eBPF has
-recently been added, and the addition of support for bounded loops is planned.
-Finally, efficiency improvements that will allow the verifier to operate on
-larger programs are also being worked on.
+ongoing effort to reduce false negatives, i.e., cases where the verifier rejects
+programs that are actually safe to run. Furthermore, the error messages reported
+by the verifier have been made friendlier, to make it easier for developers to
+change their code to avoid verification errors. Support for function calls in
+eBPF has recently been added, and the addition of support for bounded loops is
+planned. Finally, efficiency improvements that will allow the verifier to
+operate on larger programs are also being worked on.
 
 \subsection{Driver Support}
 \label{sec:driver-support}
@@ -1102,8 +1097,7 @@ to more and more drivers,\footnote{At the time of writing Linux 4.17 has XDP
   For an updated list, see~\cite{cilium-docs}.} but some care is still needed
 when selecting hardware to use with XDP. However, since XDP is integrated into
 the kernel device driver model, it imposes no particular capability constraints
-on the hardware, which means that full support in all drivers is possible; and
-indeed we believe that is how this limitation will eventually be lifted.
+on the hardware, which means that full support in all drivers is possible.
 
 As the XDP system has evolved, the need to keep the changes required in drivers
 to support XDP to a minimum has become increasingly clear, and some steps have
@@ -1120,12 +1114,6 @@ performance gap between XDP and DPDK in some use cases. Efforts to improve this
 are ongoing, which includes micro-optimisations of driver code as well as
 changes to the core XDP code to avoid unnecessary operations where possible, and
 otherwise amortise the costs through improved batching of operations.
-
-One example of this is the interaction with the DMA subsystem of the kernel,
-which controls mapping of memory regions for DMA access. In the current design,
-there is some unnecessary overhead associated with this. Improved tracking of
-packet memory can eliminate some of this overhead entirely, while the rest can
-be amortised through batching.
 
 \subsection{QoS and Rate Transitions}
 \label{sec:handl-rate-trans}
@@ -1177,8 +1165,8 @@ We believe that these features make XDP a compelling alternative to
 all-or-nothing kernel bypass solutions. This belief is supported by XDP's
 adoption in a variety of real-world applications, some of which we have shown
 examples of above. Furthermore, the XDP system is still evolving, and we have
-outlined a number of developments which will continue to improve it in the
-future.
+outlined a number of interesting developments which will continue to improve it
+in the future.
 
 
 \bibliographystyle{ACM-Reference-Format}
