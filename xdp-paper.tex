@@ -475,7 +475,8 @@ subsystems which allow attaching eBPF programs to arbitrary kernel functions.
 Because all eBPF programs can share the same set of maps, this makes it possible
 for programs to react to arbitrary events in other parts of the kernel. For
 instance, an XDP program could drop packets if CPU load increases above a
-certain threshold.
+certain threshold, or it could trace socket events in the kernel such that any
+unrelated traffic could already be dropped earlier at XDP layer.
 
 At the instruction set level, eBPF extends the original BPF virtual machine by
 adding more registers and more instructions. The number of registers is
@@ -496,9 +497,9 @@ instruction, enabling function calls with close to zero additional overhead.
 This facility is used by eBPF to support helpers that eBPF programs can call to
 interact with the kernel while processing, as well as for function calls within
 the same eBPF program. A special case of function calls are tail calls, which
-replaces the running eBPF program with the target of the call. This can be used
+replace the running eBPF program with the target of the call. This can be used
 to split up processing into logical sub-parts, where execution is dispatched to
-other programs and never returns to the caller.
+other programs and never return to the caller.
 
 An eBPF program starts its execution with \texttt{R1} containing a pointer to a
 \emph{context} object, the contents of which varies with the type of program. As
@@ -508,13 +509,13 @@ metadata. This includes space for arbitrary data that is carried along with the
 packet and is accessible by other eBPF programs that operate on the packet at
 later stages of processing.
 
-Finally, the eBPF virtual machine supports dynamically loading and re-loading
+Finally, the eBPF 'virtual machine' supports dynamically loading and re-loading
 programs, and the kernel manages the life cycle of all programs. This makes it
-possible to limit the amount of processing performed for a given situation, by
-completely removing parts of the program that are not needed, and re-loading it
-as requirements change. The dynamic loading of programs also makes it
-straight-forward to express processing rules directly in program code, avoiding
-any data structure lookups needed by more generic code.
+possible to extend or limit the amount of processing performed for a given situation,
+by adding or completely removing parts of the program that are not needed, and
+re-loading it atomically as requirements change. The dynamic loading of programs
+also makes it straight-forward to express processing rules directly in program
+code, avoiding any data structure lookups needed by more generic code.
 
 \subsection{The eBPF Verifier}
 \label{sec:bpf-verifier}
