@@ -1,0 +1,38 @@
+* The eXpress Data Path: Fast Programmable Packet Processing in the Operating System Kernel
+
+This repository contains the =.tex= source code, datasets and experimental notes
+for the paper "The eXpress Data Path: Fast Programmable Packet Processing in the
+Operating System Kernel" which will be presented at ACM CoNEXT 2018 in
+December 2018.
+
+** Source code
+The XDP system is part of the upstream Linux kernel. The specific version we've
+used in our tests is available in Jesper's git repository on git.kernel.org, in
+the xdp_paper01 branch:
+
+https://git.kernel.org/pub/scm/linux/kernel/git/hawk/net-next-xdp.git/log/?h=xdp_paper01
+
+The specific commit we have been using is [[https://git.kernel.org/pub/scm/linux/kernel/git/hawk/net-next-xdp.git/commit/?h=xdp_paper01&id=e641995a1e18f12fa3ffa4aac405dd8e9135e0e9][e641995a1e18f12fa3ffa4aac405dd8e9135e0e9]].
+
+** Experimental setup
+
+The notes from our experiments are included in a series of .org files in the
+[[file:benchmarks/][benchmarks/]] directory. These files contain setup instructions for both XDP and
+DPDK. Some familiarity with Linux is probably an advantage for someone who wants
+to replicate the experiments; but if any information is missing from the notes,
+we consider that a bug. Please open an issue in the github repository for any
+such problems.
+
+
+** Hardware
+As our main test machine, we use a workstation equipped with an Intel Xeon
+E5-1650 v4 6-core CPU running at 3.60GHz. The machine has four 8GB RAM modules,
+allowing the use of all four memory channels. The test machine is equipped with
+two Mellanox ConnectX-5 Ex VPI dual-port 100Gbps NICs. We use the same NICs to
+drive the test load, but from different machines; see the experimental notes for
+details.
+
+** License
+
+All source code is released under the GNU GPL v2. All text and figures are
+released under a Creative Commons CC-BY-SA license.
