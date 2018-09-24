@@ -10,24 +10,16 @@
 \usepackage{algorithm}
 \usepackage[noend]{algpseudocode}
 
-\fancyfoot[C]{\thepage}
-\fancypagestyle{firstpagestyle}{
-  \fancyhf{}
-  \fancyfoot[C]{\thepage}
-}
-
-\setcopyright{none}
+\setcopyright{rightsretained}
 \acmYear{2018}
 \copyrightyear{2018}
-\acmConference[CoNEXT'18]{ACM CoNEXT 2018}{December 2018}{Heraklion/Crete, Greece}
-\settopmatter{printccs=false,printacmref=false}
-\widowpenalty=100
-\clubpenalty=100
-\brokenpenalty=100
+\acmConference{CoNEXT '18}{December 4--7, 2018}{Heraklion, Greece}
+%\widowpenalty=100
+%\clubpenalty=100
+%\brokenpenalty=100
 
 \begin{document}
-\title{The eXpress Data Path: Fast Programmable Packet Processing in the
-  Operating System Kernel}
+\title{The eXpress Data Path: Fast Programmable Packet Processing in the Operating System Kernel}
 \author{Toke Høiland-Jørgensen}
 \affiliation{%
   \institution{Karlstad University}}
@@ -123,7 +115,7 @@
 \ccsdesc[300]{Hardware~Networking hardware}
 \ccsdesc[300]{Software and its engineering~Operating systems}
 
-%\keywords{XDP, BPF, Programmable Networking}
+\keywords{XDP, BPF, Programmable Networking}
 \maketitle
 
 \section{Introduction}%
@@ -1167,6 +1159,16 @@ adoption in a variety of real-world applications, some of which we have shown
 examples of above. Furthermore, the XDP system is still evolving, and we have
 outlined a number of interesting developments which will continue to improve it
 in the future.
+
+\section*{Acknowledgements}
+\label{sec:acknowledgements}
+XDP has been under development by the Linux networking community for a number of
+years, and the authors would like to thank everyone who has been involved in
+this process. In particular, Alexei Starovoitov has been instrumental in the
+development of the eBPF virtual machine and verifier, and Jakub Kicinski has
+been a driving force behind XDP hardware offloading and development of the
+bpftool utility.
+
 
 
 \bibliographystyle{ACM-Reference-Format}
