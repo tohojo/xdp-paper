@@ -365,11 +365,13 @@ system:
 
 
 An XDP program is run by a hook in the network device driver each time a packet
-arrives. The program is executed directly in the device driver, without context
-switching to userspace. As shown in Figure~\ref{fig:xdp-kernel}, the program is
-executed at the earliest possible moment after a packet is received from the
-hardware, before the kernel allocates its per-packet \emph{sk\_buff} data
-structure or performs any parsing of the packet.
+arrives. The infrastructure to execute the program is contained in the kernel as
+a library function, which means that the program is executed directly in the
+device driver, without context switching to userspace. As shown in
+Figure~\ref{fig:xdp-kernel}, the program is executed at the earliest possible
+moment after a packet is received from the hardware, before the kernel allocates
+its per-packet \emph{sk\_buff} data structure or performs any parsing of the
+packet.
 
 Figure~\ref{fig:xdp-execution} shows the various processing steps typically
 performed by an XDP program. The program starts its execution with access to a
@@ -550,8 +552,9 @@ are used to track variable offsets of pointers, as well as the values of scalar
 variables.
 
 \begin{table}[tbp]
-\caption{\label{tbl:reg-types}
-eBPF verifier type annotations. The last column indicates whether pointer arithmetic is allowed for this type of pointer.}
+  \caption{\label{tbl:reg-types} eBPF verifier type annotations. The ``Arithm''
+    column indicates whether pointer arithmetic is allowed for this type of
+    pointer.}
 \centering
 \begin{tabular}{lll}
 \toprule
@@ -619,11 +622,15 @@ stack values, only ranges previously stored on the stack are valid. And finally,
 for pointers to packet data, only ranges known to be less than the packet length
 are allowed. The latter is enforced by ensuring that any reading or writing of
 packet data is preceded by an appropriate range check, through comparison with
-the special \texttt{PACKET\_END} pointer in the context structure. This approach
-means that the static analysis can verify that the program never reads outside
-the variable-length packet data, without knowing the length in advance. This
-enables program instructions to directly access packet data, which is an
-important reason for the high performance of eBPF packet processing programs.
+the special \texttt{PACKET\_END} pointer in the context structure. I.e., the
+verifier doesn't verify the \emph{value} of the packet length (which is not
+known at verification time), but instead ensures that the program being loaded
+contains the required bounds checking. This approach means that the static
+analysis can verify that the program never reads outside the variable-length
+packet data, without knowing the length in advance. With this verification in
+place, it is safe for program instructions to directly access packet data, which
+is an important reason for the high performance of eBPF packet processing
+programs.
 
 When pointers are copied to other registers, a bounds check on one copy can be
 used to infer the valid ranges of the other copies, even after the copy
@@ -726,10 +733,13 @@ second, as others have also noted~\cite{rizzo2012netmap}. For this reason, we
 perform all tests using minimum-sized (64 bytes) packets, and measure the
 maximum number of packets per second the system can process. To measure how
 performance scales with the number of CPU cores, we repeat the tests with an
-increasing number of cores dedicated to packet processing. For XDP and the Linux
-network stack (which do not offer an explicit way to dedicate cores to packet
-processing) we achieve this by configuring the hardware Receive Side Scaling
-(RSS) feature to steer traffic to the desired number of cores for each test.
+increasing number of cores dedicated to packet processing.\footnote{The
+  \emph{Hyperthreading} feature of the CPU is disabled for our experiments, so
+  whenever we refer to the number of CPU cores, this means the number of
+  physical cores.} For XDP and the Linux network stack (which do not offer an
+explicit way to dedicate cores to packet processing) we achieve this by
+configuring the hardware Receive Side Scaling (RSS) feature to steer traffic to
+the desired number of cores for each test.
 
 As we will see in the results below, our tests push the hardware to its very
 limits. As such, tuning the performance of the system as a whole is important to
@@ -743,7 +753,9 @@ available in the online repository.
 
 The following subsections present the evaluation results for each of the metrics
 outlined above, followed by a general discussion of the performance of XDP
-compared to the other systems.
+compared to the other systems. As all our results were highly repeatable, we
+show results from a single test run (with no error bars) to make the graphs more
+readable.
 
 \subsection{Packet Drop Performance}
 \label{sec:basel-pack-proc}
@@ -791,6 +803,11 @@ polling to process the packets, its CPU usage is always pegged at 100\%, which
 is the green line at the top of the figure. In contrast, both XDP and Linux
 smoothly scale CPU usage with the offered load, with a slightly larger relative
 increase in CPU usage at a small offered load level.
+
+The non-linearity of the graph in the bottom-left corner is due to the fixed
+overhead of interrupt processing. At lower packet rates, the number of packets
+processed during each interrupt is smaller, leading to higher CPU usage per
+packet.
 
 \begin{figure}[t]
 \centering
@@ -860,11 +877,14 @@ architectural level, such as DMA map and unmap operations. (2) It is possible to
 improve batching of operations, such as packet buffer returns across network
 interfaces. And (3), there are some optimisations in the device driver code,
 such as inlining function calls, that could be applied specifically to the mlx5
-driver. Indeed with other drivers, such as the \emph{i40e} driver for 40\,Gbps
-Intel cards, we have seen a smaller performance delta between XDP and DPDK.
-However, this hardware has performance limits that prevent us from showing the
-maximum performance of the system, which is why we have not used it for the
-experiments presented here.
+driver.\footnote{The mlx5 driver performs 10 function when processing a single
+  packet, corresponding to 13 of the 18.7 nanoseconds of performance difference
+  between XDP and DPDK.} Indeed with other drivers, such as the \emph{i40e}
+driver for 40\,Gbps Intel cards, we have seen a smaller performance delta
+between XDP and DPDK (which contains its own network device drivers). However,
+this hardware has performance limits that prevent us from showing the maximum
+performance of the system, which is why we have not used it for the experiments
+presented here.
 
 Given the above points, we believe it is quite feasible for XDP to further
 decrease the performance delta to DPDK, and quite possibly eliminate it
@@ -914,7 +934,11 @@ a full dump of the global BGP routing table from \emph{\url{routeviews.org}}. In
 both cases, all next-hop addresses are set to the address of the test system
 connected to our egress interface. The full table contains 752,138 distinct
 routes, and for our tests we generate 4000 random destination IP addresses to
-make sure we exercise the full table.
+make sure we exercise the full table.\footnote{Using fewer than 4000 destination
+  IPs, the part of the routing table that is actually used is small enough to be
+  kept in the CPU cache, which gives misleading (better) results. Increasing the
+  number of IPs above 4000 had no additional effects on forwarding
+  performance.}.
 
 The performance of this use case is seen in Figure~\ref{fig:router-fwd}. Using
 XDP for the forwarding plane improves performance with a factor of 2.5 for a
@@ -957,16 +981,17 @@ will drop packets matching the rules, while also updating match counters stored
 in BPF maps.
 
 To test the performance of such a solution, we use an XDP program that parses
-the packet headers and performs a small number of tests\footnote{A total of four
-  tests are performed after the header parsing. For details, see the online
-  appendix.} to identify attack traffic and drop it, and uses the CPU redirect
-feature to pass all other packets to a different CPU core for processing. To
-simulate a baseline application load we use the Netperf benchmarking
-tool~\cite{netperf}. Netperf contains a TCP-based round-trip benchmark, which
-opens a TCP connection and sends a small payload that is echoed back from the
-server, repeating as soon as a reply is received. The output is the number of
-transactions per second, which represents performance of an interactive use
-case, such as small remote procedure calls.
+the packet headers and performs a small number of tests\footnote{Our example
+  program performs four packet data reads per packet, to parse the outer packet
+  headers and drop packets with a pre-defined UDP destination port number.} to
+identify attack traffic and drop it, and uses the CPU redirect feature to pass
+all other packets to a different CPU core for processing. To simulate a baseline
+application load we use the Netperf benchmarking tool~\cite{netperf}. Netperf
+contains a TCP-based round-trip benchmark, which opens a TCP connection and
+sends a small payload that is echoed back from the server, repeating as soon as
+a reply is received. The output is the number of transactions per second, which
+represents performance of an interactive use case, such as small remote
+procedure calls.
 
 We run our experiment on a single core, to illustrate the situation where
 legitimate traffic has to compete for the same hardware resources as attack
@@ -1003,7 +1028,8 @@ destination application server. The packet is then encapsulated and sent to the
 application server, which is responsible for decapsulating it, processing the
 request, and replying directly to the originator. The XDP program performs the
 hashing and encapsulation, and returns the packet out the same interface on
-which it was received.
+which it was received. It keeps state in BPF maps and implements the
+encapsulation entirely in the eBPF program.
 
 To test this use case, we configure the Katran XDP program with a fixed number
 of destination hosts\footnote{We use one virtual IP per CPU core, and 100

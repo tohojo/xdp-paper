@@ -48,7 +48,7 @@ address:
   - Number of programs supported
   - Collect limitations on loops etc in one place
   - What happens if an XDP program is bad?
-- Clarify that experimental runs are single-runs + highly repeatable
+- [X] Clarify that experimental runs are single-runs + highly repeatable
 * Reviewer B
 - "Generalising XDP": Cite examples of other packages (IDS, P4, OVS(?))
   implementing parts of their functionality in XDP
@@ -56,21 +56,21 @@ address:
 - Simplify sections 3.2 and 3.3
 - Talk about loading/unloading of programs
 ** Nits
-- Fig 1: Clarify why XDP is shown inside the device driver (that's where the
+- [X] Fig 1: Clarify why XDP is shown inside the device driver (that's where the
   hook is)
-- Explain CPU redirect in a bit more detail
-- Expand on limitations on C program (same as section above?)
-- Explain PACKET_END check
-- Example for pointer copies
-- Table 2 - clarify arithm column
-- Clarify that we disable hyper-threading
-- Explain non-linear growth in fig 4
-- Explain how device driver optimisations can help close the performance gap
+- [ ] Explain CPU redirect in a bit more detail
+- [ ] Expand on limitations on C program (same as section above?)
+- [X] Explain PACKET_END check
+- [ ] Example for pointer copies
+- [X] Table 2 - clarify arithm column
+- [X] Clarify that we disable hyper-threading
+- [X] Explain non-linear growth in fig 4
+- [X] Explain how device driver optimisations can help close the performance gap
   (and that DPDK has its own driver)
-- Clarify routing example: No cache, 4000 IPs picked because above that it
+- [X] Clarify routing example: No cache, 4000 IPs picked because above that it
   didn't make any difference
-- Explain DoS packet rules in more detail
-- No helpers for the load balancer
+- [X] Explain DoS packet rules in more detail
+- [X] No helpers for the load balancer
 * Reviewer C
 Nothing we need to address
 * Reviewer D
