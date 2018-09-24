@@ -36,20 +36,10 @@ Two other ways exist to only use a single RXQ or single CPU.
 
 * DDoS test tool
 
-** sample: xdp_ddos01_blacklist
-
-We can use the xdp_ddos01_blacklist example from prototype-kernel
-github repo.  It also supports matching on the UDP port number.
-
-The BPF code should be large enough, that we can claim that it does a
-lot of different tests, to simulate a reasonable DDoS BPF program.
-
-Notice: xdp_ddos01_blacklist is missing CPU redirect feature.
-
 ** sample: xdp_redirect_cpu run#1
 
 The xdp_redirect_cpu tool have --prognum 4, which is a DDoS test.
-See: xdp_prognum4_ddos_filter_pktgen
+See: [[https://git.kernel.org/pub/scm/linux/kernel/git/hawk/net-next-xdp.git/tree/samples/bpf/xdp_redirect_cpu_kern.c?h=xdp_paper01#n379][xdp_prognum4_ddos_filter_pktgen]]
 
 Setup:
  - DUT is running netserver (NIC CX5)
