@@ -1,0 +1,87 @@
+* Summary plan
+Based on the review comments we plan to make the following changes to the paper:
+
+- We will shorten the description of the eBPF virtual machine and verifier in
+  sections 3.2 and 3.3, to make space for an annotated example of an XDP
+  program, as suggested by reviewers B and D.
+
+- We will add examples of latency numbers, as suggested by reviewer A (time and
+  space will not allow us to add these throughout, though).
+
+- We will add a discussion of the design constraints imposed by the integration
+  of XDP into the existing Linux kernel, as suggested by reviewer D.
+
+- We will expand the comparison between XDP and other similar solutions, as
+  suggested by reviewer D.
+
+- We will add a discussion of offloading XDP programs onto the NIC, as suggested
+  by reviewer A, and on how other higher-level frameworks can build on top of
+  XDP, as suggested by reviewer B.
+
+- We will clarify the text to address the smaller nits suggested by the
+  reviewers (primarily by reviewers A and B).
+
+Things that were suggested by the reviewers that we are *not* planning to
+address:
+
+- We are not going to add a discussion of lessons learned and the evolution of
+  the design, as suggested by reviewer A. We agree that this would be valuable,
+  but we feel that the limited space in the paper would be better spent on other
+  things. However, we will certainly consider publishing such an overview in
+  another context at a later date.
+
+- We do not plan to add other competing systems to the performance evaluation,
+  because of time and space constraints. We will, however, clarify that the
+  reason we picked DPDK for the comparison is that others have shown DPDK to be
+  the highest-performing of the existing frameworks, which is why we picked this
+  as the one to compare against (see e.g., Gallenmuller et al, as cited in the
+  paper).
+
+
+* Reviewer A
+- Discuss offloading of XDP programs to smart-NICs.
+- Latency numbers
+- Verifier risk
+- Overhead
+- Design journey (ENOSPACE)
+- Better limitations section?
+  - Number of programs supported
+  - Collect limitations on loops etc in one place
+  - What happens if an XDP program is bad?
+- Clarify that experimental runs are single-runs + highly repeatable
+* Reviewer B
+- "Generalising XDP": Cite examples of other packages (IDS, P4, OVS(?))
+  implementing parts of their functionality in XDP
+- Clarify how we think new helpers will be implemented
+- Simplify sections 3.2 and 3.3
+- Talk about loading/unloading of programs
+** Nits
+- Fig 1: Clarify why XDP is shown inside the device driver (that's where the
+  hook is)
+- Explain CPU redirect in a bit more detail
+- Expand on limitations on C program (same as section above?)
+- Explain PACKET_END check
+- Example for pointer copies
+- Table 2 - clarify arithm column
+- Clarify that we disable hyper-threading
+- Explain non-linear growth in fig 4
+- Explain how device driver optimisations can help close the performance gap
+  (and that DPDK has its own driver)
+- Clarify routing example: No cache, 4000 IPs picked because above that it
+  didn't make any difference
+- Explain DoS packet rules in more detail
+- No helpers for the load balancer
+* Reviewer C
+Nothing we need to address
+* Reviewer D
+- Rework Section 2 to more explicitly compare the design of other solutions to
+  XDP (can we do that without taking up too much space?)
+- Be a bit more explicit about the fact that XDP needs to fit into an existing
+  operating system, and which design constraints that imposes.
+- Cut down on description of eBPF in favour of example(s)
+- Explain that DPDK has way higher performance than anything else, which is why
+  we compare against that
+- Mention the other prior work items ("StackMap, Sandstorm, mTCP, Seastar, IX, etc")(?)
+* Reviewer E
+- Highlight new ideas and optimisations (?)
+- Clarify how XDP avoid the expensive reinjection required for DPDK
