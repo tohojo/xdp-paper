@@ -801,12 +801,12 @@ perform all tests using minimum-sized (64 bytes) packets, and measure the
 maximum number of packets per second the system can process. To measure how
 performance scales with the number of CPU cores, we repeat the tests with an
 increasing number of cores dedicated to packet processing.\footnote{The
-  \emph{Hyperthreading} feature of the CPU is disabled for our experiments, so
-  whenever we refer to the number of CPU cores, this means the number of
-  physical cores.} For XDP and the Linux network stack (which do not offer an
-explicit way to dedicate cores to packet processing) we achieve this by
-configuring the hardware Receive Side Scaling (RSS) feature to steer traffic to
-the desired number of cores for each test.
+  Hyperthreading feature of the CPU is disabled for our experiments, so whenever
+  we refer to the number of active CPU cores, this means the number of physical
+  cores.} For XDP and the Linux network stack (which do not offer an explicit
+way to dedicate cores to packet processing) we achieve this by configuring the
+hardware Receive Side Scaling (RSS) feature to steer traffic to the desired
+number of cores for each test.
 
 As we will see in the results below, our tests push the hardware to its very
 limits. As such, tuning the performance of the system as a whole is important to
