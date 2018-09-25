@@ -761,9 +761,9 @@ packet data directly in the CPU cache. The test machine is equipped with two
 Mellanox ConnectX-5 Ex VPI dual-port 100Gbps network adapters, which are
 supported by the \emph{mlx5} driver. We use the TRex packet
 generator~\cite{cisco18:_trex_traff_gener} to produce the test traffic. The test
-machine runs a pre-release of the upcoming version 4.18 of the Linux kernel. To
-help others reproduce our results, we make available the full details of our
-setup, along with links to source code and the raw test data, in an online
+machine runs a pre-release of version 4.18 of the Linux kernel. To help others
+reproduce our results, we make available the full details of our setup, along
+with links to source code and the raw test data, in an online
 repository~\cite{test-data}.
 
 To evaluate the performance of XDP, we compare it to the baseline performance of
@@ -1171,7 +1171,7 @@ operate on larger programs are also being worked on.
 \label{sec:driver-support}
 Each device driver needs to add support for running XDP programs, by supporting
 an API exposed by the core networking stack. Support is continuously being added
-to more and more drivers,\footnote{At the time of writing Linux 4.17 has XDP
+to more and more drivers,\footnote{At the time of writing Linux 4.18 has XDP
   support in 12 different drivers, including most high-speed network adapters.
   For an updated list, see~\cite{cilium-docs}.} but some care is still needed
 when selecting hardware to use with XDP. However, since XDP is integrated into
