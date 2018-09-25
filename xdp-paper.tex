@@ -1223,6 +1223,17 @@ There has been some initial discussion of this in the community~\cite{txdp};
 while far from trivial, this presents an exciting opportunity for expanding the
 scope of the XDP system.
 
+\subsection{Zero-copy to userspace}
+\label{sec:zero-copy-userspace}
+
+As mentioned in Section~\ref{sec:prog-model},
+
+
+\subsection{Hardware offloads for XDP}
+\label{sec:hardw-offl-xdp}
+
+
+
 \section{Conclusions}
 \label{sec:conclusion}
 We have presented XDP, a system for safely integrating fast programmable packet
@@ -1252,10 +1263,10 @@ in the future.
 XDP has been under development by the Linux networking community for a number of
 years, and the authors would like to thank everyone who has been involved in
 this process. In particular, Alexei Starovoitov has been instrumental in the
-development of the eBPF virtual machine and verifier, and Jakub Kicinski has
-been a driving force behind XDP hardware offloading and development of the
-bpftool utility.
-
+development of the eBPF virtual machine and verifier, Jakub Kicinski has been a
+driving force behind XDP hardware offloading and development of the bpftool
+utility, and Björn Töpel has been leading the AF\_XDP and zero-copy to userspace
+effort.
 
 
 \bibliographystyle{ACM-Reference-Format}
