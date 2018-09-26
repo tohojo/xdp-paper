@@ -645,21 +645,57 @@ in fixed offsets) as valid in the other copies. Similarly, for pointers to map
 values, all copies of a pointer returned from the same map lookup share their
 \emph{id}, and a check against NULL will affect all of them.
 
+\subsection{BPF Maps}
+\label{sec:bpf-maps}
+eBPF programs are executed in response to an event in the kernel (a packet
+arrival, in the case of XDP). Each time they are executed they start in the same
+initial state, and they do not have access to persistent memory storage in their
+program context. Instead, programs can access \emph{BPF maps}.
+
+BPF maps are key/value stores that are defined upon loading an eBPF program, and
+can be referred to from within the eBPF code. Maps exist in both global and
+per-CPU variants, and can be shared, both between different eBPF programs
+running at various places in the kernel, as well as between eBPF and userspace.
+The map types include generic hash maps, arrays and radix trees, as well as
+specialised types containing pointers to eBPF programs (used for tail calls), or
+even recursive pointers to other maps.
+
 \begin{listing}
   \caption{\label{lst:ex-xdp-prog}Example XDP program. From xdp2\_kern.c,
-    distributed with the kernel source code.}
-\begin{minted}[linenos,fontsize=\footnotesize]{c}
+    distributed with the kernel source code. Some lines are compressed slightly to fit on
+    the page, and the parse\_ipv6() function is omitted.}
+\begin{minted}[linenos,fontsize=\footnotesize,tabsize=3]{c}
+struct bpf_map_def SEC("maps") rxcnt = {
+	.type = BPF_MAP_TYPE_PERCPU_ARRAY,
+	.key_size = sizeof(u32),
+	.value_size = sizeof(long),
+	.max_entries = 256,
+};
+
+static void swap_src_dst_mac(void *data)
+{
+	unsigned short *p = data;
+	unsigned short dst[3];
+	dst[0] = p[0];   dst[1] = p[1];   dst[2] = p[2];
+	p[0]   = p[3];   p[1]   = p[4];   p[2]   = p[5];
+	p[3]   = dst[0]; p[4]   = dst[1]; p[5]   = dst[2];
+}
+
+static int parse_ipv4(void *data, u64 nh_off, void *data_end)
+{
+	struct iphdr *iph = data + nh_off;
+	if (iph + 1 > data_end)
+		return 0;
+	return iph->protocol;
+}
+
 SEC("xdp1")
 int xdp_prog1(struct xdp_md *ctx)
 {
 	void *data_end = (void *)(long)ctx->data_end;
 	void *data = (void *)(long)ctx->data;
-	struct ethhdr *eth = data;
-	int rc = XDP_DROP;
-	long *value;
-	u16 h_proto;
-	u64 nh_off;
-	u32 ipproto;
+	struct ethhdr *eth = data; int rc = XDP_DROP;
+	long *value; u16 h_proto; u64 nh_off; u32 ipproto;
 
 	nh_off = sizeof(*eth);
 	if (data + nh_off > data_end)
@@ -667,8 +703,7 @@ int xdp_prog1(struct xdp_md *ctx)
 
 	h_proto = eth->h_proto;
 
-	if (h_proto == htons(ETH_P_8021Q) ||
-	    h_proto == htons(ETH_P_8021AD)) {
+	if (h_proto == htons(ETH_P_8021Q) || h_proto == htons(ETH_P_8021AD)) {
 		struct vlan_hdr *vhdr;
 
 		vhdr = data + nh_off;
@@ -677,8 +712,7 @@ int xdp_prog1(struct xdp_md *ctx)
 			return rc;
 		h_proto = vhdr->h_vlan_encapsulated_proto;
 	}
-	if (h_proto == htons(ETH_P_8021Q) ||
-	    h_proto == htons(ETH_P_8021AD)) {
+	if (h_proto == htons(ETH_P_8021Q) || h_proto == htons(ETH_P_8021AD)) {
 		struct vlan_hdr *vhdr;
 
 		vhdr = data + nh_off;
@@ -703,27 +737,12 @@ int xdp_prog1(struct xdp_md *ctx)
 		swap_src_dst_mac(data);
 		rc = XDP_TX;
 	}
-
 	return rc;
 }
 
 \end{minted}
 \end{listing}
 
-\subsection{BPF Maps}
-\label{sec:bpf-maps}
-eBPF programs are executed in response to an event in the kernel (a packet
-arrival, in the case of XDP). Each time they are executed they start in the same
-initial state, and they do not have access to persistent memory storage in their
-program context. Instead, programs can access \emph{BPF maps}.
-
-BPF maps are key/value stores that are defined upon loading an eBPF program, and
-can be referred to from within the eBPF code. Maps exist in both global and
-per-CPU variants, and can be shared, both between different eBPF programs
-running at various places in the kernel, as well as between eBPF and userspace.
-The map types include generic hash maps, arrays and radix trees, as well as
-specialised types containing pointers to eBPF programs (used for tail calls), or
-even recursive pointers to other maps.
 
 Maps serve several purposes: they are a persistent data store between
 invocations of the same eBPF program; a global coordination tool, where eBPF
@@ -731,6 +750,46 @@ programs in one part of the kernel can update state that changes the behaviour
 in another; and a communication mechanism between userspace programs and the
 kernel eBPF programs, similar to the communication between control plane and
 data plane in other programmable package processing systems.
+
+\subsection{Example XDP program}
+\label{sec:example-xdp-program}
+
+
+To showcase the features described above, Listing~\ref{lst:ex-xdp-prog} shows an
+example of a simple XDP program. The program will parse packet headers, and
+reflect all UDP packets by swapping the source and destination MAC addresses and
+sending the packet back out the interface it came in on. While this is obviously
+a very simple example, the program does feature most of the components of an XDP
+program that is useful in the real world. Specifically:
+
+\begin{itemize}
+\item A BPF map is defined (lines 1--6) for keeping statistics of the number of
+  processed packets. The map is keyed on IP protocol number and each value is
+  simply a packet count (updated in lines 65--67). A userspace program can poll
+  this map to output statistics while the XDP program is running.
+\item Pointers to the start and end of the packet data is read from the context
+  object (lines 28--29), to be used for direct packet data access.
+\item Checking against the data\_end pointer ensures that no data is read out of
+  bounds (lines 20, 34, 44 and 53).
+\item Direct packet data access is used to modify the packet headers (lines
+  12--14).
+\item Functions defined inside the program (lines 8--23) which are inlined by
+  the compiler (automatically in this case).
+\item The use of helper functions exposed by the kernel (in this example just
+  the map lookup function called on line 65).
+\item Packet verdict communicated by the program return code (line 73).
+\end{itemize}
+
+The example also shows how a program must handle any packet parsing itself,
+including things such as VLAN headers (this example program supports
+double-tagged VLANs through the repeated parsing in lines 39--56).
+
+When the program is installed on an interface, it is first compiled into eBPF
+byte code, then checked by the verifier. The notable things checked by the
+verifier in this case are (a) the absence of loops, and the total size of the
+program, (b) that all direct packet data accesses are preceded by appropriate
+bounds checking and (c) that the return value from the map lookup is checked
+against NULL before it is accessed.
 
 
 \subsection{Summary}
