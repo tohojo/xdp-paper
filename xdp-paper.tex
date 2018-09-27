@@ -1285,13 +1285,28 @@ scope of the XDP system.
 \subsection{Zero-copy to userspace}
 \label{sec:zero-copy-userspace}
 
-As mentioned in Section~\ref{sec:prog-model},
-
+As mentioned in Section~\ref{sec:prog-model}, an XDP program can redirect data
+packets to a special socket opened by a user space application. This can be used
+to improve performance of network-heavy applications running on the local
+machine. However, in its initial implementation, this mechanism still involves
+copying the packet data, which negatively affects performance. There is ongoing
+work to enable true zero-copy data transfer to user space applications through
+\texttt{AF\_XDP} sockets. This places some constrains on the memory handling of
+the network device, and so requires explicit driver support. The first such
+support was merged into the kernel in the 4.19 release cycle, and work is
+ongoing to add it to more drivers. The initial performance numbers look
+promising, showing transfers of upwards of 20 Mpps per second to userspace on a
+single core.
 
 \subsection{Hardware offloads for XDP}
 \label{sec:hardw-offl-xdp}
 
-
+Since the eBPF virtual machine is a well-defined runtime environment, there is
+no fundamental reason why it should be limited to running inside the Linux
+kernel. For XDP programs that don't need to access kernel helper functions, it
+is possible to offload the execution of the program from the host CPU entirely,
+given appropriate hardware support. This is currently supported in the
+Netronome smart-NICs, and is also an area of active development.
 
 \section{Conclusions}
 \label{sec:conclusion}
