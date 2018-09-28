@@ -39,15 +39,15 @@ address:
 
 
 * Reviewer A
-- Discuss offloading of XDP programs to smart-NICs.
+- [X] Discuss offloading of XDP programs to smart-NICs.
 - Latency numbers
 - Verifier risk
 - Overhead
 - Design journey (ENOSPACE)
 - Better limitations section?
-  - Number of programs supported
-  - Collect limitations on loops etc in one place
-  - What happens if an XDP program is bad?
+  - [X] Number of programs supported
+  - [X] Collect limitations on loops etc in one place
+  - [ ] What happens if an XDP program is bad?
 - [X] Clarify that experimental runs are single-runs + highly repeatable
 * Reviewer B
 - "Generalising XDP": Cite examples of other packages (IDS, P4, OVS(?))
@@ -59,7 +59,7 @@ address:
 - [X] Fig 1: Clarify why XDP is shown inside the device driver (that's where the
   hook is)
 - [ ] Explain CPU redirect in a bit more detail
-- [ ] Expand on limitations on C program (same as section above?)
+- [X] Expand on limitations on C program (same as section above?)
 - [X] Explain PACKET_END check
 - [ ] Example for pointer copies
 - [X] Table 2 - clarify arithm column
@@ -79,7 +79,7 @@ Nothing we need to address
 - Be a bit more explicit about the fact that XDP needs to fit into an existing
   operating system, and which design constraints that imposes.
 - Cut down on description of eBPF in favour of example(s)
-- Explain that DPDK has way higher performance than anything else, which is why
+- [X] Explain that DPDK has way higher performance than anything else, which is why
   we compare against that
 - Mention the other prior work items ("StackMap, Sandstorm, mTCP, Seastar, IX, etc")(?)
 * Reviewer E

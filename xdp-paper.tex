@@ -1033,6 +1033,12 @@ finally, the third use case shows how the forwarding mode that sends packets out
 the same interface as they arrived on can be used to implement a layer-4 load
 balancer.
 
+Note that the purpose of this section is to demonstrate the feasibility of
+implementing the selected use cases in XDP. For this reason we do not perform an
+exhaustive performance evaluation against other implementations of the same use
+cases, but only benchmark the XDP applications against the baseline Linux
+kernel. An exhaustive performance evaluation is out of scope for this paper.
+
 \subsection{Software Routing}
 \label{sec:fwd-usecase}
 The Linux kernel contains a full-featured routing table, which includes support
@@ -1194,6 +1200,47 @@ User experience and debugging; driver support; performance improvements; QoS and
 better handling of rate transitions; and acceleration of transport protocols.
 The following subsections discuss each effort in turn.
 
+
+
+\subsection{Limitations on eBPF programs}
+\label{sec:limit-ebpf-progr}
+
+As mentioned previously, the programs loaded into the eBPF virtual machine are
+analysed by the eBPF verifier, which places certain limitations on the programs
+to ensure they do not harm the running kernel. These limitations fall in two
+categories: (a) Ensuring the program will terminate, which is implemented by
+disallowing loops and limiting the maximum size of the program. And (b) ensuring
+the safety of memory accesses, which is done by the register state tracking
+explained in Section~\ref{sec:reg-state}.
+
+The primary function of the verifier is to ensure the safety of the kernel from
+programs being loaded into it. As such, a conservative approach is taken, where
+the verifier will reject any program that it cannot prove is safe. This can lead
+to false negatives, where safe programs are needlessly rejected. In addition, as
+others have noted~\cite{miano2018creating}, the restrictions on the program
+structure imposed by the verifier, such as the lack of support loops, have been
+more limited than strictly necessary, in the interest of ensuring safety first.
+To improve upon this situation, there is an ongoing effort to reduce false
+negatives, i.e., cases where the verifier rejects programs that are actually
+safe to run. Furthermore, the error messages reported by the verifier have been
+made friendlier, to make it easier for developers to change their code to avoid
+verification errors. Support for function calls in eBPF has recently been added,
+and the addition of support for bounded loops is planned. Finally, efficiency
+improvements that will allow the verifier to operate on larger programs are also
+being worked on.
+
+Another limitation of eBPF programs compared to user-space C programs is the
+lack of a standard library, including things like memory allocation, threading,
+locking, etc. This is partly alleviated by the lifecycle and execution context
+management of the kernel (i.e., an XDP program is automatically run for each
+arriving packet), and partly by the helper functions exposed by the kernel.
+
+Finally, only one XDP program can be attached to each networking interface. This
+can be worked around by cooperation between programs, where the tail call
+functionality can be used to either dynamically dispatch to different programs
+depending on packet content, or to chain several programs together to operate in
+sequence.
+
 \subsection{User Experience and Debugging}
 \label{sec:user-exper-debugg}
 Since an XDP program runs in the kernel, the debugging tools available to a
@@ -1209,22 +1256,6 @@ program~\cite{bpftool} and the \emph{libbpf} library of utility
 functions~\cite{libbpf}. These have already seen significant improvements, but
 more work is needed in this area.
 
-Another area that sees continual improvement is the eBPF program verifier. The
-primary focus of the verifier is naturally to ensure the safety of the kernel
-from programs being loaded into it. As such, a conservative approach is taken,
-where the verifier will reject any program that it cannot prove is safe. This
-can lead to false negatives, where safe programs are needlessly rejected. In
-addition, as others have noted~\cite{miano2018creating}, the restrictions on the
-program structure imposed by the verifier, such as the lack of support for
-function calls and loops, have been more limited than strictly necessary, in the
-interest of ensuring safety first. To improve upon this situation, there is an
-ongoing effort to reduce false negatives, i.e., cases where the verifier rejects
-programs that are actually safe to run. Furthermore, the error messages reported
-by the verifier have been made friendlier, to make it easier for developers to
-change their code to avoid verification errors. Support for function calls in
-eBPF has recently been added, and the addition of support for bounded loops is
-planned. Finally, efficiency improvements that will allow the verifier to
-operate on larger programs are also being worked on.
 
 \subsection{Driver Support}
 \label{sec:driver-support}
