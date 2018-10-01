@@ -726,13 +726,26 @@ subject of the next section.
 
 \section{Performance evaluation}
 \label{sec:perf-eval}
-In this section we present our performance evaluation of XDP, using synthetic
-benchmarks to examine specific aspects of the system's capabilities. For all
-benchmarks, we use a machine equipped with a hexa-core Intel Xeon E5-1650 v4 CPU
-running at 3.60GHz, which supports Intel's Data Direct I/O (DDIO) technology
-allowing the networking hardware Direct Memory Access (DMA) system to place
-packet data directly in the CPU cache. The test machine is equipped with two
-Mellanox ConnectX-5 Ex VPI dual-port 100Gbps network adapters, which are
+In this section we present our performance evaluation of XDP. As mentioned in
+Section~\ref{sec:related-work}, there are quite a few existing systems for
+high-performance packet processing, and benchmarking all of them is not feasible
+in the scope of this paper. Instead, we note that DPDK is the existing solution
+that achieves the highest performance~\cite{gallenmuller_comparison_2015}, and
+use that as a baseline for the current state of the art in high-speed software
+packet processing, and compare against that (using the \texttt{testpmd} example
+application shipped with the 18.05 release of DPDK). We focus on the raw packet
+processing performance, using synthetic benchmarks, and also compare against the
+performance of the Linux kernel network stack, to show the performance
+improvements offered by XDP in the same system. In the next section, we
+supplement these raw performance benchmarks with some examples of real-world
+applications implemented on top of XDP, to demonstrate their flexibility within
+the programming model.
+
+For all benchmarks, we use a machine equipped with a hexa-core Intel Xeon
+E5-1650 v4 CPU running at 3.60GHz, which supports Intel's Data Direct I/O (DDIO)
+technology allowing the networking hardware Direct Memory Access (DMA) system to
+place packet data directly in the CPU cache. The test machine is equipped with
+two Mellanox ConnectX-5 Ex VPI dual-port 100Gbps network adapters, which are
 supported by the \emph{mlx5} driver. We use the TRex packet
 generator~\cite{cisco18:_trex_traff_gener} to produce the test traffic. The test
 machine runs a pre-release of version 4.18 of the Linux kernel. To help others
@@ -740,13 +753,7 @@ reproduce our results, we make available the full details of our setup, along
 with links to source code and the raw test data, in an online
 repository~\cite{test-data}.
 
-To evaluate the performance of XDP, we compare it to the baseline performance of
-the Linux kernel network stack, and to the DPDK packet processing framework
-(using the \texttt{testpmd} example application shipped with the 18.05 release
-of DPDK). The comparison against the Linux stack shows the performance
-improvements offered by XDP, while DPDK serves as a baseline for the current
-state of the art in high-speed software packet processing. In our evaluation, we
-focus on three metrics:
+In our evaluation, we focus on three metrics:
 
 \begin{itemize}
 \item Packet drop performance. To show the maximum packet processing
@@ -956,11 +963,12 @@ finally, the third use case shows how the forwarding mode that sends packets out
 the same interface as they arrived on can be used to implement a layer-4 load
 balancer.
 
-Note that the purpose of this section is to demonstrate the feasibility of
-implementing the selected use cases in XDP. For this reason we consider an
-exhaustive performance evaluation against other implementations of the same use
-cases to be out of scope, and only benchmark the XDP applications against the
-baseline Linux kernel.
+As mentioned in Section~\ref{sec:perf-eval}, the purpose of this section is to
+demonstrate the feasibility of implementing the selected use cases in XDP, not
+to perform an exhaustive performance evaluation of them. However, the
+demonstration would be meaningless without \emph{some} measure of performance,
+so we benchmark the XDP applications against the regular Linux kernel stack to
+get a performance baseline.
 
 \subsection{Software Routing}
 \label{sec:fwd-usecase}
