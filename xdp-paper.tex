@@ -355,11 +355,11 @@ system:
 \item \textbf{The eBPF virtual machine} executes the byte code of the XDP
   program, and just-in-time-compiles it for increased performance.
 
-\item \textbf{The eBPF verifier} statically verifies programs before they are
-  loaded to make sure they do not crash or corrupt the running kernel.
-
 \item \textbf{BPF maps} are key/value stores that serve as the primary
   communication channel to the rest of the system.
+
+\item \textbf{The eBPF verifier} statically verifies programs before they are
+  loaded to make sure they do not crash or corrupt the running kernel.
 \end{itemize}
 
 
@@ -445,32 +445,24 @@ efficient just-in-time (JIT) compilation into native machine code. Support for
 compiling (restricted) C code into eBPF is included in the LLVM compiler
 infrastructure~\cite{llvm}.
 
-The verifier (described in the next section) ensures that user-supplied programs
-cannot harm the running kernel. With this in place, it is safe to execute the
-code directly in the kernel address space, which makes eBPF useful for a wide
-variety of tasks in the Linux kernel, of which XDP is one. Apart from the XDP
-driver hook, eBPF is used for packet processing in the Traffic Control (TC)
-subsystem, where programs can filter packets after they have been parsed by the
-kernel, or before they are passed to the hardware from applications. This is
-marked as ``TC BPF'' in Figure~\ref{fig:xdp-kernel}. In addition, eBPF programs
-can be attached to various places in the kernel that are unrelated to networking
-(not shown in the figures). These include \emph{cgroups}, which control resource
-usage for groups of processes (used for implementing containers on Linux, for
-instance), as well as the \emph{tracepoint} and \emph{kprobe} introspection
-subsystems which allow attaching eBPF programs to arbitrary kernel functions.
-Because all eBPF programs can share the same set of maps, this makes it possible
-for programs to react to arbitrary events in other parts of the kernel. For
-instance, an XDP program could drop packets if CPU load increases above a
-certain threshold, or it could trace socket events in the kernel such that any
-unrelated traffic could already be dropped earlier at XDP layer.
+The verifier (described in Section~\ref{sec:bpf-verifier} below) ensures that
+user-supplied programs cannot harm the running kernel. With this in place, it is
+safe to execute the code directly in the kernel address space, which makes eBPF
+useful for a wide variety of tasks in the Linux kernel, of which XDP is one.
+Apart from the XDP driver hook, eBPF is used for packet processing in the
+Traffic Control (TC) subsystem, where programs can filter packets after they
+have been parsed by the kernel, or before they are passed to the hardware from
+applications. This is marked as ``TC BPF'' in Figure~\ref{fig:xdp-kernel}. In
+addition, eBPF programs can be attached to various places in the kernel that are
+unrelated to networking (not shown in the figures). Because all eBPF programs
+can share the same set of maps, this makes it possible for programs to react to
+arbitrary events in other parts of the kernel. For instance, an XDP program
+could drop packets if CPU load increases above a certain threshold.
 
 At the instruction set level, eBPF extends the original BPF virtual machine by
 adding more registers and more instructions. The number of registers is
-increased from two to eleven (numbered \texttt{R0}--\texttt{R10}, where
-\texttt{R10} is reserved for a read-only frame pointer), and register widths are
-increased to 64 bits. To provide compatibility with classic BPF programs, the
-registers can be accessed as 32-bit sub-registers through special instructions.
-The 64-bit registers map one-to-one to hardware registers on the 64-bit
+increased from two to eleven, and register widths are increased to 64 bits. The
+64-bit registers map one-to-one to hardware registers on the 64-bit
 architectures supported by the kernel, which eases JIT compilation.
 
 The added instructions are primarily arithmetic and logic instructions that
@@ -482,168 +474,15 @@ makes it possible to map a BPF call instruction to a single native call
 instruction, enabling function calls with close to zero additional overhead.
 This facility is used by eBPF to support helpers that eBPF programs can call to
 interact with the kernel while processing, as well as for function calls within
-the same eBPF program. A special case of function calls are tail calls, which
-replace the running eBPF program with the target of the call. This can be used
-to split up processing into logical sub-parts, where execution is dispatched to
-other programs and never return to the caller.
+the same eBPF program.
 
-An eBPF program starts its execution with \texttt{R1} containing a pointer to a
-\emph{context} object, the contents of which varies with the type of program. As
-explained above, for XDP programs the context object is a structure that allows
-the eBPF program to access the packet data itself, as well as various items of
-metadata. This includes space for arbitrary data that is carried along with the
-packet and is accessible by other eBPF programs that operate on the packet at
-later stages of processing.
-
-Finally, the eBPF 'virtual machine' supports dynamically loading and re-loading
-programs, and the kernel manages the life cycle of all programs. This makes it
-possible to extend or limit the amount of processing performed for a given situation,
-by adding or completely removing parts of the program that are not needed, and
+The eBPF virtual machine supports dynamically loading and re-loading programs,
+and the kernel manages the life cycle of all programs. This makes it possible to
+extend or limit the amount of processing performed for a given situation, by
+adding or completely removing parts of the program that are not needed, and
 re-loading it atomically as requirements change. The dynamic loading of programs
-also makes it straight-forward to express processing rules directly in program
-code, avoiding any data structure lookups needed by more generic code.
-
-\subsection{The eBPF Verifier}
-\label{sec:bpf-verifier}
-Since eBPF code runs directly in the kernel address space, it can directly
-access, and potentially corrupt, arbitrary kernel memory. To prevent this from
-happening, the kernel enforces a single entry point for loading all eBPF
-programs (through the \texttt{bpf()} system call). When loading an eBPF program
-it is first analysed by the in-kernel eBPF verifier. The verifier performs a
-static analysis of the program byte code to ensure that the program performs no
-actions that are unsafe (such as accessing arbitrary memory), and that the
-program will terminate. The latter is ensured by disallowing loops and limiting
-the maximum program size. The verifier works by first building a directed
-acyclic graph (DAG) of the control flow of the program. This DAG is then
-verified as follows:
-
-\begin{table}[tbp]
-\caption{\label{tbl:vrf-state-vars}
-eBPF verifier state variables}
-\centering
-\begin{tabular}{ll}
-\toprule
-Variable & Contains\\
-\midrule
-\texttt{type} & One of the types in Table \ref{tbl:reg-types}\\
-\texttt{id} & ID for tracking copies of same variable\\
-\texttt{fixed\_offset} & Pointer offset (after arithmetic)\\
-\texttt{range\_unsigned} & Min and max values (unsigned)\\
-\texttt{range\_signed} & Min and max values (signed)\\
-\texttt{tnum} & Mask and value of known bits\\
-\bottomrule
-\end{tabular}
-\end{table}
-
-First, the verifier performs a depth-first search on the DAG to ensure it is in
-fact acyclic, i.e., that it contains no loops, and also that it contains no
-unsupported or unreachable instructions. Then, in a second pass, the verifier
-walks all possible paths of the DAG. The purpose of this second pass is to
-ensure that the program performs only safe memory accesses, and that any helper
-functions are called with the right argument types. This is ensured by rejecting
-programs that perform load or call instructions with invalid arguments. Argument
-validity is determined by tracking the state of all registers and stack
-variables through the execution of the program, as explained in the following.
-
-\subsubsection{Register state tracking}
-\label{sec:reg-state}
-To track data access, the verifier assigns five state variables to each
-register, listed in Table~\ref{tbl:vrf-state-vars}, with the possible types
-listed in Table~\ref{tbl:reg-types}. The fixed offset is used to track the
-result of pointer arithmetic with fixed values, while the ranges and \emph{tnum}
-are used to track variable offsets of pointers, as well as the values of scalar
-variables.
-
-\begin{table}[tbp]
-  \caption{\label{tbl:reg-types} eBPF verifier type annotations. The ``Arithm''
-    column indicates whether pointer arithmetic is allowed for this type of
-    pointer.}
-\centering
-\begin{tabular}{lll}
-\toprule
-\multicolumn{3}{c}{\textbf{Non-pointer types}} \\
-Name & Meaning \\
-\midrule
-\texttt{NOT\_INIT}            & Not initialised         \\
-\texttt{SCALAR\_VALUE}        & Any numerical value       \\
-\midrule
-\multicolumn{3}{c}{\textbf{Pointer types}} \\
-Name & Pointing to & Arithm\\
-\midrule
-\texttt{CTX}                  & Context              & Yes \\
-\texttt{MAP}                  & BPF map              & No  \\
-\texttt{MAP\_VALUE}           & Value in map         & Yes \\
-\texttt{MAP\_VALUE\_OR\_NULL} & Value in map or NULL & No  \\
-\texttt{STACK}                & Stack frame          & Yes \\
-\texttt{PACKET}               & Packet data start    & Yes \\
-\texttt{PACKET\_END}          & Packet data end      & No  \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-At the beginning of the program, \texttt{R1} contains a pointer to the execution
-context, and its type is a \texttt{CTX} pointer; \texttt{R10} is a
-\texttt{STACK} pointer, and all other registers are \texttt{NOT\_INIT}. At each
-execution step, register states are updated based on the operations performed by
-the program. When a new value is stored in a register, that register inherits
-the state variables from the source of the value. Arithmetic operations on
-scalar values will affect the value of the \emph{tnum} state variable, which
-tracks which bits in a register are known, and their value. The \emph{tnum} is a
-pair of bit masks: a \emph{mask} that contains the bits whose value is unknown,
-and a \emph{value} which contains the bits that are known to be set to 1. Load
-operations set these; for instance, after loading a single byte from memory the
-top 56 bits are known to be zero, and the bottom 8 bits are unknown. Arithmetic
-operations update the ranges according to their effect on the value stored in
-the register.
-
-Branches in the instruction tree will update the register state according to the
-logical operation contained in the branch. For example, given a comparison such
-as "\texttt{R1 > 10}", the verifier will set the maximum value of \texttt{R1} to
-10 in one branch, and the minimum value to 11 in the other. If a comparison is
-performed with a scalar value rather than a constant, the knowledge of which
-bits are set is used to compute the possible ranges of values in each of the
-branches (using the minimum and maximum possible values of unknown bits as
-appropriate). Finally, a branch that checks whether a register with a
-\texttt{MAP\_VALUE\_OR\_NULL} pointer is different from \texttt{NULL} will turn
-that register into a pointer with type \texttt{MAP\_VALUE} in the \emph{true}
-branch, which is allowed to be derefenced later in the code.
-
-Using the information contained in the state variables, it is possible for the
-verifier to predict the ranges of memory that each load instruction can
-potentially access. It uses this information to ensure that only safe memory
-accesses are performed, where the notion of what is considered safe varies by
-value type, as discussed below. Any eBPF program that makes memory accesses that
-the verifier cannot prove are safe are simply rejected at load time. In addition
-to this, the verifier also uses the range information to enforce aligned memory
-accesses.
-
-For pointers to context objects, the verifier performs a callback to the kernel
-subsystem defining the context to determine which memory ranges are safe for the
-eBPF program to access. For map values, the map definition defines the size of
-the values, which is used to bound the allowed memory accesses. For pointers to
-stack values, only ranges previously stored on the stack are valid. And finally,
-for pointers to packet data, only ranges known to be less than the packet length
-are allowed. The latter is enforced by ensuring that any reading or writing of
-packet data is preceded by an appropriate range check, through comparison with
-the special \texttt{PACKET\_END} pointer in the context structure. I.e., the
-verifier doesn't verify the \emph{value} of the packet length (which is not
-known at verification time), but instead ensures that the program being loaded
-contains the required bounds checking. This approach means that the static
-analysis can verify that the program never reads outside the variable-length
-packet data, without knowing the length in advance. With this verification in
-place, it is safe for program instructions to directly access packet data, which
-is an important reason for the high performance of eBPF packet processing
-programs.
-
-When pointers are copied to other registers, a bounds check on one copy can be
-used to infer the valid ranges of the other copies, even after the copy
-occurred. The \emph{id} state variable is used for this purpose for packet
-access and map value pointers. For packet access, all pointers with the same
-variable range will have the same \emph{id}, even if their fixed offset differs.
-Thus, a range check on one copy will mark the same range (minus any differences
-in fixed offsets) as valid in the other copies. Similarly, for pointers to map
-values, all copies of a pointer returned from the same map lookup share their
-\emph{id}, and a check against NULL will affect all of them.
+also makes it possible to express processing rules directly in program code,
+avoiding any data structure lookups needed by more generic code.
 
 \subsection{BPF Maps}
 \label{sec:bpf-maps}
@@ -660,11 +499,83 @@ The map types include generic hash maps, arrays and radix trees, as well as
 specialised types containing pointers to eBPF programs (used for tail calls), or
 even recursive pointers to other maps.
 
+Maps serve several purposes: they are a persistent data store between
+invocations of the same eBPF program; a global coordination tool, where eBPF
+programs in one part of the kernel can update state that changes the behaviour
+in another; and a communication mechanism between userspace programs and the
+kernel eBPF programs, similar to the communication between control plane and
+data plane in other programmable package processing systems.
+
+\subsection{The eBPF Verifier}
+\label{sec:bpf-verifier}
+Since eBPF code runs directly in the kernel address space, it can directly
+access, and potentially corrupt, arbitrary kernel memory. To prevent this from
+happening, the kernel enforces a single entry point for loading all eBPF
+programs (through the \texttt{bpf()} system call). When loading an eBPF program
+it is first analysed by the in-kernel eBPF verifier. The verifier performs a
+static analysis of the program byte code to ensure that the program performs no
+actions that are unsafe (such as accessing arbitrary memory), and that the
+program will terminate. The latter is ensured by disallowing loops and limiting
+the maximum program size. The verifier works by first building a directed
+acyclic graph (DAG) of the control flow of the program. This DAG is then
+verified as follows:
+
+First, the verifier performs a depth-first search on the DAG to ensure it is in
+fact acyclic, i.e., that it contains no loops, and also that it contains no
+unsupported or unreachable instructions. Then, in a second pass, the verifier
+walks all possible paths of the DAG. The purpose of this second pass is to
+ensure that the program performs only safe memory accesses, and that any helper
+functions are called with the right argument types. This is ensured by rejecting
+programs that perform load or call instructions with invalid arguments. Argument
+validity is determined by tracking the state of all registers and stack
+variables through the execution of the program.
+
+The purpose of this register state tracking mechanism is to ensure that the
+program performs no out of bounds memory accesses \emph{without knowing in
+  advance what the valid bounds are}. The bounds cannot be known because
+programs must process data packets which vary in size; and similarly, the
+contents of maps are not known in advance, so it is not known whether a given
+lookup will succeed.
+
+One way to deal with this problem is to automatically generate bounds checking
+code around all memory accesses. However, the eBPF verifier takes a different
+approach, which leaves more control in the hands of the eBPF program writers: It
+verifies that the program being loaded does its own bounds checking before
+dereferencing pointers to packet data, and that map lookups are checked for
+\texttt{NULL} values before being dereferenced. With this verification in place,
+it is safe for program instructions to directly access packet data, which is an
+important reason for the high performance of eBPF packet processing programs.
+
+To track data access, the verifier tracks data types, pointer offsets and value
+ranges of all registers. At the beginning of the program, \texttt{R1} contains a
+pointer to the execution context, \texttt{R10} is a stack pointer, and all other
+registers are marked as not initialised. At each execution step, register states
+are updated based on the operations performed by the program. When a new value
+is stored in a register, that register inherits the state variables from the
+source of the value. Arithmetic operations will affect the possible value ranges
+of scalar types, and the offset of pointer types. The widest possible range is
+stored in the state variables, e.g., if a one-byte load is performed into a
+register, that register's possible value range is set to 0-255. Branches in the
+instruction graph will update the register state according to the logical
+operation contained in the branch. For example, given a comparison such as
+"\texttt{R1 > 10}", the verifier will set the maximum value of \texttt{R1} to 10
+in one branch, and the minimum value to 11 in the other.
+
+Using this range information stored in the state variables, it is possible for
+the verifier to predict the ranges of memory that each load instruction can
+potentially access, and ensure that only safe memory accesses are performed. Any
+eBPF program that makes memory accesses that the verifier cannot prove are safe,
+are simply rejected at load time. In addition to this, the verifier also uses
+the range information to enforce aligned memory accesses.
+
 \begin{listing}
-  \caption{\label{lst:ex-xdp-prog}Example XDP program. From xdp2\_kern.c,
-    distributed with the kernel source code. Some lines are compressed slightly to fit on
-    the page, and the parse\_ipv6() function is omitted.}
+  \caption{\label{lst:ex-xdp-prog}Example XDP program. The program parses packet
+    headers, swaps source and destination MAC addresses for all UDP packets, and
+    sends them back out the same interface. A packet counter is kept per IP
+    protocol number. Adapted from xdp2\_kern.c, which is distributed with the
+    kernel source code.}
 \begin{minted}[linenos,fontsize=\footnotesize,tabsize=3]{c}
+/* map used to count packets; key is IP protocol, value is pkt count */
 struct bpf_map_def SEC("maps") rxcnt = {
 	.type = BPF_MAP_TYPE_PERCPU_ARRAY,
 	.key_size = sizeof(u32),
@@ -672,6 +583,7 @@ struct bpf_map_def SEC("maps") rxcnt = {
 	.max_entries = 256,
 };
 
+/* swaps MAC addresses using direct packet data access */
 static void swap_src_dst_mac(void *data)
 {
 	unsigned short *p = data;
@@ -689,7 +601,7 @@ static int parse_ipv4(void *data, u64 nh_off, void *data_end)
 	return iph->protocol;
 }
 
-SEC("xdp1")
+SEC("xdp1") /* marks main eBPF program entry point */
 int xdp_prog1(struct xdp_md *ctx)
 {
 	void *data_end = (void *)(long)ctx->data_end;
@@ -703,15 +615,7 @@ int xdp_prog1(struct xdp_md *ctx)
 
 	h_proto = eth->h_proto;
 
-	if (h_proto == htons(ETH_P_8021Q) || h_proto == htons(ETH_P_8021AD)) {
-		struct vlan_hdr *vhdr;
-
-		vhdr = data + nh_off;
-		nh_off += sizeof(struct vlan_hdr);
-		if (data + nh_off > data_end)
-			return rc;
-		h_proto = vhdr->h_vlan_encapsulated_proto;
-	}
+	/* check VLAN tag; could be repeated to support double-tagged VLAN */
 	if (h_proto == htons(ETH_P_8021Q) || h_proto == htons(ETH_P_8021AD)) {
 		struct vlan_hdr *vhdr;
 
@@ -729,10 +633,12 @@ int xdp_prog1(struct xdp_md *ctx)
 	else
 		ipproto = 0;
 
+	/* lookup map element for ip protocol, used for packet counter */
 	value = bpf_map_lookup_elem(&rxcnt, &ipproto);
 	if (value)
 		*value += 1;
 
+	/* swap MAC addrs for UDP packets, transmit out this interface */
 	if (ipproto == IPPROTO_UDP) {
 		swap_src_dst_mac(data);
 		rc = XDP_TX;
@@ -744,12 +650,6 @@ int xdp_prog1(struct xdp_md *ctx)
 \end{listing}
 
 
-Maps serve several purposes: they are a persistent data store between
-invocations of the same eBPF program; a global coordination tool, where eBPF
-programs in one part of the kernel can update state that changes the behaviour
-in another; and a communication mechanism between userspace programs and the
-kernel eBPF programs, similar to the communication between control plane and
-data plane in other programmable package processing systems.
 
 \subsection{Example XDP program}
 \label{sec:example-xdp-program}
@@ -763,21 +663,20 @@ a very simple example, the program does feature most of the components of an XDP
 program that is useful in the real world. Specifically:
 
 \begin{itemize}
-\item A BPF map is defined (lines 1--6) for keeping statistics of the number of
+\item A BPF map is defined (lines 1--7) for keeping statistics of the number of
   processed packets. The map is keyed on IP protocol number and each value is
-  simply a packet count (updated in lines 65--67). A userspace program can poll
+  simply a packet count (updated in lines 60--62). A userspace program can poll
   this map to output statistics while the XDP program is running.
 \item Pointers to the start and end of the packet data is read from the context
-  object (lines 28--29), to be used for direct packet data access.
+  object (lines 30--31), to be used for direct packet data access.
 \item Checking against the data\_end pointer ensures that no data is read out of
-  bounds (lines 20, 34, 44 and 53).
+  bounds (lines 22, 36 and 47). The verifier ensures correctness even across
+  pointer copies (as in lines 21--22).
 \item Direct packet data access is used to modify the packet headers (lines
-  12--14).
-\item Functions defined inside the program (lines 8--23) which are inlined by
-  the compiler (automatically in this case).
+  14--16).
 \item The use of helper functions exposed by the kernel (in this example just
-  the map lookup function called on line 65).
-\item Packet verdict communicated by the program return code (line 73).
+  the map lookup function called on line 60).
+\item Packet verdict communicated by the program return code (line 69).
 \end{itemize}
 
 The example also shows how a program must handle any packet parsing itself,
@@ -788,8 +687,9 @@ When the program is installed on an interface, it is first compiled into eBPF
 byte code, then checked by the verifier. The notable things checked by the
 verifier in this case are (a) the absence of loops, and the total size of the
 program, (b) that all direct packet data accesses are preceded by appropriate
-bounds checking and (c) that the return value from the map lookup is checked
-against NULL before it is accessed.
+bounds checking (c) that the sizes of parameters passed to the map lookup
+function matches the map definition, and (d) that the return value from the map
+lookup is checked against NULL before it is accessed.
 
 
 \subsection{Summary}
