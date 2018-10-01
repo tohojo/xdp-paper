@@ -928,7 +928,7 @@ Same test, but measuring the overhead of XDP_PASS (using xdp_rxq_info):
 |     5 |             22520733 |  24070686 |
 |     6 |             27002648 |  28817001 |
 
-300 kpps overhead; 13.88 ns
+300 kpps overhead; 13.28 ns (1/4545188 - 1/4837269)
 
 * Benchmarks: XDP_TX
 
