@@ -47,7 +47,7 @@ address:
 - Better limitations section?
   - [X] Number of programs supported
   - [X] Collect limitations on loops etc in one place
-  - [ ] What happens if an XDP program is bad?
+  - [X] What happens if an XDP program is bad?
 - [X] Clarify that experimental runs are single-runs + highly repeatable
 * Reviewer B
 - "Generalising XDP": Cite examples of other packages (IDS, P4, OVS(?))

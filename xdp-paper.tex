@@ -568,6 +568,16 @@ eBPF program that makes memory accesses that the verifier cannot prove are safe,
 are simply rejected at load time. In addition to this, the verifier also uses
 the range information to enforce aligned memory accesses.
 
+It should be noted that the purpose of the verifier is to protect the internals
+of the kernel from being exposed to malicious or buggy eBPF programs, not to
+ensure that the programs perform their designated function in the most efficient
+way possible. That is, an XDP program can slow down the machine by performing
+excessive processing (up to the maximum program size), and it can corrupt
+network packets if written incorrectly. Loading programs requires administrative
+(root) privileges for this reason, and it is up to the eBPF programmer to
+prevent these types of bugs, and to the system administrator to decide which
+programs to load on the system.
+
 \begin{listing}
   \caption{\label{lst:ex-xdp-prog}Example XDP program. The program parses packet
     headers, swaps source and destination MAC addresses for all UDP packets, and
