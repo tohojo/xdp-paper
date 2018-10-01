@@ -944,9 +944,11 @@ next section.
 To show how the various aspects of XDP can be used to implement useful
 real-world applications, this section describes three example use cases. These
 use cases have all seen deployment in one form or another, although we use
-simplified versions in our evaluation to be able to make the code available.
+simplified versions in our evaluation to be able to make the code available. We
+also refer the reader to~\cite{miano2018creating} for an independent look at
+some of the challenges of implementing real-world network services in XDP.
 
-The first use case shows how XDP's kernel helpers can be used to accelerate
+Our first use case shows how XDP's kernel helpers can be used to accelerate
 common use cases, using the example of a software router. In the second use
 case, we show how an inline Denial of Service (DoS) mitigation application can
 be used to protect against attacks directly at the application server. And
@@ -955,10 +957,10 @@ the same interface as they arrived on can be used to implement a layer-4 load
 balancer.
 
 Note that the purpose of this section is to demonstrate the feasibility of
-implementing the selected use cases in XDP. For this reason we do not perform an
+implementing the selected use cases in XDP. For this reason we consider an
 exhaustive performance evaluation against other implementations of the same use
-cases, but only benchmark the XDP applications against the baseline Linux
-kernel. An exhaustive performance evaluation is out of scope for this paper.
+cases to be out of scope, and only benchmark the XDP applications against the
+baseline Linux kernel.
 
 \subsection{Software Routing}
 \label{sec:fwd-usecase}
