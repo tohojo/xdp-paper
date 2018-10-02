@@ -1,0 +1,272 @@
+* Latency tests
+
+** First attempt, irtt
+
+This turned out to be dominated by userspace latency, so abandon this and use
+T-Rex instead.
+
+
+To test end-to-end latency, we do the following:
+
+- Set up src and dest endpoints to have the same mac addr (so macswap mode works
+  when forwarding between them).
+- Set up static ARP table rules for the gateway (DUT) device MAC addresses, and
+  set normal routing.
+
+
+Verify that ping works between endpoints. Use the =irtt= to measure end-to-end
+RTT.
+
+To generate a base load, use pktgen with a single thread, in both directions
+(generates ~1.5Mpps, which can be handled even by normal Linux forwarding
+without causing packet drops):
+
+#+begin_src sh
+./pktgen_sample03_burst_single_flow.sh  -i enp1s0f1 -d 10.70.2.2 -m ec:0d:9a:db:11:35 -t 1  -s 1500 -b 0
+#+end_src
+
+Table of values below:
+
+|       | Idle | Loaded |
+|-------+------+--------|
+| Linux |  383 |    109 |
+| XDP   |  343 |     54 |
+| DPDK  |  235 |     76 |
+
+Problem: The 'idle' values are fairly stable, but the 'loaded' values vary
+significantly between repetitions.
+
+
+*** Linux
+
+Just enable regular forwarding and run irtt:
+
+Idle (no base traffic):
+#+begin_src sh
+$ irtt client 10.70.2.2 -i 20ms -q -d 30s
+[Connecting] connecting to 10.70.2.2
+[10.70.2.2:2112] [Connected] connection established
+[10.70.2.2:2112] [WaitForPackets] waiting 1.66ms for final packets
+
+                        Min     Mean   Median     Max  Stddev
+                        ---     ----   ------     ---  ------
+                RTT   255µs    383µs    383µs   552µs  22.9µs
+         send delay   379µs    478µs    478µs   646µs  14.3µs
+      receive delay  -156µs  -94.5µs  -95.5µs  69.6µs  17.6µs
+
+      IPDV (jitter)    13ns   16.2µs   4.86µs   206µs  28.4µs
+          send IPDV      0s   7.76µs   3.13µs   178µs  18.5µs
+       receive IPDV     1ns   10.6µs   2.53µs   165µs    22µs
+
+     send call time  17.3µs   19.4µs           38.2µs  2.27µs
+        timer error     2ns   1.66µs             86µs  3.03µs
+  server proc. time  7.32µs   8.66µs             20µs   538ns
+
+                duration: 30s (wait 1.66ms)
+   packets sent/received: 1500/1500 (0.00% loss)
+ server packets received: 1500/1500 (0.00%/0.00% loss up/down)
+     bytes sent/received: 90000/90000
+       send/receive rate: 24.0 Kbps / 24.0 Kbps
+           packet length: 60 bytes
+             timer stats: 0/1500 (0.00%) missed, 0.01% error
+
+#+end_src
+
+With base traffic load:
+#+begin_src sh
+$ irtt client 10.70.2.2 -i 20ms -q -d 30s
+[Connecting] connecting to 10.70.2.2
+[10.70.2.2:2112] [Connected] connection established
+[10.70.2.2:2112] [WaitForPackets] waiting 755µs for final packets
+
+                        Min    Mean  Median      Max  Stddev
+                        ---    ----  ------      ---  ------
+                RTT  54.9µs   105µs   109µs    252µs  17.5µs
+         send delay   283µs   326µs   328µs    379µs  13.6µs
+      receive delay  -231µs  -221µs  -223µs  -83.9µs  7.98µs
+
+      IPDV (jitter)     4ns  8.74µs  4.34µs    137µs  11.5µs
+          send IPDV      0s  6.33µs  2.68µs   69.9µs  8.17µs
+       receive IPDV      0s  3.99µs  2.14µs    137µs   8.1µs
+
+     send call time  3.83µs  6.82µs           68.9µs  3.77µs
+        timer error     1ns   1.9µs             65µs  3.93µs
+  server proc. time  1.52µs  4.52µs           12.4µs   3.2µs
+
+                duration: 30s (wait 755µs)
+   packets sent/received: 1499/1499 (0.00% loss)
+ server packets received: 1499/1499 (0.00%/0.00% loss up/down)
+     bytes sent/received: 89940/89940
+       send/receive rate: 24.0 Kbps / 24.0 Kbps
+           packet length: 60 bytes
+             timer stats: 1/1500 (0.07%) missed, 0.01% error
+#+end_src
+
+*** XDP
+
+With this setup, the =xdp_redirect_map= program can be used to forward packets
+between the two interfaces on the gateway. Run it twice to forward in both
+directions.
+
+#+begin_src sh
+sudo ./xdp_redirect_map $(</sys/class/net/ens1f1/ifindex) $(</sys/class/net/ens3f1/ifindex)
+sudo ./xdp_redirect_map $(</sys/class/net/ens3f1/ifindex) $(</sys/class/net/ens1f1/ifindex)
+#+end_src
+
+Idle (no base traffic):
+#+begin_src sh
+$ irtt client 10.70.2.2 -i 20ms -q -d 30s
+[Connecting] connecting to 10.70.2.2
+[10.70.2.2:2112] [Connected] connection established
+[10.70.2.2:2112] [WaitForPackets] waiting 1.58ms for final packets
+
+                        Min    Mean  Median     Max  Stddev
+                        ---    ----  ------     ---  ------
+                RTT   177µs   340µs   343µs   526µs  27.1µs
+         send delay  26.8µs   152µs   153µs   315µs  13.9µs
+      receive delay  91.5µs   188µs   189µs   371µs  24.3µs
+
+      IPDV (jitter)     2ns  21.1µs  8.72µs   204µs  28.3µs
+          send IPDV     4ns  7.83µs  3.36µs   161µs  14.8µs
+       receive IPDV     8ns  16.2µs  5.62µs   208µs  23.4µs
+
+     send call time  16.4µs  36.6µs          51.3µs  9.27µs
+        timer error     4ns  2.99µs          72.3µs   3.1µs
+  server proc. time  6.83µs  7.17µs          8.77µs    76ns
+
+                duration: 30s (wait 1.58ms)
+   packets sent/received: 1500/1500 (0.00% loss)
+ server packets received: 1500/1500 (0.00%/0.00% loss up/down)
+     bytes sent/received: 90000/90000
+       send/receive rate: 24.0 Kbps / 24.0 Kbps
+           packet length: 60 bytes
+             timer stats: 0/1500 (0.00%) missed, 0.01% error
+#+end_src
+
+With base traffic load:
+#+begin_src sh
+$ irtt client 10.70.2.2 -i 20ms -q -d 30s
+[Connecting] connecting to 10.70.2.2
+[10.70.2.2:2112] [Connected] connection established
+[10.70.2.2:2112] [WaitForPackets] waiting 589µs for final packets
+
+                         Min    Mean   Median     Max  Stddev
+                         ---    ----   ------     ---  ------
+                RTT     40µs  59.6µs   53.9µs   196µs  13.7µs
+         send delay  -96.5µs   -77µs  -82.5µs  60.1µs  13.4µs
+      receive delay    128µs   136µs    135µs   192µs  5.96µs
+
+      IPDV (jitter)      3ns  6.18µs   3.69µs   149µs  8.62µs
+          send IPDV      2ns  5.06µs   2.84µs   143µs  7.48µs
+       receive IPDV      5ns  2.74µs   1.59µs  54.2µs  4.06µs
+
+     send call time   3.87µs  7.65µs           23.3µs  3.11µs
+        timer error      2ns  1.39µs           56.7µs   2.1µs
+  server proc. time   1.55µs  4.88µs           24.1µs  3.83µs
+
+                duration: 30s (wait 589µs)
+   packets sent/received: 1500/1500 (0.00% loss)
+ server packets received: 1500/1500 (0.00%/0.00% loss up/down)
+     bytes sent/received: 90000/90000
+       send/receive rate: 24.0 Kbps / 24.0 Kbps
+           packet length: 60 bytes
+             timer stats: 0/1500 (0.00%) missed, 0.01% error
+#+end_src
+
+*** DPDK
+
+Run in macswap forwarding mode. Make sure the portmask selects only the two
+ports we are interested in:
+
+#+begin_src sh
+sudo ./testpmd -l 0-5 -n 4 -- --nb-cores=5 --forward-mode=macswap --portmask=0xa --rxq 5 --txq 5 --rss-udp --stats-period=1  --auto-start
+#+end_src
+
+Idle (no base traffic):
+#+begin_src sh
+$ irtt client 10.70.2.2 -i 20ms -q -d 30s
+[Connecting] connecting to 10.70.2.2
+[10.70.2.2:2112] [Connected] connection established
+[10.70.2.2:2112] [WaitForPackets] waiting 1.25ms for final packets
+
+                         Min     Mean   Median     Max  Stddev
+                         ---     ----   ------     ---  ------
+                RTT    152µs    235µs    235µs   417µs  21.8µs
+         send delay    195µs    260µs    260µs   421µs    10µs
+      receive delay  -84.6µs  -25.8µs  -24.2µs  56.2µs    18µs
+
+      IPDV (jitter)      1ns   20.3µs     14µs   182µs  20.1µs
+          send IPDV       0s   3.86µs   1.39µs   164µs  12.4µs
+       receive IPDV      1ns   18.4µs   13.6µs  80.1µs  15.5µs
+
+     send call time   18.6µs   19.3µs           50.3µs  1.65µs
+        timer error      2ns   1.47µs           84.2µs  2.53µs
+  server proc. time   6.74µs   7.11µs           8.07µs    53ns
+
+                duration: 30s (wait 1.25ms)
+   packets sent/received: 1500/1500 (0.00% loss)
+ server packets received: 1500/1500 (0.00%/0.00% loss up/down)
+     bytes sent/received: 90000/90000
+       send/receive rate: 24.0 Kbps / 24.0 Kbps
+           packet length: 60 bytes
+             timer stats: 0/1500 (0.00%) missed, 0.01% error
+#+end_src
+
+With base traffic load:
+#+begin_src sh
+$ irtt client 10.70.2.2 -i 20ms -q -d 30s
+[Connecting] connecting to 10.70.2.2
+[10.70.2.2:2112] [Connected] connection established
+[10.70.2.2:2112] [WaitForPackets] waiting 1.06ms for final packets
+
+                         Min     Mean   Median     Max  Stddev
+                         ---     ----   ------     ---  ------
+                RTT   34.3µs   78.4µs   75.8µs   353µs  22.4µs
+         send delay    119µs    156µs    153µs   415µs  17.1µs
+      receive delay  -90.1µs  -77.6µs  -80.3µs  81.2µs  10.2µs
+
+      IPDV (jitter)      6ns   16.2µs   12.4µs   286µs  18.1µs
+          send IPDV      3ns   11.9µs   9.16µs   268µs  14.1µs
+       receive IPDV      5ns   7.32µs   3.78µs   163µs  10.8µs
+
+     send call time   4.08µs   9.09µs            275µs  9.38µs
+        timer error      1ns   1.58µs           58.9µs  2.41µs
+  server proc. time   1.55µs   2.94µs           12.3µs  1.57µs
+
+                duration: 30s (wait 1.06ms)
+   packets sent/received: 1500/1500 (0.00% loss)
+ server packets received: 1500/1500 (0.00%/0.00% loss up/down)
+     bytes sent/received: 90000/90000
+       send/receive rate: 24.0 Kbps / 24.0 Kbps
+           packet length: 60 bytes
+             timer stats: 0/1500 (0.00%) missed, 0.01% error
+#+end_src
+** Second attempt, T-rex
+
+Plug two NIC ports from traffic-gen box into two NIC ports on the DUT.
+
+Configure T-rex to use both ports:
+
+#+begin_src yaml
+- port_limit      : 2
+  version         : 2
+#List of interfaces. Change to suit your setup. Use ./dpdk_setup_ports.py -s to see available options
+  interfaces    : ["01:00.1","01:00.0"]
+  port_info       :  # Port IPs. Change to suit your needs. In case of loopback, you can leave as is.
+          - ip         : 10.70.1.2
+            dest_mac   : 'ec:0d:9a:db:11:35'
+          - ip         : 10.70.3.2
+            dest_mac   : 'ec:0d:9a:db:11:34'
+  memory:
+    mbuf_64: 200000
+#+end_src
+
+Run the latency measurement script, switch to TUI and display latency stats
+#+begin_src
+./trex-console
+start -f stl/flow_stats_latency.py
+tui
+<ESC>
+<l>
+#+end_src
+
