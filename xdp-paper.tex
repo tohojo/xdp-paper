@@ -147,7 +147,7 @@ operating system networking stack in a cooperative way. This makes it possible
 to perform high-speed packet processing that integrates seamlessly with existing
 systems, while selectively leveraging functionality in the operating system.
 This framework, called the eXpress Data Path (XDP), works by defining a limited
-execution environment in the form of a 'virtual machine' running a custom bytecode
+execution environment in the form of a virtual machine running a custom bytecode
 that is based on an extended version of BPF, the original BSD Packet Filter
 \cite{mccanne_bsd_1993}. This environment executes custom programs directly in
 the device driver context, before the kernel performs any other packet processing
@@ -183,7 +183,7 @@ solutions. Specifically, XDP:
   applications, which carries the same stability guarantees as the kernel system
   call interface.
 
-\item Does not require expensive packet reinjection from user space into kernel
+\item Does not require expensive packet re-injection from user space into kernel
   space when interacting with workloads based on the normal socket layer.
 
 \item Is transparent to applications running on the host, enabling new
