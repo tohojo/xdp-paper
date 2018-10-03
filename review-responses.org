@@ -43,7 +43,7 @@ address:
 - [X] Latency numbers
 - Verifier risk
 - [X] Overhead
-- Design journey (ENOSPACE)
+- [X] Design journey (ENOSPACE)
 - Better limitations section?
   - [X] Number of programs supported
   - [X] Collect limitations on loops etc in one place
@@ -76,7 +76,7 @@ Nothing we need to address
 * Reviewer D
 - [X] Rework Section 2 to more explicitly compare the design of other solutions to
   XDP (can we do that without taking up too much space? - yes we can!)
-- Be a bit more explicit about the fact that XDP needs to fit into an existing
+- [X] Be a bit more explicit about the fact that XDP needs to fit into an existing
   operating system, and which design constraints that imposes.
 - [X] Cut down on description of eBPF in favour of example(s)
 - [X] Explain that DPDK has way higher performance than anything else, which is why

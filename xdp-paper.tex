@@ -331,8 +331,17 @@ supported with Netronome smart-NICs~\cite{xdp-offload}.
 
 XDP integrates the Linux networking stack, making it possible to perform custom
 packet processing while taking advantage of the extensive feature set of the
-operating system. This section describes how the major components of XDP work,
-and how they fit together to create the full system. This is illustrated by
+operating system. This obviously imposes some design constraints, as the Linux
+kernel is a complex system that XDP needs to integrate with to function. The
+driving rationale behind the design of XDP has been to allow high-performance
+packet processing that can integrate cooperatively with the rest of the kernel,
+while ensuring the safety and integrity of the rest of the system.
+
+The components of XDP have been gradually introduced into the Linux kernel over
+a number of releases. Unfortunately, recounting the process and lessons learned
+is not possible in the scope of this paper. Instead, this section describes the
+final system, by explaining how the major components of XDP work, and how they
+fit together to create the full system. This is illustrated by
 Figure~\ref{fig:xdp-kernel}, which shows a diagram of how XDP integrates into
 the Linux kernel, and Figure~\ref{fig:xdp-execution}, which shows the execution
 flow of a typical XDP program. There are four major components of the XDP
