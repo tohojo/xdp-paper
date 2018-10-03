@@ -50,7 +50,7 @@ address:
   - [X] What happens if an XDP program is bad?
 - [X] Clarify that experimental runs are single-runs + highly repeatable
 * Reviewer B
-- "Generalising XDP": Cite examples of other packages (IDS, P4, OVS(?))
+- [X] "Generalising XDP": Cite examples of other packages (IDS, P4, OVS(?))
   implementing parts of their functionality in XDP
 - Clarify how we think new helpers will be implemented
 - [X] Simplify sections 3.2 and 3.3
@@ -81,7 +81,7 @@ Nothing we need to address
 - [X] Cut down on description of eBPF in favour of example(s)
 - [X] Explain that DPDK has way higher performance than anything else, which is why
   we compare against that
-- Mention the other prior work items ("StackMap, Sandstorm, mTCP, Seastar, IX, etc")(?)
+- [X] Mention the other prior work items ("StackMap, Sandstorm, mTCP, Seastar, IX, etc")(?)
 * Reviewer E
 - Highlight new ideas and optimisations (?)
 - Clarify how XDP avoid the expensive reinjection required for DPDK
