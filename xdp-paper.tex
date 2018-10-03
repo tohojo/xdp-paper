@@ -1166,7 +1166,7 @@ to ensure they do not harm the running kernel. These limitations fall in two
 categories: (a) Ensuring the program will terminate, which is implemented by
 disallowing loops and limiting the maximum size of the program. And (b) ensuring
 the safety of memory accesses, which is done by the register state tracking
-explained in Section~\ref{sec:reg-state}.
+explained in Section~\ref{sec:bpf-verifier}.
 
 The primary function of the verifier is to ensure the safety of the kernel from
 programs being loaded into it. As such, a conservative approach is taken, where

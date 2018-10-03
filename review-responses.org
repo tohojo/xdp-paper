@@ -40,7 +40,7 @@ address:
 
 * Reviewer A
 - [X] Discuss offloading of XDP programs to smart-NICs.
-- Latency numbers
+- [X] Latency numbers
 - Verifier risk
 - [X] Overhead
 - Design journey (ENOSPACE)
