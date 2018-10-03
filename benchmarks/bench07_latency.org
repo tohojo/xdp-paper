@@ -274,13 +274,14 @@ tui
 <l>
 #+end_src
 
-|                   | Linux |   XDP |  DPDK |
-|-------------------+-------+-------+-------|
-| Loaded avg        |    20 |     7 |     3 |
-| Loaded max        |   236 |   202 |   189 |
-| Loaded under 10us | 15.4% | 98.1% | 99.0% |
-| Unloaded avg      |    89 |    82 |     2 |
-| Unloaded max      |   377 |   272 |   161 |
+|                     | Linux |   XDP |  DPDK |
+|---------------------+-------+-------+-------|
+| Loaded avg          |    20 |     7 |     3 |
+| Loaded max          |   236 |   202 |   189 |
+| Loaded under 10us   | 15.4% | 98.1% | 99.0% |
+| Unloaded avg        |    89 |    82 |     2 |
+| Unloaded max        |   377 |   272 |   161 |
+| Unloaded under 10us |    0% |    0% | 99.5% |
 
 *** Linux
 For Linux, the forwarding is achieved by bridging the two interfaces and setting
