@@ -213,19 +213,11 @@ work to address them, and Section~\ref{sec:conclusion} concludes.
 \section{Related Work}%
 \label{sec:related-work}
 
-Programmable packet processing continues to gain momentum, and has enabled many
-novel applications. Programmable hardware devices, such as the
-NetFPGA~\cite{lockwood2007netfpga}, enables custom packet processing on
-specialised hardware, by exposing an API that makes it possible to run arbitrary
-packet processing tasks on the FPGA-based dedicated hardware. The P4
-language~\cite{bosshart2014p4} seeks to extend this programmability to a wider
-variety of packet processing hardware.
-
-However, even though specialised hardware has gained data plane programmability,
-the flexibility and low cost of common off-the-shelf (COTS) hardware has obvious
-advantages, and as performance continues to increase while cost decreases,
-packet processing systems running on COTS hardware become ever more common.
-Examples of this include applications performing single functions, such as
+XDP is certainly not the first system enabling programmable packet processing.
+Rather, this field has gained momentum over the last several years, and
+continues to do so. Several frameworks have been presented to enable this kind
+of programmability, and they have enabled many novel applications. Examples of
+such applications include those performing single functions, such as
 switching~\cite{rizzo2012vale}, routing~\cite{han2010packetshader}, named-based
 forwarding~\cite{kirchner2016augustus}, classification~\cite{santiago2012wire},
 caching~\cite{mansilha2015hierarchical} or traffic
@@ -233,87 +225,86 @@ generation~\cite{emmerich2015moongen}. They also include more general solutions
 which are highly customisable and can operate on packets from a variety of
 sources~\cite{han2012megapipe,marian2012netslices,linguaglossa2017high,morris1999click,dobrescu2009routebricks,openvswitch}.
 
-The applications listed above are all higher level applications or frameworks
-focused on implementing specific packet processing applications, or classes
-thereof. In contrast to this, XDP is a lower-level framework that focuses on
-building a high-performing base for packet processing applications to run on. To
-achieve such high performance on COTS hardware, it is necessary to remove any
-bottlenecks between the networking interface card (NIC) and the program
-performing the packet processing. Since one of the main sources of performance
-bottlenecks is the interface between the operating system kernel and the
-userspace applications running on top of it (because of the high overhead of a
-system call and complexity of the underlying feature-rich and generic stack),
-low-level packet processing frameworks have to manage this overhead in one way
-or another. The approaches taken to this fall into three broad categories:
-(a) implementing parts of the application as a module inside the kernel itself,
-(b) providing an interface for userspace to access packet data with lower
-overhead than with traditional sockets, or (c) bypassing the kernel entirely
-and handing over control of the networking device directly to userspace.
+To achieve high packet processing performance on Common Off The Shelf (COTS)
+hardware, it is necessary to remove any bottlenecks between the networking
+interface card (NIC) and the program performing the packet processing. Since one
+of the main sources of performance bottlenecks is the interface between the
+operating system kernel and the userspace applications running on top of it
+(because of the high overhead of a system call and complexity of the underlying
+feature-rich and generic stack), low-level packet processing frameworks have to
+manage this overhead in one way or another. The existing frameworks, which have
+enabled the applications mentioned above, take several approaches to ensuring
+high performance; and XDP builds on techniques from several of them. In the
+following we give a brief overview of the similarities and differences between
+XDP and the most commonly used existing frameworks.
 
-In the first category, systems such as the OpenVswitch~\cite{openvswitch}
-virtual switch and the Click~\cite{morris1999click} virtual router framework
-provide kernel modules that offload part of their functionality into the kernel.
-These are implemented as loadable kernel modules that provide configuration APIs
-to userspace, but perform packet processing directly in the kernel. The
-drawback of implementing packet processing applications in this way, is that it
-requires deep familiarity with internal kernel APIs, and a failure of the
-network processing application often leads to a failure of the entire system. In
-addition, such systems often do not provide full flexibility in terms of
-programmability, and generally integrate into the kernel networking stack,
-which means that the overhead of the network stack processing itself is
-retained.
+The DataPlane Development Kit (DPDK)~\cite{dpdk} is probably the most widely
+used framework for high-speed packet processing. It started out as an
+Intel-specific hardware support package, but has since seen a wide uptake under
+the stewardship of the Linux Foundation. DPDK is a so-called \emph{kernel
+  bypass} framework, which moves the control of the networking hardware out of
+the kernel into the networking application, completely removing the overhead of
+the kernel-userspace boundary. Other examples of this approach include the
+PF\_RING ZC module~\cite{pfringzc} and the hardware-specific Solarflare
+OpenOnload~\cite{openonload}. Kernel bypass offers the highest performance of
+the existing frameworks~\cite{gallenmuller_comparison_2015}; however, as
+mentioned in the introduction, it has significant management, maintenance and
+security drawbacks.
 
-In the second category, various systems introduce kernel modules that do not
-perform packet processing themselves, but instead focus on moving packet data to
-userspace with as little overhead as possible, typically via shared memory. This
-allows the packet processing application to operate in userspace with no risk of
-crashing the system. Examples of this approach include
-PF\_RING~\cite{deri2009modern}, the Packet I/O engine that is part of
-PacketShader~\cite{han2010packetshader}, the Netmap~\cite{rizzo2012netmap}
-framework, as well as special-purpose operating systems such as
-Arrakis~\cite{peter2016arrakis} and ClickOS~\cite{martins2014clickos}. The
-drawback of this approach is that it requires extensive changes to the operating
-system, often partly or completely disabling the regular networking stack and
-is lacking cooperation with the latter. In addition, even if the frameworks
-mentioned above improve performance significantly, they still lag behind in
-performance compared to kernel bypass solutions~\cite{gallenmuller_comparison_2015}.
+XDP takes an approach that is the opposite of kernel bypass: Instead of moving
+control of the networking hardware \emph{out} of the kernel, the
+performance-sensitive packet processing operations are moved \emph{into} the
+kernel, and executed before the operating system networking stack beings its
+processing. This shares the advantage of removing the kernel-userspace boundary
+between networking hardware and packet processing code, while keeping the kernel
+in control of the hardware, thus retaining the management and security
+guarantees offered by the operating system. The key innovation that enables
+this, is the use of a virtual execution environment that verifies that loaded
+programs will not harm or crash the kernel.
 
-In the third category we find kernel bypass techniques, such as the PF\_RING ZC
-module~\cite{pfringzc}, the hardware-specific Solarflare
-OpenOnload~\cite{openonload} or, most prominently, the DataPlane Development Kit
-(DPDK)~\cite{dpdk}. The latter started out as an Intel-specific hardware support
-package, but has since seen a wide uptake under the stewardship of the Linux
-Foundation. DPDK represents the state of the art in high-performance packet
-processing, commonly used with higher-level processing frameworks such as
-Cisco's VPP~\cite{linguaglossa2017high}. The kernel bypass approach offers
-excellent performance, but has the drawback that it is more difficult to
-integrate with the rest of the system, as mentioned in the introduction.
+Prior to the introduction of XDP, implementing packet processing functionality
+as a kernel module has been a high-cost approach, since mistakes can crash the
+whole system, and internal kernel APIs are subject to frequent change. For this
+reason, it is not surprising that not many systems have taken this approach. Of
+the few that have, the most prominent examples are the
+OpenVswitch~\cite{openvswitch} virtual switch and the
+Click~\cite{morris1999click} virtual router framework, which are both highly
+configurable systems with a wide scope, allowing them to amortise the cost over
+a wide variety of uses. XDP significantly lowers the cost for applications of
+moving processing into the kernel, by providing a safe execution environment,
+and by being supported by the kernel community, thus offering the same API
+stability guarantee as every other interface the kernel exposes to userspace. In
+addition, XDP programs can completely bypass the networking stack, which offers
+higher performance than a traditional kernel module, which needs to hook into
+the existing stack.
 
-Of these three approaches to increasing packet processing performance, XDP falls
-in the first category, and places the packet processing in kernel device driver
-context. Since the packet processing program is executed before any other
-processing, this not only avoids the overhead of passing every packet to
-userspace, but also the overhead of the regular kernel networking stack. By
-using a custom byte code format for the programming, which can be statically
-verified to ensure it does not adversely affect the functioning of the rest of
-the kernel, most of the fragility issues normally faced by in-kernel packet
-processing implementations are avoided. In addition, the byte code format and
-execution context are part of the kernel/userspace Application Binary Interface
-(ABI), which means that the usual ABI stability guarantees apply; and so
-existing applications do not have to keep up with future changes in the kernel
-to continue to function.
+While XDP allows packet processing to move into the operating system for maximum
+performance, it also allows the programs loaded into the kernel to selectively
+redirect packets to a special user-space socket type, which bypasses the normal
+networking stack, and can even operate in a zero-copy mode which further lowers
+the overhead. This operating mode is quite similar to the approach used by
+frameworks such as Netmap~\cite{rizzo2012netmap} and
+PF\_RING~\cite{deri2009modern}, which offer high packet processing performance
+by lowering the overhead of transporting packet data from the network device to
+a userspace application, without bypassing the kernel completely. The Packet I/O
+engine that is part of PacketShader~\cite{han2010packetshader} is another
+example of this approach, and it has some similarities with special-purpose
+operating systems such as Arrakis~\cite{peter2016arrakis} and
+ClickOS~\cite{martins2014clickos}.
 
-While falling into the first category mentioned above, XDP also borrows aspects
-from the other two. For applications that prefer receiving the full packet
-contents in userspace, XDP also contains features that offer higher performance
-when redirecting packets to applications, virtual machines and containers
-running in userspace. This includes the ability to bypass parts of the network
-stack processing, and even to perform zero-copy transfer of packets to userspace
-applications using a special socket type. These facilities roughly correspond to
-the second approach mentioned above. Finally, XDP applies some of the same
-performance enhancing techniques used by the kernel bypass frameworks, such as
-packet batching and the ability to process packets immediately after they are
-received from the hardware.
+Finally, programmable hardware devices are another way to achieve
+high-performance packet processing. One example is the
+NetFPGA~\cite{lockwood2007netfpga}, which exposes an API that makes it possible
+to run arbitrary packet processing tasks on the FPGA-based dedicated hardware.
+The P4 language~\cite{bosshart2014p4} seeks to extend this programmability to a
+wider variety of packet processing hardware (including, incidently, an XDP
+backend~\cite{p4xdp}). In a sense, XDP can be thought of as a ``software
+offload'', where performance-sensitive processing is offloaded to increase
+performance, while applications otherwise interact with the regular networking
+stack. However, for XDP programs that don't need to access kernel helper
+functions, it is also possible to offload the execution of the program from the
+host CPU entirely, given appropriate hardware support. This is currently
+supported with Netronome smart-NICs~\cite{xdp-offload}.
 
 \section{The design of XDP}
 \label{sec:design}
@@ -1294,10 +1285,7 @@ single core.
 
 Since the eBPF virtual machine is a well-defined runtime environment, there is
 no fundamental reason why it should be limited to running inside the Linux
-kernel. For XDP programs that don't need to access kernel helper functions, it
-is possible to offload the execution of the program from the host CPU entirely,
-given appropriate hardware support. This is currently supported in the
-Netronome smart-NICs, and is also an area of active development.
+kernel.
 
 \subsection{XDP as a building block}
 \label{sec:xdp-building-block}

@@ -74,8 +74,8 @@ address:
 * Reviewer C
 Nothing we need to address
 * Reviewer D
-- Rework Section 2 to more explicitly compare the design of other solutions to
-  XDP (can we do that without taking up too much space?)
+- [X] Rework Section 2 to more explicitly compare the design of other solutions to
+  XDP (can we do that without taking up too much space? - yes we can!)
 - Be a bit more explicit about the fact that XDP needs to fit into an existing
   operating system, and which design constraints that imposes.
 - [X] Cut down on description of eBPF in favour of example(s)
