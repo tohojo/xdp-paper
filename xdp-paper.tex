@@ -1264,11 +1264,15 @@ use of existing features of the operating system where it makes sense. XDP
 focuses on stateless packet processing, but extending the same model to stateful
 transport protocols such as TCP would provide many of the same performance
 benefits to applications that require reliable (and thus stateful) transports.
-As others similar approaches have shown~\cite{stackmap}, there is significant
-potential in improving the packet processing performance of around the TCP stack
-itself. There has been some initial discussion of how this could be achieved for
-XDP~\cite{txdp}; while far from trivial, this presents an exciting opportunity
-for expanding the scope of the XDP system.
+Indeed, several other examples of accelerated transport protocols that
+significantly improve performance relative to the regular operating system
+stack~\cite{stackmap,sandstorm,belay2014ix,jeong2014mtcp}.
+
+As others have shown~\cite{stackmap}, there is significant potential in
+improving the raw packet processing performance while keeping the in-kernel TCP
+stack itself. XDP is a natural fit for this, and there has been some initial
+discussion of how this could be achieved~\cite{txdp}; while far from trivial,
+this presents an exciting opportunity for expanding the scope of the XDP system.
 
 \subsection{Zero-copy to userspace}
 \label{sec:zero-copy-userspace}
