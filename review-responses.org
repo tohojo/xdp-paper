@@ -37,6 +37,11 @@ address:
   as the one to compare against (see e.g., Gallenmuller et al, as cited in the
   paper).
 
+* Shepherd
+- [X] List kinds of errors that are caught by verifier and those that aren't.
+- [ ] Performance numbers to qualify assertion that we can close gap.
+- [X] Say that we don't want to compare against best-of-breed solutions in
+  section 5.
 
 * Reviewer A
 - [X] Discuss offloading of XDP programs to smart-NICs.
