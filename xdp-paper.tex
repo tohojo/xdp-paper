@@ -902,12 +902,36 @@ receiving interface. And so, when the packet is forwarded out a different
 interface, the memory buffer needs to be returned to the interface that it is
 associated with.
 
+Looking at forwarding latency, as seen in Table~\ref{tbl:fwd-latency}, the
+relative performance of XDP and DPDK for different-NIC forwarding are reflected
+for the high packet rate test (with DPDK showing slightly lower variance as
+well). However, for low packet rates, the latency of XDP is dominated by the
+interrupt processing time, which leads to much higher end-to-end latency than
+DPDK achieves with constant polling.
+
+\begin{table}[tbp]
+  \caption{\label{tbl:fwd-latency}Packet forwarding latency. Measurement machine
+    connected to two ports on the same NIC, measuring end-to-end latency for 50
+    seconds with high and low packet rates (100 pps and 1 Mpps).}
+\centering
+\begin{tabular}{lcccccc}
+  \toprule
+   & \multicolumn{2}{c}{Average}  &  \multicolumn{2}{c}{Maximum} &  \multicolumn{2}{c}{$< 10 \mu s$}  \\
+   & 100 pps & 1 Mpps  &  100 pps & 1 Mpps & 100 pps & 1 Mpps \\
+  \midrule
+  Linux & $89 \mu s$ & $20 \mu s$ & $377 \mu s$ & $272 \mu s$ & $ 0 \%$ & $15.4 \%$  \\
+  XDP & $82 \mu s$ & $7 \mu s$ & $272 \mu s$ & $202 \mu s$ & $0 \%$ & $98.1 \%$  \\
+  DPDK & $2 \mu s$ &  $3 \mu s$ & $161 \mu s$ & $189 \mu s$ & $99.5 \%$ & $99.0 \%$  \\
+\bottomrule
+\end{tabular}
+\end{table}
+
 \begin{figure}[t]
 \centering
 \includegraphics[width=\linewidth]{figures/redirect-test.pdf}
-\caption{\label{fig:redirect-test} Packet forwarding performance. Sending and
-  receiving on the same interface lowers the PCI bus performance, which means we
-  hit the PCI bus limit at 70 Mpps.}
+\caption{\label{fig:redirect-test} Packet forwarding throughput. Sending and
+  receiving on the same interface takes up more bandwidth on the same PCI port,
+  which means we hit the PCI bus limit at 70 Mpps.}
 \end{figure}
 
 \subsection{Discussion}
