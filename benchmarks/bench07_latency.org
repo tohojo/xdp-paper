@@ -261,7 +261,11 @@ Configure T-rex to use both ports:
     mbuf_64: 200000
 #+end_src
 
-Run the latency measurement script, switch to TUI and display latency stats
+Run the latency measurement script, switch to TUI and display latency stats.
+Edit the flow_stats_latency.py script to set PPS. We use 1Mpps for loaded and 10
+pps for unloaded numbers. Then use the avg/max latency numbers and the histogram
+for each case.
+
 #+begin_src
 ./trex-console
 start -f stl/flow_stats_latency.py
@@ -270,3 +274,376 @@ tui
 <l>
 #+end_src
 
+|                   | Linux |   XDP |  DPDK |
+|-------------------+-------+-------+-------|
+| Loaded avg        |    20 |     7 |     3 |
+| Loaded max        |   236 |   202 |   189 |
+| Loaded under 10us | 15.4% | 98.1% | 99.0% |
+| Unloaded avg      |    89 |    82 |     2 |
+| Unloaded max      |   377 |   272 |   161 |
+
+*** Linux
+For Linux, the forwarding is achieved by bridging the two interfaces and setting
+the T-rex dest_mac appropriately (to the other interface on the same machine).
+
+Loaded (1Mpps):
+#+begin_src
+Latency Statistics (usec)
+
+   PG ID     |       7        |       8
+----------------------------------------------
+TX pkts      |       50770817 |       50820816
+RX pkts      |       50770823 |       50820832
+Max latency  |            236 |            239
+Avg latency  |             20 |             15
+
+Latency Histogram
+
+   PG ID     |       7        |       8
+----------------------------------------------
+             |                |
+             |                |
+             |                |
+             |                |
+             |                |
+200          |          21799 |          22816
+100          |         826433 |         827448
+90           |          86491 |          86315
+80           |          84885 |          84652
+70           |          84838 |          84951
+60           |          85777 |          85540
+50           |         106359 |         109626
+40           |        1022140 |         982287
+30           |        6803657 |        6988688
+20           |       13534438 |       13159673
+10           |       20308302 |       20367679
+0            |        7805685 |        8021098
+- Counters - |                |
+dropped      |              0 |              0
+dup          |              0 |              0
+out_of_order |              0 |              0
+seq_too_high |              0 |              0
+seq_too_low  |              0 |              0
+
+
+#+end_src
+
+Unloaded (100 pps)
+#+begin_src
+Latency Statistics (usec)
+
+   PG ID     |       7        |       8
+----------------------------------------------
+TX pkts      |           5131 |           5134
+RX pkts      |           5131 |           5134
+Max latency  |            277 |            269
+Avg latency  |             89 |             82
+-- Window -- |                |
+Last max     |             98 |             90
+Last-1       |             98 |             90
+Last-2       |             98 |             91
+Last-3       |             99 |             92
+Last-4       |             98 |             91
+Last-5       |             99 |             92
+Last-6       |            196 |            189
+Last-7       |             98 |             92
+Last-8       |             98 |             91
+Last-9       |             99 |             92
+Last-10      |             98 |             92
+Last-11      |            244 |            238
+Last-12      |             99 |             92
+Last-13      |             98 |             92
+---          |                |
+Jitter       |              6 |              5
+----         |                |
+Errors       |              0 |              0
+
+Latency Histogram
+
+   PG ID     |       7        |       8
+----------------------------------------------
+             |                |
+             |                |
+             |                |
+             |                |
+             |                |
+             |                |
+200          |              8 |              8
+100          |             22 |             10
+90           |           3186 |            326
+80           |           1810 |           4623
+70           |              4 |             63
+60           |             19 |              5
+50           |             46 |             23
+40           |              1 |             40
+30           |             18 |              3
+20           |             17 |             32
+10           |                |              1
+- Counters - |                |
+dropped      |              0 |              0
+dup          |              0 |              0
+out_of_order |              0 |              0
+seq_too_high |              0 |              0
+seq_too_low  |              0 |              0
+#+end_src
+
+*** XDP
+
+With this setup, the =xdp_redirect_map= program can be used to forward packets
+between the two interfaces on the gateway. Run it twice to forward in both
+directions.
+
+(WARNING: This will oops the kernel if the eBPF programs are unloaded while
+traffic is still running).
+
+#+begin_src sh
+sudo ./xdp_redirect_map $(</sys/class/net/ens1f1/ifindex) $(</sys/class/net/ens1f0/ifindex)
+sudo ./xdp_redirect_map $(</sys/class/net/ens1f0/ifindex) $(</sys/class/net/ens1f1/ifindex)
+#+end_src
+
+Loaded (1Mpps):
+#+begin_src
+Latency Statistics (usec)
+
+   PG ID     |       7        |       8
+----------------------------------------------
+TX pkts      |       51239930 |       51262930
+RX pkts      |       51239937 |       51262937
+Max latency  |            202 |            198
+Avg latency  |              7 |              6
+-- Window -- |                |
+Last max     |            202 |            182
+Last-1       |            187 |            189
+Last-2       |            186 |            191
+Last-3       |            182 |            190
+Last-4       |            186 |            190
+Last-5       |            193 |            188
+Last-6       |            192 |            179
+Last-7       |            188 |            185
+Last-8       |            186 |            191
+Last-9       |            192 |            184
+Last-10      |            188 |            184
+Last-11      |            189 |            187
+Last-12      |            186 |            181
+Last-13      |            184 |            189
+---          |                |
+Jitter       |              0 |              0
+----         |                |
+Errors       |              0 |              0
+
+Latency Histogram
+
+   PG ID     |       7        |       8
+----------------------------------------------
+             |                |
+             |                |
+             |                |
+             |                |
+             |                |
+200          |             26 |
+100          |          96129 |          89252
+90           |          14692 |          13086
+80           |          11941 |          15845
+70           |          10141 |          10240
+60           |          10125 |           9417
+50           |          12606 |          10781
+40           |          10978 |          15005
+30           |          10427 |          10692
+20           |          21689 |          19818
+10           |         764767 |        4500715
+0            |       50276404 |       46568056
+- Counters - |                |
+dropped      |              0 |              0
+dup          |              0 |              0
+out_of_order |              0 |              0
+seq_too_high |              0 |              0
+seq_too_low  |              0 |              0
+#+end_src
+
+Unloaded (100 pps):
+#+begin_src
+Latency Statistics (usec)
+
+   PG ID     |       7        |       8
+----------------------------------------------
+TX pkts      |           5149 |           5151
+RX pkts      |           5149 |           5151
+Max latency  |            272 |            249
+Avg latency  |             82 |             61
+-- Window -- |                |
+Last max     |             88 |             76
+Last-1       |             88 |             76
+Last-2       |             89 |             79
+Last-3       |             90 |             68
+Last-4       |            197 |            174
+Last-5       |             94 |             67
+Last-6       |            137 |            116
+Last-7       |             89 |             67
+Last-8       |             90 |             67
+Last-9       |             88 |             67
+Last-10      |             88 |             67
+Last-11      |             89 |             68
+Last-12      |            210 |            187
+Last-13      |             90 |             68
+---          |                |
+Jitter       |              4 |              5
+----         |                |
+Errors       |              0 |              0
+
+Latency Histogram
+
+   PG ID     |       7        |       8
+----------------------------------------------
+             |                |
+             |                |
+             |                |
+             |                |
+             |                |
+200          |             11 |              8
+100          |              8 |              9
+90           |             83 |              1
+80           |           4675 |              8
+70           |            290 |             24
+60           |              5 |           2705
+50           |             10 |           2314
+40           |             39 |              4
+30           |              3 |              8
+20           |              1 |             42
+10           |             24 |             12
+0            |                |             16
+- Counters - |                |
+dropped      |              0 |              0
+dup          |              0 |              0
+out_of_order |              0 |              0
+seq_too_high |              0 |              0
+seq_too_low  |              0 |              0
+#+end_src
+
+*** DPDK
+
+Run in macswap forwarding mode. Make sure the portmask selects only the two
+ports we are interested in:
+
+#+begin_src sh
+sudo ./testpmd -l 0-5 -n 4 -- --nb-cores=5 --forward-mode=macswap --portmask=0xa --rxq 5 --txq 5 --rss-udp --stats-period=1  --auto-start
+#+end_src
+
+Loaded (1Mpps):
+#+begin_src
+Latency Statistics (usec)
+
+   PG ID     |       7        |       8
+----------------------------------------------
+TX pkts      |       51176613 |       51205612
+RX pkts      |       51176613 |       51205612
+Max latency  |            189 |            188
+Avg latency  |              3 |              3
+-- Window -- |                |
+Last max     |            170 |            172
+Last-1       |            175 |            171
+Last-2       |            186 |            181
+Last-3       |            168 |            176
+Last-4       |            169 |            174
+Last-5       |            169 |            174
+Last-6       |            177 |            177
+Last-7       |            180 |            172
+Last-8       |            174 |            169
+Last-9       |            173 |            178
+Last-10      |            175 |            173
+Last-11      |            173 |            171
+Last-12      |            176 |            171
+Last-13      |            177 |            173
+---          |                |
+Jitter       |              0 |              0
+----         |                |
+Errors       |              0 |              0
+
+Latency Histogram
+
+   PG ID     |       7        |       8
+----------------------------------------------
+             |                |
+             |                |
+             |                |
+             |                |
+             |                |
+             |                |
+100          |          81742 |          81974
+90           |          10809 |          10693
+80           |          11841 |          11453
+70           |          13202 |          13379
+60           |          12248 |          12644
+50           |          10924 |          10886
+40           |          10369 |          10257
+30           |          11411 |          11100
+20           |          12191 |          12697
+10           |         303678 |         301112
+0            |       50698183 |       50729387
+- Counters - |                |
+dropped      |              0 |              0
+dup          |              0 |              0
+out_of_order |              0 |              0
+seq_too_high |              0 |              0
+seq_too_low  |              0 |              0
+
+#+end_src
+
+Unloaded (100 pps):
+#+begin_src
+Latency Statistics (usec)
+
+   PG ID     |       7        |       8
+----------------------------------------------
+TX pkts      |           5094 |           5097
+RX pkts      |           5094 |           5097
+Max latency  |            161 |            161
+Avg latency  |              2 |              2
+-- Window -- |                |
+Last max     |              4 |              4
+Last-1       |              4 |              4
+Last-2       |              4 |              4
+Last-3       |              3 |              3
+Last-4       |              4 |              4
+Last-5       |             83 |             82
+Last-6       |              4 |              4
+Last-7       |              3 |              3
+Last-8       |             42 |             43
+Last-9       |              3 |              3
+Last-10      |            143 |            143
+Last-11      |              3 |              3
+Last-12      |              3 |              3
+Last-13      |              3 |              3
+---          |                |
+Jitter       |              1 |              1
+----         |                |
+Errors       |              0 |              0
+
+Latency Histogram
+
+   PG ID     |       7        |       8
+----------------------------------------------
+             |                |
+             |                |
+             |                |
+             |                |
+             |                |
+             |                |
+             |                |
+             |                |
+100          |              8 |              8
+80           |              1 |              1
+70           |              1 |              1
+60           |              1 |              1
+50           |              3 |              3
+40           |              2 |              2
+20           |              1 |              1
+10           |              8 |              9
+0            |           5069 |           5071
+- Counters - |                |
+dropped      |              0 |              0
+dup          |              0 |              0
+out_of_order |              0 |              0
+seq_too_high |              0 |              0
+seq_too_low  |              0 |              0
+
+#+end_src
