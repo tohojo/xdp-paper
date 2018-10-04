@@ -536,7 +536,7 @@ programs must process data packets which vary in size; and similarly, the
 contents of maps are not known in advance, so it is not known whether a given
 lookup will succeed.
 
-\begin{listing}
+\begin{listing}[p]
   \caption{\label{lst:ex-xdp-prog}Example XDP program. The program parses packet
     headers, swaps source and destination MAC addresses for all UDP packets, and
     sends them back out the same interface. A packet counter is kept per IP
