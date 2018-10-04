@@ -453,6 +453,23 @@ Looking closer at CPU-0, clearly shows that mlx5 driver have many
 function calls.  These each only contribute approx 1.3ns each, but at
 these speeds they add up!
 
+The function call overhead is measured with:
+ https://github.com/netoptimizer/prototype-kernel/blob/master/kernel/lib/time_bench_sample.c
+
+#+BEGIN_EXAMPLE
+time_bench: Type:funcion_call_cost Per elem: 3 cycles(tsc) 1.009 ns (step:0)
+ - (measurement period time:0.100951200 sec time_interval:100951200)
+  - (invoke count:100000000 tsc_interval:363427758)
+
+time_bench: Type:func_ptr_call_cost Per elem: 4 cycles(tsc) 1.251 ns (step:0)
+ - (measurement period time:0.125172385 sec time_interval:125172385)
+ - (invoke count:100000000 tsc_interval:450625065)
+#+END_EXAMPLE
+
+The perf report shows the individual function calls, but it does not
+show the functions that got inlined.  For the mlx5 driver most of
+these function that didn't get inlined are called as indirect function
+pointer calls.
 
 #+BEGIN_EXAMPLE
 $ perf report --sort cpu,symbol --kallsyms=/proc/kallsyms --no-children -C0
