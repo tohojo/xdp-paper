@@ -496,7 +496,7 @@ per-CPU variants, and can be shared, both between different eBPF programs
 running at various places in the kernel, as well as between eBPF and userspace.
 The map types include generic hash maps, arrays and radix trees, as well as
 specialised types containing pointers to eBPF programs (used for tail calls), or
-even recursive pointers to other maps.
+redirect targets, or even recursive pointers to other maps.
 
 Maps serve several purposes: they are a persistent data store between
 invocations of the same eBPF program; a global coordination tool, where eBPF
