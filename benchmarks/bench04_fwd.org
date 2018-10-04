@@ -277,3 +277,67 @@ If a change how the dst-IPs are generated, then the performance is
 significantly improved.  Thus, the T-rex test script is really good to
 exercise the FIB lookup.
 
+
+*** Recompiled kernel with CONFIG_IP_FIB_TRIE_STATS
+
+This is an attempt to investigate why the FIB lookup code is
+performing worse with the full Internet routing table, by looking at
+the stats avail via /proc/net/fib_triestat (when kernel is compiled
+with CONFIG_IP_FIB_TRIE_STATS).
+
+#+BEGIN_EXAMPLE
+Ethtool(mlx5p1  ) stat:      3581088 (      3,581,088) <= rx_xdp_redirect /sec
+Ethtool(mlx5p2  ) stat:      3583691 (      3,583,691) <= tx0_xdp_xmit /sec
+#+END_EXAMPLE
+
+Fib stats from /proc/net/fib_triestat using the tool mmwatch from:
+ https://github.com/cloudflare/cloudflare-blog/tree/master/2017-06-29-ssdp
+
+#+BEGIN_EXAMPLE
+Every 2.0s: cat /proc/net/fib_triestat		2018-06-21 20:33:00.739115
+
+Basic info: size of leaf: 48 bytes, size of tnode: 40 bytes.
+Main:
+	Aver depth:     2.25
+	Max depth:      6
+	Leaves:         696323
+	Prefixes:       752177
+	Internal nodes: 136422
+	  1: 161  2: 85300  3: 25308  4: 12140  5: 7833  6: 5405  7: 273  9: 1  18: 1
+	Pointers: 1632402
+Null ptrs: 799658
+Total size: 91857  kB
+
+Counters:
+---------
+gets =     3.6m/s
+backtracks =  55.2k/s
+semantic match passed =     3.6m/s
+semantic match miss =     2.6m/s
+null node hit=    10.9m/s
+skipped node resize = 0
+
+Local:
+	Aver depth:     2.25
+	Max depth:      6
+	Leaves:         696323
+	Prefixes:       752177
+	Internal nodes: 136422
+	  1: 161  2: 85300  3: 25308  4: 12140  5: 7833  6: 5405  7: 273  9: 1  18: 1
+	Pointers: 1632402
+Null ptrs: 799658
+Total size: 91857  kB
+
+Counters:
+---------
+gets =     3.6m/s
+backtracks =  55.2k/s
+semantic match passed =     3.6m/s
+semantic match miss =     2.6m/s
+null node hit=    10.9m/s
+skipped node resize = 0
+#+END_EXAMPLE
+
+From above stats, the strange observation is the 10.9M/s "null node
+hit" lookups.  This need further investigation, but could possibly
+explain why we are seeing more branch-miss predictions.
