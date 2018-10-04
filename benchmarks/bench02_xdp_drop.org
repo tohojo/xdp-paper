@@ -515,6 +515,62 @@ Samples: 20K of event 'cycles:ppp', Event count (approx.): 18342640436
 
 Thus, 10 function calls that have a per packet invocation.
 
+The DMA sync calls result in 4 calls, as they are not inlined in
+kernel/dma/swiotlb.c.  Guess the compiler choose not to inline
+swiotlb_sync_single().
+
+*** Quantify effect of possible improvements?
+
+Trying to figure out a way to measure, the effect of avoidong some of
+the DMA calls.
+
+In principle, the DMA sync operation is a no-op with this Intel CPU,
+as we are not-using-IOMMU and not using the bounce-buffer feature.
+Thus, I could in principle just compile it out...
+
+For some reason needed to disabled rx_striding_rq for good performance:
+ * ethtool --set-priv-flags mlx5p1 rx_striding_rq off
+
+Baseline XDP_DROP mlx5 performance on 4.19.0-rc5-bpf-next:
+
+#+BEGIN_EXAMPLE
+Running XDP on dev:mlx5p1 (ifindex:18) action:XDP_DROP options:no_touch
+XDP stats       CPU     pps         issue-pps  
+XDP-RX CPU      3       24,971,062  0          
+XDP-RX CPU      total   24,971,062 
+
+RXQ stats       RXQ:CPU pps         issue-pps  
+rx_queue_index    3:3   24,971,055  0          
+rx_queue_index    3:sum 24,971,055 
+#+END_EXAMPLE
+
+(1/24971055)*10^9 = 40.04636568218000000000 nanosec
+
+Removed all DMA sync calls from mlx5 driver code:
+
+#+BEGIN_EXAMPLE
+Running XDP on dev:mlx5p1 (ifindex:16) action:XDP_DROP options:no_touch
+XDP stats       CPU     pps         issue-pps  
+XDP-RX CPU      3       29,028,209  0          
+XDP-RX CPU      total   29,028,209 
+
+RXQ stats       RXQ:CPU pps         issue-pps  
+rx_queue_index    3:3   29,028,207  0          
+rx_queue_index    3:sum 29,028,207 
+#+END_EXAMPLE
+
+(1/29028209)*10^9 = 34.44924900464000000000 ns
+
+Difference, improvement in pps:
+ - 29028209-24971055 = 4057154 -> 4,057,154 pps
+
+Difference in nanosec:
+ ((1/24971055)-(1/29028209))*10^9 = 5.59711667754000000000 ns
+
+This removed 4 function calls ( 5.5971/4 ) =  1.399 ns per call.
+This measured improvement is correlates well with the expected
+overhead per function call of approx 1.3ns.
+
 
 * DPDK uses SSE instructions
 
