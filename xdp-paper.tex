@@ -531,13 +531,6 @@ programs that perform load or call instructions with invalid arguments. Argument
 validity is determined by tracking the state of all registers and stack
 variables through the execution of the program.
 
-The purpose of this register state tracking mechanism is to ensure that the
-program performs no out of bounds memory accesses \emph{without knowing in
-  advance what the valid bounds are}. The bounds cannot be known because
-programs must process data packets which vary in size; and similarly, the
-contents of maps are not known in advance, so it is not known whether a given
-lookup will succeed.
-
 \begin{listing}[p]
   \caption{\label{lst:ex-xdp-prog}Example XDP program. The program parses packet
     headers, swaps source and destination MAC addresses for all UDP packets, and
@@ -618,6 +611,13 @@ int xdp_prog1(struct xdp_md *ctx)
 
 \end{minted}
 \end{listing}
+
+The purpose of this register state tracking mechanism is to ensure that the
+program performs no out of bounds memory accesses \emph{without knowing in
+  advance what the valid bounds are}. The bounds cannot be known because
+programs must process data packets which vary in size; and similarly, the
+contents of maps are not known in advance, so it is not known whether a given
+lookup will succeed.
 
 One way to deal with this problem is to automatically generate bounds checking
 code around all memory accesses. However, the eBPF verifier takes a different
