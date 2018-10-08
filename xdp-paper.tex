@@ -81,7 +81,7 @@
   has been merged into the mainline Linux kernel and provides a fully integrated
   solution working in concert with the kernel's networking stack. Applications
   are written in higher level languages such as C and compiled into custom
-  bytecode which the kernel statically analyses for safety, and translates into
+  byte code which the kernel statically analyses for safety, and translates into
   native instructions.
 
   We show that XDP achieves single-core packet processing performance as high as
@@ -149,7 +149,7 @@ operating system networking stack in a cooperative way. This makes it possible
 to perform high-speed packet processing that integrates seamlessly with existing
 systems, while selectively leveraging functionality in the operating system.
 This framework, called the eXpress Data Path (XDP), works by defining a limited
-execution environment in the form of a virtual machine running a custom bytecode
+execution environment in the form of a virtual machine running a custom byte code
 that is based on an extended version of BPF, the original BSD Packet Filter
 \cite{mccanne_bsd_1993}. This environment executes custom programs directly in
 the device driver context, before the kernel performs any other packet processing
@@ -943,7 +943,7 @@ because DPDK has incorporated more performance optimisations at the lowest level
 of the code. To illustrate this, consider the packet drop example: XDP achieves
 24\,Mpps on a single core, which corresponds to 41.6 nanoseconds per packet,
 while DPDK achieves 43.5\,Mpps, or 22.9 nanoseconds per packet. The difference
-of 18.7 nanoseconds corresponds to 67 clock cycles on the 3.6\,Ghz processor in
+of 18.7 nanoseconds corresponds to 67 clock cycles on the 3.6\,GHz processor in
 our test machine. Thus, it is clear that every micro-optimisation counts; for
 example, we measure an overhead of 1.3 nanoseconds for a single function call on
 our test system. The mlx5 driver performs 10 function when processing a single
@@ -996,7 +996,7 @@ that.
 \subsection{Software Routing}
 \label{sec:fwd-usecase}
 The Linux kernel contains a full-featured routing table, which includes support
-for policy routing, source-specific routing, multipath load balancing, and more.
+for policy routing, source-specific routing, multi-path load balancing, and more.
 For the control plane, routing daemons such as Bird~\cite{bird} or
 FRR~\cite{frr} implement a variety of routing control plane protocols. Because
 of this rich ecosystem supporting routing on Linux, re-implementing the routing
@@ -1042,7 +1042,7 @@ packet size of 300\,bytes).
 \end{figure}
 
 % See: (calc in benchmarks/bench04_fwd.org). The full-tables vs. single overhead
-%  is signficantly larger than the expected overhead (according to Vincent
+%  is significantly larger than the expected overhead (according to Vincent
 %  Bernat's measurements)
 %  https://vincent.bernat.im/en/blog/2017-performance-progression-ipv4-route-lookup-linux
 
@@ -1179,7 +1179,7 @@ being worked on.
 
 Another limitation of eBPF programs compared to user-space C programs is the
 lack of a standard library, including things like memory allocation, threading,
-locking, etc. This is partly alleviated by the lifecycle and execution context
+locking, etc. This is partly alleviated by the life cycle and execution context
 management of the kernel (i.e., an XDP program is automatically run for each
 arriving packet), and partly by the helper functions exposed by the kernel.
 
@@ -1291,7 +1291,7 @@ Just as DPDK is used as a low-level building block for higher level packet
 processing frameworks (e.g., \cite{linguaglossa2017high}), XDP has the potential
 to serve as a runtime environment for higher-level applications. In fact, we
 have already started to see examples of applications and frameworks leveraging
-XDP. Prominent examples include the Cilium security middleware~\cite{cilium},
+XDP. Prominent examples include the Cilium security middle-ware~\cite{cilium},
 the Suricata network monitor~\cite{suricata} and the P4-to-XDP compiler
 project~\cite{p4xdp}.
 
