@@ -979,6 +979,9 @@ cards, which has a smaller performance delta between XDP and
 DPDK.\footnote{While DPDK uses the drivers in the operating system to assume
   control of the hardware, it contains its own drivers that are used for the
   actual packet processing.}
+%
+% See: benchmarks/bench02_xdp_drop.org, section "Intel 40G driver i40e" of why
+% i40e was uninteresting, as HW is limiting factor.
 
 Given the above points, we believe it is feasible for XDP to further decrease
 the performance delta to DPDK. However, given the benefits of XDP in terms of

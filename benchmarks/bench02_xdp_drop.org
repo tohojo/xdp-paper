@@ -718,3 +718,70 @@ mpstat -P ALL -u -I SCPU -I SUM 2
 04:33:36 PM    5       0.00     116.50       0.00       8.00       0.00       0.00       0.00       0.00       0.00       8.50
 #+END_EXAMPLE
 
+
+* Intel 40G driver i40e
+
+Why the i40e driver / XL710 NIC was not choosen for benchmarking.
+
+It would basically have been booring to show that, XDP can handle what
+the HW can offer basically on a single CPU.  And comparing against
+DPDK, the results would have shown the same, as the HW is the real
+limit.  Thus, it would sort-of be unfair for DPDK.
+
+The i40e HW datasheet states that it can "only" handle 40G wirespeed
+with 128-byte packets.
+
+Intel Ethernet Controller X710/XXV710/XL710: Datasheet:
+https://www.intel.com/content/dam/www/public/us/en/documents/datasheets/xl710-10-40-controller-datasheet.pdf
+
+Quote from Datasheet: Table 1-4. Performance on the network vs. packet
+size: "Maximize link capacity when operating at 40 Gb/s link or 4x10
+Gb/s links with packets larger than 128 bytes at full duplex traffic"
+
+40G wirespeed is:
+ - 40000/(84*8) = 59.52 Mpps at 64B due to overhead 84 Bytes
+ - 40000/(128*8) = 39.06 Mpps at 128B without inter-frame gap
+ - 40000/((128+12)*8) = 35.71 Mpps at 128B with 12B inter-frame gap
+
+XDP can XDP_DROP 35.3 Mpps on a single RX-queue (100% CPU usage), and
+scaling this up to more CPUs, the sum still remains 36 Mpps, just with
+a lot of idle CPU cycles.
+
+Single queue XDP_DROP:
+#+BEGIN_EXAMPLE
+Running XDP on dev:i40e1 (ifindex:3) action:XDP_DROP options:no_touch
+XDP stats       CPU     pps         issue-pps  
+XDP-RX CPU      2       35,382,617  0          
+XDP-RX CPU      total   35,382,617 
+
+RXQ stats       RXQ:CPU pps         issue-pps  
+rx_queue_index    2:2   35,382,616  0          
+rx_queue_index    2:sum 35,382,616 
+#+END_EXAMPLE
+
+Multi-queue XDP_DROP with xdp_rxq_info:
+
+#+BEGIN_EXAMPLE
+Running XDP on dev:i40e1 (ifindex:3) action:XDP_DROP options:no_touch
+XDP stats       CPU     pps         issue-pps  
+XDP-RX CPU      0       6,023,281   0          
+XDP-RX CPU      1       3,011,011   0          
+XDP-RX CPU      3       16,555,566  0          
+XDP-RX CPU      4       4,501,346   0          
+XDP-RX CPU      5       6,005,919   0          
+XDP-RX CPU      total   36,097,126 
+
+RXQ stats       RXQ:CPU pps         issue-pps  
+rx_queue_index    0:0   6,023,283   0          
+rx_queue_index    0:sum 6,023,283  
+rx_queue_index    1:1   3,011,011   0          
+rx_queue_index    1:sum 3,011,011  
+rx_queue_index    2:3   3,012,275   0          
+rx_queue_index    2:sum 3,012,275  
+rx_queue_index    3:3   13,543,264  0          
+rx_queue_index    3:sum 13,543,264 
+rx_queue_index    4:4   4,501,393   0          
+rx_queue_index    4:sum 4,501,393  
+rx_queue_index    5:5   6,005,977   0          
+rx_queue_index    5:sum 6,005,977  
+#+END_EXAMPLE
