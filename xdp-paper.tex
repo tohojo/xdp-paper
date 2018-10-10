@@ -395,7 +395,11 @@ associated with the packet. This is accessible through the context object, which
 contains read-only metadata fields as well as a pointer to a special memory area
 that XDP programs can use to store its own arbitrary metadata. The latter will
 be available to other XDP programs, as well as to other parts of the kernel and
-userspace. Additionally, an XDP program has access to kernel facilities that
+userspace.
+% This metadata area is placed inline in packet payload, just before packet
+% headers.
+%
+Additionally, an XDP program has access to kernel facilities that
 provide additional metadata through helper functions and maps (dotted lines in
 Figure~\ref{fig:xdp-kernel} and the top part of Figure~\ref{fig:xdp-execution}).
 New helper functions are actively added by the kernel development community in
