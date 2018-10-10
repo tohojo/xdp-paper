@@ -966,7 +966,14 @@ possible to support a wide variety of systems and configurations. However, we
 believe that some optimisations are viable. For instance, we have performed an
 experiment that removed DMA-related function calls that were not needed on our
 specific hardware from the driver (removing four of the 10 per-packet function
-calls), which improved the packet drop performance to 29\,Mpps. We see similar
+calls), which improved the packet drop performance to 29\,Mpps.
+%
+% Looking at driver code it should be possible to inline 3 function calls, which
+% extrapolated corresponds to 32.8\,Mpps.  Extra-polated if all 10 per-packet
+% function calls overheads could be eliminated the expected throughput would be
+% 37.6\,Mpps.
+%
+We see similar
 effects with other drivers, such as the \emph{i40e} driver for 40\,Gbps Intel
 cards, which has a smaller performance delta between XDP and
 DPDK.\footnote{While DPDK uses the drivers in the operating system to assume

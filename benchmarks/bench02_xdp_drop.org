@@ -571,6 +571,28 @@ This removed 4 function calls ( 5.5971/4 ) =  1.399 ns per call.
 This measured improvement is correlates well with the expected
 overhead per function call of approx 1.3ns.
 
+Extra-polating, that we could inline the remaining 6 calls.
+
+29Mpps = 34.4 ns
+
+34.4 - (6 * 1.3) = 26.6 ns
+
+26.6 ns converted to pps:
+
+1/(34.4 - (6 * 1.3)) * 1000 = 37.59 Mpps
+
+Looking at driver we/compiler should be able to inline 3 calls, into
+mlx5e_poll_rx_cq:
+
+| function                       | called per packet? | called by                 |
+|--------------------------------+--------------------+---------------------------|
+| mlx5e_handle_rx_cqe            | per packet         | mlx5e_poll_rx_cq          |
+| mlx5e_skb_from_cqe_linear      | per packet         | mlx5e_handle_rx_cqe       |
+| mlx5e_xdp_handle               | per packet         | mlx5e_skb_from_cqe_linear |
+
+Thus, a realistic driver optimization can remove/inline 3 calls:
+
+1/(34.4 - (3 * 1.3)) * 1000 = 32.78 Mpps
 
 * DPDK uses SSE instructions
 
