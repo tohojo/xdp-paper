@@ -1232,7 +1232,12 @@ an API exposed by the core networking stack. Support is continuously being added
 to more and more drivers,\footnote{At the time of writing Linux 4.18 has XDP
   support in 12 different drivers, including most high-speed network adapters.
   For an updated list, see~\cite{cilium-docs}.} but some care is still needed
-when selecting hardware to use with XDP. However, since XDP is integrated into
+when selecting hardware to use with XDP. As not all drivers implement the full
+XDP feature set, and no XDP feature flags are exposed to userspace, as upstream
+developers fear this expose a UAPI, which will become irrelevant once all
+drivers support the full feature set.
+%
+However, since XDP is integrated into
 the kernel device driver model, it imposes no particular capability constraints
 on the hardware, which means that full support in all drivers is possible.
 
