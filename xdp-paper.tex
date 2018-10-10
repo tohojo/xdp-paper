@@ -843,12 +843,15 @@ number of cores. And finally, it shows that with its 24 Mpps on a single core,
 XDP offers a five-fold improvement over the fastest processing mode of the
 regular networking stack.
 
-As part of this test, we also measured the overhead of the Linux raw mode
-dropping performance from installing an XDP program that does no operation other
-than pass the packet on to the stack. We measured a drop in performance to
-4.5\,Mpps on a single core, corresponding to 13.3\,ns of processing overhead.
-This is not shown on the figure, because the difference is too small to be
-legible.
+As part of this Linux raw mode test, we also measured the overhead of XDP by
+installing an XDP program that does no operation other than pass the packet on
+to the stack. We measured a drop in performance to 4.5\,Mpps on a single core,
+corresponding to 13.3\,ns of processing overhead.  This is not shown on the
+figure, because the difference is too small to be legible.
+%
+% The XDP_PASS prog is xdp_rxq_info, which does two map BPF lookups and count
+% processed packets, but avoid to touch the payload. Thus, the text is not 100%
+% correct stating 'no operation other than pass'.
 
 \subsection{CPU Usage}
 \label{sec:cpu-usage}
