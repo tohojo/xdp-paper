@@ -19,7 +19,7 @@
 \acmConference{CoNEXT '18}{December 4--7, 2018}{Heraklion, Greece}
 %\widowpenalty=100
 %\clubpenalty=100
-%\brokenpenalty=100
+\brokenpenalty=100
 
 \begin{document}
 \title{The eXpress Data Path: Fast Programmable Packet Processing in the Operating System Kernel}
@@ -261,23 +261,20 @@ guarantees offered by the operating system. The key innovation that enables this
 is the use of a virtual execution environment that verifies that loaded programs
 will not harm or crash the kernel.
 
-% Should Juniper Contrail vRouter be mentioned below? It is not a 'prominent' or
-% well known example, but their Linux approach is loading a kernel module.
-%
 Prior to the introduction of XDP, implementing packet processing functionality
 as a kernel module has been a high-cost approach, since mistakes can crash the
 whole system, and internal kernel APIs are subject to frequent change. For this
 reason, it is not surprising that few systems have taken this approach. Of those
 that have, the most prominent examples are the OpenVswitch~\cite{openvswitch}
-virtual switch and the Click~\cite{morris1999click} virtual router framework,
-which are both highly configurable systems with a wide scope, allowing them to
-amortise the cost over a wide variety of uses. XDP significantly lowers the cost
-for applications of moving processing into the kernel, by providing a safe
-execution environment, and by being supported by the kernel community, thus
-offering the same API stability guarantee as every other interface the kernel
-exposes to userspace. In addition, XDP programs can completely bypass the
-networking stack, which offers higher performance than a traditional kernel
-module that needs to hook into the existing stack.
+virtual switch and the Click~\cite{morris1999click} and Contrail~\cite{contrail}
+virtual router frameworks, which are all highly configurable systems with a wide
+scope, allowing them to amortise the cost over a wide variety of uses. XDP
+significantly lowers the cost for applications of moving processing into the
+kernel, by providing a safe execution environment, and by being supported by the
+kernel community, thus offering the same API stability guarantee as every other
+interface the kernel exposes to userspace. In addition, XDP programs can
+completely bypass the networking stack, which offers higher performance than a
+traditional kernel module that needs to hook into the existing stack.
 
 While XDP allows packet processing to move into the operating system for maximum
 performance, it also allows the programs loaded into the kernel to selectively
@@ -392,19 +389,15 @@ logical sub-units (based on, say, IP header version).
 
 After parsing the packet data, the XDP program can read or write metadata
 associated with the packet. This is accessible through the context object, which
-contains read-only metadata fields as well as a pointer to a special memory area
-that XDP programs can use to store its own arbitrary metadata. The latter will
-be available to other XDP programs, as well as to other parts of the kernel and
-userspace.
-% This metadata area is placed inline in packet payload, just before packet
-% headers.
-%
-Additionally, an XDP program has access to kernel facilities that
-provide additional metadata through helper functions and maps (dotted lines in
-Figure~\ref{fig:xdp-kernel} and the top part of Figure~\ref{fig:xdp-execution}).
-New helper functions are actively added by the kernel development community in
-response to user requests, continuously expanding the functionality that XDP
-programs can make use of.
+contains read-only metadata fields as well as a pointer to a special memory
+area, located adjacent in memory to the packet data, that XDP programs can use
+to store its own arbitrary metadata. The latter will be available to other XDP
+programs, as well as to other parts of the kernel and userspace. Additionally,
+an XDP program has access to kernel facilities that provide additional metadata
+through helper functions and maps (dotted lines in Figure~\ref{fig:xdp-kernel}
+and the top part of Figure~\ref{fig:xdp-execution}). New helper functions are
+actively added by the kernel development community in response to user requests,
+continuously expanding the functionality that XDP programs can make use of.
 
 Finally, the program can write any parts of the packet data buffer, including
 expanding or shrinking the packet to add or remove headers. This allows it to
@@ -505,7 +498,7 @@ per-CPU variants, and can be shared, both between different eBPF programs
 running at various places in the kernel, as well as between eBPF and userspace.
 The map types include generic hash maps, arrays and radix trees, as well as
 specialised types containing pointers to eBPF programs (used for tail calls), or
-redirect targets, or even recursive pointers to other maps.
+redirect targets, or even pointers to other maps.
 
 Maps serve several purposes: they are a persistent data store between
 invocations of the same eBPF program; a global coordination tool, where eBPF
@@ -834,24 +827,21 @@ The figure also shows the performance of the Linux networking stack in two
 configurations: one where we use the ``raw'' table of the \emph{iptables}
 firewall module to drop packets, which ensures the earliest possible drop in the
 network stack processing; and another where we use the connection tracking
-(\emph{conntrack}) module, which is enabled by default on many Linux
-distributions, but which carries a high overhead. These two modes illustrate the
-performance span of the Linux networking stack, from 1.8 Mpps of single-core
-performance with conntrack, up to 4.8 Mpps in raw mode. It also shows that in
-the absence of hardware bottlenecks, Linux performance scales linearly with the
-number of cores. And finally, it shows that with its 24 Mpps on a single core,
-XDP offers a five-fold improvement over the fastest processing mode of the
-regular networking stack.
+(\emph{conntrack}) module, which carries a high overhead, but is enabled by
+default on many Linux distributions. These two modes illustrate the performance
+span of the Linux networking stack, from 1.8 Mpps of single-core performance
+with conntrack, up to 4.8 Mpps in raw mode. It also shows that in the absence of
+hardware bottlenecks, Linux performance scales linearly with the number of
+cores. And finally, it shows that with its 24 Mpps on a single core, XDP offers
+a five-fold improvement over the fastest processing mode of the regular
+networking stack.
 
 As part of this Linux raw mode test, we also measured the overhead of XDP by
-installing an XDP program that does no operation other than pass the packet on
-to the stack. We measured a drop in performance to 4.5\,Mpps on a single core,
-corresponding to 13.3\,ns of processing overhead.  This is not shown on the
-figure, because the difference is too small to be legible.
-%
-% The XDP_PASS prog is xdp_rxq_info, which does two map BPF lookups and count
-% processed packets, but avoid to touch the payload. Thus, the text is not 100%
-% correct stating 'no operation other than pass'.
+installing an XDP program that does no operation other than updating packets
+counters and passing the packet on to the stack. We measured a drop in
+performance to 4.5\,Mpps on a single core, corresponding to 13.3\,ns of
+processing overhead. This is not shown on the figure, asthe difference is too
+small to be legible.
 
 \subsection{CPU Usage}
 \label{sec:cpu-usage}
@@ -965,20 +955,17 @@ as Linux, as device drivers and subsystems are structured in a way that makes it
 possible to support a wide variety of systems and configurations. However, we
 believe that some optimisations are viable. For instance, we have performed an
 experiment that removed DMA-related function calls that were not needed on our
-specific hardware from the driver (removing four of the 10 per-packet function
-calls), which improved the packet drop performance to 29\,Mpps.
-%
-% Looking at driver code it should be possible to inline 3 function calls, which
-% extrapolated corresponds to 32.8\,Mpps.  Extra-polated if all 10 per-packet
-% function calls overheads could be eliminated the expected throughput would be
-% 37.6\,Mpps.
-%
-We see similar
-effects with other drivers, such as the \emph{i40e} driver for 40\,Gbps Intel
-cards, which has a smaller performance delta between XDP and
-DPDK.\footnote{While DPDK uses the drivers in the operating system to assume
-  control of the hardware, it contains its own drivers that are used for the
-  actual packet processing.}
+specific hardware from the driver, removing four of the 10 per-packet function
+calls. This improved the packet drop performance to 29\,Mpps. Extrapolating
+this, removing all function calls would increase performance to 37.6\,Mpps.
+While this is not possible in practice, it is possible to remove some of them,
+and combining this with other performance optimisations, we believe it is
+reasonable to expect the performance gap between DPDK and XDP to lessen over
+time. We see similar effects with other drivers, such as the \emph{i40e} driver
+for 40\,Gbps Intel cards, which achieves full performance up to the NIC hardware
+performance limit with both XDP and DPDK.\footnote{While DPDK uses the drivers
+  in the operating system to assume control of the hardware, it contains its own
+  drivers that are used for the actual packet processing.}
 %
 % See: benchmarks/bench02_xdp_drop.org, section "Intel 40G driver i40e" of why
 % i40e was uninteresting, as HW is limiting factor.
@@ -1228,16 +1215,13 @@ more work is needed in this area.
 \subsection{Driver Support}
 \label{sec:driver-support}
 Each device driver needs to add support for running XDP programs, by supporting
-an API exposed by the core networking stack. Support is continuously being added
-to more and more drivers,\footnote{At the time of writing Linux 4.18 has XDP
-  support in 12 different drivers, including most high-speed network adapters.
-  For an updated list, see~\cite{cilium-docs}.} but some care is still needed
-when selecting hardware to use with XDP. As not all drivers implement the full
-XDP feature set, and no XDP feature flags are exposed to userspace, as upstream
-developers fear this expose a UAPI, which will become irrelevant once all
-drivers support the full feature set.
-%
-However, since XDP is integrated into
+an API exposed by the core networking stack, and support is continuously being
+added to more and more drivers.\footnote{At the time of writing Linux 4.18 has
+  XDP support in 12 different drivers, including most high-speed network
+  adapters. For an updated list, see~\cite{cilium-docs}.} However, since
+features are usually implemented in smaller increments, some care is still
+needed when selecting hardware to use with XDP, to ensure full support for the
+features needed for a particular use case. However, since XDP is integrated into
 the kernel device driver model, it imposes no particular capability constraints
 on the hardware, which means that full support in all drivers is possible.
 
@@ -1254,8 +1238,8 @@ moving execution into the core networking stack.
 As we discussed in Section~\ref{sec:perf-discussion}, there is still a
 performance gap between XDP and DPDK in some use cases. Efforts to improve this
 are ongoing, which includes micro-optimisations of driver code as well as
-changes to the core XDP code to avoid unnecessary operations where possible, and
-otherwise amortise the costs through improved batching of operations.
+changes to the core XDP code to remove unnecessary operations, and amortise
+processing costs through improved batching.
 
 \subsection{QoS and Rate Transitions}
 \label{sec:handl-rate-trans}
@@ -1317,20 +1301,16 @@ processing frameworks (e.g., \cite{linguaglossa2017high}), XDP has the potential
 to serve as a runtime environment for higher-level applications. In fact, we
 have already started to see examples of applications and frameworks leveraging
 XDP. Prominent examples include the Cilium security middle-ware~\cite{cilium},
-the Suricata network monitor~\cite{suricata} and the P4-to-XDP compiler
-project~\cite{p4xdp}.
-%
-% Mention OVS patches using AF_XDP by William Tu (VMware) ?
-%
-% Mention DPDK PMD (Poll Mode Driver) using AF_XDP ?
-%  http://mails.dpdk.org/archives/dev/2018-February/091502.html
+the Suricata network monitor~\cite{suricata}, Open vSwitch~\cite{ovs-xdp} and
+the P4-to-XDP compiler project~\cite{p4xdp}. There is even an effort to add XDP
+as a low-level driver for DPDK~\cite{dpdk-xdp}.
 
 \section{Conclusions}
 \label{sec:conclusion}
 We have presented XDP, a system for safely integrating fast programmable packet
-processing directly into the operating system kernel. Our evaluation has shown
-that XDP achieves raw packet processing performance of up to 24 million packets
-per second on a single CPU core.
+processing into the operating system kernel. Our evaluation has shown that XDP
+achieves raw packet processing performance of up to 24\,Mpps on a single CPU
+core.
 
 While this is not quite on par with state of the art kernel bypass-based
 solutions, we argue that XDP offers other compelling features that more than
@@ -1339,7 +1319,7 @@ security and management compatibility; selectively utilising existing kernel
 stack features as needed; providing a stable programming interface; and complete
 transparency to applications. In addition, XDP can be dynamically re-programmed
 without service interruption, and requires neither specialised hardware nor
-dedicating whole NIC plus CPU cores to packet processing.
+dedicating resources exclusively to packet processing.
 
 We believe that these features make XDP a compelling alternative to
 all-or-nothing kernel bypass solutions. This belief is supported by XDP's
@@ -1353,9 +1333,9 @@ in the future.
 XDP has been under development by the Linux networking community for a number of
 years, and the authors would like to thank everyone who has been involved in
 this process. In particular, Alexei Starovoitov has been instrumental in the
-development of the eBPF virtual machine and verifier, Jakub Kicinski has been a
+development of the eBPF virtual machine and verifier; Jakub Kicinski has been a
 driving force behind XDP hardware offloading and development of the bpftool
-utility, and Björn Töpel plus Magnus Karlsson have been leading the AF\_XDP and
+utility; and Björn Töpel and Magnus Karlsson have been leading the AF\_XDP and
 userspace zero-copy efforts.
 
 
