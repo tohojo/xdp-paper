@@ -5,6 +5,8 @@ for the paper "The eXpress Data Path: Fast Programmable Packet Processing in the
 Operating System Kernel" which will be presented at ACM CoNEXT 2018 in
 December 2018.
 
+The PDF version of the paper is also included in [[file:xdp-the-express-data-path.pdf][xdp-the-express-data-path.pdf]].
+
 ** Source code
 The XDP system is part of the upstream Linux kernel. The specific version we've
 used in our tests is available in Jesper's git repository on git.kernel.org, in
