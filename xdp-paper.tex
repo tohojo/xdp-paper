@@ -76,9 +76,9 @@ EXperiments and Technologies, December 4--7, 2018, Heraklion, Greece}
   Programmable packet processing is increasingly implemented using kernel bypass
   techniques, where a userspace application takes complete control of the
   networking hardware to avoid expensive context switches between kernel and
-  userspace. However, as the operating system is bypassed, so are its familiar
-  tooling, application isolation mechanisms and security guarantees; and packet
-  processing applications are separated from the rest of the system.
+  userspace. However, as the operating system is bypassed, so are its
+  application isolation and security mechanisms; and well-tested configuration,
+  deployment and management tools cease to function.
 
   To overcome this limitation, we present the design of a novel approach to
   programmable packet processing, called the eXpress Data Path (XDP). In XDP,
@@ -144,27 +144,26 @@ protocols. In the worst case, this leads to a scenario where packet processing
 applications operate in a completely separate environment, where familiar
 tooling and deployment mechanisms supplied by the operating system cannot be
 used because of the need for direct hardware access. This results in increased
-system complexity and blurs strict security boundaries otherwise enforced by the
+system complexity and blurs security boundaries otherwise enforced by the
 operating system kernel. The latter is in particular problematic as
 infrastructure moves towards container-based workloads coupled with
 orchestration systems such as Docker or Kubernetes, where the kernel plays a
 dominant role in resource abstraction and isolation.
 
-As an alternative to the all-or-nothing kernel bypass packet processing
-technique, we present a system that adds programmability directly in the
-operating system networking stack in a cooperative way. This makes it possible
-to perform high-speed packet processing that integrates seamlessly with existing
-systems, while selectively leveraging functionality in the operating system.
-This framework, called the eXpress Data Path (XDP), works by defining a limited
-execution environment in the form of a virtual machine running a custom byte
-code that is based on an extended version of BPF, the original BSD Packet Filter
-\cite{mccanne_bsd_1993}. This environment executes custom programs directly in
-kernel context, before the kernel itself touches the packet data, which enables
-custom processing (including redirection) at the earliest possible point after a
-packet is received from the hardware. The kernel ensures the safety of the
-custom programs by statically verifying them at load time; and programs are
-dynamically compiled into native machine instructions to ensure high
-performance.
+As an alternative to the kernel bypass design, we present a system that adds
+programmability directly in the operating system networking stack in a
+cooperative way. This makes it possible to perform high-speed packet processing
+that integrates seamlessly with existing systems, while selectively leveraging
+functionality in the operating system. This framework, called the eXpress Data
+Path (XDP), works by defining a limited execution environment in the form of a
+virtual machine running a custom byte code format called eBPF, an extended
+version of BPF, the original BSD Packet Filter \cite{mccanne_bsd_1993}. This
+environment executes custom programs directly in kernel context, before the
+kernel itself touches the packet data, which enables custom processing
+(including redirection) at the earliest possible point after a packet is
+received from the hardware. The kernel ensures the safety of the custom programs
+by statically verifying them at load time; and programs are dynamically compiled
+into native machine instructions to ensure high performance.
 
 XDP has been gradually integrated into the Linux kernel over several releases,
 but no complete architectural description of the system as a whole has been
@@ -214,8 +213,8 @@ outlines related work. Section~\ref{sec:design} then presents the design of the
 XDP system and Section~\ref{sec:perf-eval} presents our evaluation of its raw
 packet processing performance. Section~\ref{sec:usecases} supplements this with
 examples of real-world use cases that can be implemented with XDP. Finally,
-Section~\ref{sec:limitations} presents some known limitations of XDP and future
-work to address them, and Section~\ref{sec:conclusion} concludes.
+Section~\ref{sec:future} discusses future directions of XDP, and
+Section~\ref{sec:conclusion} concludes.
 
 \section{Related work}%
 \label{sec:related-work}
@@ -350,8 +349,8 @@ section explains in more detail how XDP achieves this.
 
 The driving rationale behind the design of XDP has been to allow
 high-performance packet processing that can integrate cooperatively with the
-rest of the kernel, while ensuring the safety and integrity of the rest of the
-system. This deep integration with the kernel obviously imposes some design
+operating system kernel, while ensuring the safety and integrity of the rest of
+the system. This deep integration with the kernel obviously imposes some design
 constraints, and the components of XDP have been gradually introduced into the
 Linux kernel over a number of releases, and the design has been informed by the
 feedback and testing obtained during this process.
@@ -399,16 +398,15 @@ metadata fields describing which interface and receive queue the packet was
 received on.
 
 The program typically begins by parsing packet data, and can pass control to a
-different XDP program, thus splitting processing into logical sub-units (based
-on, say, IP header version).
+different XDP program through tail calls, thus splitting processing into logical
+sub-units (based on, say, IP header version).
 
 After parsing the packet data, the XDP program can read or write metadata
 associated with the packet, through the context object, which contains read-only
 metadata fields describing the interface and receive queue the packet came from.
 An XDP program can also use a special memory area, located adjacent in memory to
 the packet data, to attach its own metadata to the packet, which will be carried
-with it to other XDP programs, as well as to other parts of the kernel and
-userspace.
+with it as it traverses the system.
 
 In addition to the per-packet metadata, an XDP program can define and access its
 own persistent data structures (through BPF maps, described in
@@ -436,10 +434,11 @@ execution order as described here.
 At the end of processing, the XDP program issues a final verdict for the packet.
 This is done by setting one of the four available return codes, shown on the
 right-hand side of Figure~\ref{fig:xdp-execution}. There are three simple return
-codes (with no parameters) to drop the packet, immediately re-transmit it out
-the same network interface, or allow it to be processed by the kernel networking
-stack. The fourth return code allows the XDP program to \emph{redirect} the
-packet, which offers additional control over its further processing.
+codes (with no parameters), which can drop the packet, immediately re-transmit
+it out the same network interface, or allow it to be processed by the kernel
+networking stack. The fourth return code allows the XDP program to
+\emph{redirect} the packet, offering additional control over its further
+processing.
 
 Unlike the other three return codes, the redirect packet verdict requires an
 additional parameter that specifies the redirection target, which is set through
@@ -463,12 +462,12 @@ evolution of the original BSD packet filter (BPF) \cite{mccanne_bsd_1993} which
 has seen extensive use in various packet filtering applications over the last
 decades. BPF uses a register-based virtual machine to describe filtering
 actions. The original BPF virtual machine has two 32-bit registers and
-understands 22 different instructions. eBPF extends the number of registers from
-two to eleven, and increases register widths to 64 bits. The 64-bit registers
-map one-to-one to hardware registers on the 64-bit architectures supported by
-the kernel, which allows efficient just-in-time (JIT) compilation into native
-machine code. Support for compiling (restricted) C code into eBPF is included in
-the LLVM compiler infrastructure~\cite{llvm}.
+understands 22 different instructions. eBPF extends the number of registers to
+eleven, and increases register widths to 64 bits. The 64-bit registers map
+one-to-one to hardware registers on the 64-bit architectures supported by the
+kernel, enabling efficient just-in-time (JIT) compilation into native machine
+code. Support for compiling (restricted) C code into eBPF is included in the
+LLVM compiler infrastructure~\cite{llvm}.
 
 eBPF also adds new instructions to the eBPF instruction set. The added
 instructions include arithmetic and logic instructions for the larger register
@@ -481,15 +480,15 @@ This facility is used by eBPF to support helper functions that eBPF programs can
 call to interact with the kernel while processing, as well as for function calls
 within the same eBPF program.
 
-While the eBPF instruction set itself supports general purpose computation, the
-verifier (described in Section~\ref{sec:bpf-verifier} below) places limitations
-on the programs loaded into the kernel, to ensure that the user-supplied
-programs they cannot harm the running kernel. With this in place, it is safe to
-execute the code directly in the kernel address space, which makes eBPF useful
-for a wide variety of tasks in the Linux kernel, of which XDP is one. Because
-all eBPF programs can share the same set of maps, this makes it possible for XDP
-programs to react to arbitrary events in other parts of the kernel. For
-instance, a separate eBPF program could monitor CPU load and instruct the XDP
+While the eBPF instruction set itself can express any general purpose
+computation, the verifier (described in Section~\ref{sec:bpf-verifier} below)
+places limitations on the programs loaded into the kernel to ensure that the
+user-supplied programs cannot harm the running kernel. With this in place, it is
+safe to execute the code directly in the kernel address space, which makes eBPF
+useful for a wide variety of tasks in the Linux kernel, not just for XDP.
+Because all eBPF programs can share the same set of maps, this makes it possible
+for programs to react to arbitrary events in other parts of the kernel. For
+instance, a separate eBPF program could monitor CPU load and instruct an XDP
 program to drop packets if load increases above a certain threshold.
 
 The eBPF virtual machine supports dynamically loading and re-loading programs,
@@ -506,8 +505,8 @@ lookups needed by more generic code with simple conditional jumps.
 eBPF programs are executed in response to an event in the kernel (a packet
 arrival, in the case of XDP). Each time they are executed they start in the same
 initial state, and they do not have access to persistent memory storage in their
-program context. Instead, the kernel exposes helper functions allowing programs
-to access \emph{BPF maps}.
+program context. Instead, the kernel exposes helper functions giving programs to
+access \emph{BPF maps}.
 
 BPF maps are key/value stores that are defined upon loading an eBPF program, and
 can be referred to from within the eBPF code. Maps exist in both global and
@@ -547,6 +546,61 @@ functions are called with the right argument types. This is ensured by rejecting
 programs that perform load or call instructions with invalid arguments. Argument
 validity is determined by tracking the state of all registers and stack
 variables through the execution of the program.
+
+The purpose of this register state tracking mechanism is to ensure that the
+program performs no out of bounds memory accesses \emph{without knowing in
+  advance what the valid bounds are}. The bounds cannot be known because
+programs must process data packets which vary in size; and similarly, the
+contents of maps are not known in advance, so it is not known whether a given
+lookup will succeed. To deal with this, the verifier checks that the program
+being loaded does its own bounds checking before dereferencing pointers to
+packet data, and that map lookups are checked for \texttt{NULL} values before
+being dereferenced. This approach leaves the program writer in control of how
+checks are integrated into the processing logic, and what to do in the error
+path.
+
+To track data access, the verifier tracks data types, pointer offsets and
+possible value ranges of all registers. At the beginning of the program,
+\texttt{R1} contains a pointer to the \emph{context} metadata object,
+\texttt{R10} is a stack pointer, and all other registers are marked as not
+initialised. At each execution step, register states are updated based on the
+operations performed by the program. When a new value is stored in a register,
+that register inherits the state variables from the source of the value.
+Arithmetic operations will affect the possible value ranges of scalar types, and
+the offset of pointer types. The widest possible range is stored in the state
+variables, e.g., if a one-byte load is performed into a register, that
+register's possible value range is set to 0-255. Branches in the instruction
+graph will update the register state according to the logical operation
+contained in the branch. For example, given a comparison such as "\texttt{R1 >
+  10}", the verifier will set the maximum value of \texttt{R1} to 10 in one
+branch, and the minimum value to 11 in the other.
+
+Using this range information stored in the state variables, it is possible for
+the verifier to predict the ranges of memory that each load instruction can
+potentially access, and ensure that only safe memory accesses are performed.For
+packet data access this is done by looking for comparisons with the special
+\texttt{data\_end} pointer that is available in the context object; for values
+retrieved from a BPF map the data size in the map definition is used; and for
+values stored on the stack, accesses are checked against the data ranges that
+have previously been written to. In addition, restrictions are placed on pointer
+arithmetic, and pointers cannot generally be converted to integer values. Any
+eBPF program that performs operations that the verifier cannot prove are safe,
+are simply rejected at load time. In addition to this, the verifier also uses
+the range information to enforce aligned memory accesses.
+
+It should be noted that the purpose of the verifier is to protect the internals
+of the kernel from being exposed to malicious or buggy eBPF programs, not to
+ensure that the programs perform their designated function in the most efficient
+way possible. That is, an XDP program can slow down the machine by performing
+excessive processing (up to the maximum program size), and it can corrupt
+network packets if written incorrectly. Loading programs requires administrative
+(root) privileges for this reason, and it is up to the eBPF programmer to
+prevent these types of bugs, and to the system administrator to decide which
+programs to load on the system.
+
+
+\subsection{Example XDP program}
+\label{sec:example-xdp-program}
 
 \begin{listing}[p]
   \caption{\label{lst:ex-xdp-prog}Example XDP program. The program parses packet
@@ -629,66 +683,6 @@ int xdp_prog1(struct xdp_md *ctx)
 \end{minted}
 \end{listing}
 
-The purpose of this register state tracking mechanism is to ensure that the
-program performs no out of bounds memory accesses \emph{without knowing in
-  advance what the valid bounds are}. The bounds cannot be known because
-programs must process data packets which vary in size; and similarly, the
-contents of maps are not known in advance, so it is not known whether a given
-lookup will succeed.
-
-One way to deal with this problem is to automatically generate bounds checking
-code around all memory accesses. However, the eBPF verifier takes a different
-approach: It verifies that the program being loaded does its own bounds checking
-before dereferencing pointers to packet data, and that map lookups are checked
-for \texttt{NULL} values before being dereferenced. With this verification in
-place, it is safe for program instructions to directly access packet data, which
-is an important reason for the high performance of eBPF packet processing
-programs. This approach also leaves the program writer in control of how bounds
-checking is integrated into the processing logic, and what to do in the error
-path.
-
-To track data access, the verifier tracks data types, pointer offsets and value
-ranges of all registers. At the beginning of the program, \texttt{R1} contains a
-pointer to the \emph{context} metadata object, \texttt{R10} is a stack pointer,
-and all other registers are marked as not initialised. At each execution step,
-register states are updated based on the operations performed by the program.
-When a new value is stored in a register, that register inherits the state
-variables from the source of the value. Arithmetic operations will affect the
-possible value ranges of scalar types, and the offset of pointer types. The
-widest possible range is stored in the state variables, e.g., if a one-byte load
-is performed into a register, that register's possible value range is set to
-0-255. Branches in the instruction graph will update the register state
-according to the logical operation contained in the branch. For example, given a
-comparison such as "\texttt{R1 > 10}", the verifier will set the maximum value
-of \texttt{R1} to 10 in one branch, and the minimum value to 11 in the other.
-
-Using this range information stored in the state variables, it is possible for
-the verifier to predict the ranges of memory that each load instruction can
-potentially access, and ensure that only safe memory accesses are performed.For
-packet data access this is done by looking for comparisons with the special
-\texttt{data\_end} pointer that is available in the context object; for values
-retrieved from a BPF map the data size in the map definition is used; and for
-values stored on the stack, accesses are checked against the data ranges that
-have previously been written to. In addition, restrictions are placed on pointer
-arithmetic (depending on the type of pointer), and pointers cannot generally be
-converted to integer values (to prevent leaking them to userspace). Any eBPF
-program that performs operations that the verifier cannot prove are safe, are
-simply rejected at load time. In addition to this, the verifier also uses the
-range information to enforce aligned memory accesses.
-
-It should be noted that the purpose of the verifier is to protect the internals
-of the kernel from being exposed to malicious or buggy eBPF programs, not to
-ensure that the programs perform their designated function in the most efficient
-way possible. That is, an XDP program can slow down the machine by performing
-excessive processing (up to the maximum program size), and it can corrupt
-network packets if written incorrectly. Loading programs requires administrative
-(root) privileges for this reason, and it is up to the eBPF programmer to
-prevent these types of bugs, and to the system administrator to decide which
-programs to load on the system.
-
-
-\subsection{Example XDP program}
-\label{sec:example-xdp-program}
 
 
 To showcase the features described above, Listing~\ref{lst:ex-xdp-prog} shows an
@@ -712,9 +706,9 @@ program that is useful in the real world. Specifically:
   as VLAN headers (lines 41--50).
 \item Direct packet data access is used to modify the packet headers (lines
   14--16).
-\item The map lookup helper function exposed by the kernel (called on line 60;
-  all other functions are inlined on compilation, including helpers like
-  \texttt{htons()}).
+\item The map lookup helper function exposed by the kernel (called on line 60).
+  This is the only real function call in the program; all other functions are
+  inlined on compilation, including helpers like \texttt{htons()}.
 \item The final packet verdict is communicated by the program return code (line
   69).
 \end{itemize}
@@ -1008,19 +1002,14 @@ simplified versions in our evaluation to be able to make the code available. We
 also refer the reader to~\cite{miano2018creating} for an independent look at
 some of the challenges of implementing real-world network services in XDP.
 
-Our first use case shows how XDP's kernel helper functions can be used to
-accelerate common use cases, using the example of a software router. In the
-second use case, we show how an inline Denial of Service (DoS) mitigation
-application can be used to protect against attacks directly at the application
-server. And finally, the third use case shows how the forwarding mode that sends
-packets out the same interface as they arrived on can be used to implement a
-layer-4 load balancer.
-
 The purpose of this section is to demonstrate the feasibility of implementing
-the selected use cases in XDP, not to perform an exhaustive performance
-evaluation against state of the art implementations of each use case. Instead,
-we use the regular Linux kernel stack as a simple performance baseline and
-benchmark the XDP applications against that.
+each use case in XDP, so we do not perform exhaustive performance evaluations
+against state of the art implementations. Instead, we use the regular Linux
+kernel stack as a simple performance baseline and benchmark the XDP applications
+against that. The three use cases are a software router, an inline Denial of
+Service (DoS) mitigation application and a layer-4 load balancer.
+
+
 
 \subsection{Software Routing}
 \label{sec:fwd-usecase}
@@ -1136,15 +1125,15 @@ no special hardware or application changes are needed.
 \subsection{Load Balancing}
 \label{sec:load-balancer}
 For the load balancer use case, we use the XDP component of the Katran load
-balancer~\cite{katran} recently released as open source by Facebook. This works
-by announcing an IP address for the service, which is routed to the load
-balancer. The load balancer hashes the source packet header to select a
-destination application server. The packet is then encapsulated and sent to the
-application server, which is responsible for decapsulating it, processing the
-request, and replying directly to the originator. The XDP program performs the
-hashing and encapsulation, and returns the packet out the same interface on
-which it was received. It keeps configuration data in BPF maps and implements
-the encapsulation entirely in the eBPF program.
+balancer~\cite{katran} released as open source by Facebook. This works by
+announcing an IP address for the service, which is routed to the load balancer.
+The load balancer hashes the source packet header to select a destination
+application server. The packet is then encapsulated and sent to the application
+server, which is responsible for decapsulating it, processing the request, and
+replying directly to the originator. The XDP program performs the hashing and
+encapsulation, and returns the packet out the same interface on which it was
+received. It keeps configuration data in BPF maps and implements the
+encapsulation entirely in the eBPF program.
 
 To test this use case, we configure the Katran XDP program with a fixed number
 of destination hosts\footnote{We use one virtual IP per CPU core, and 100
@@ -1168,16 +1157,16 @@ CPUs, and that XDP offers a performance gain of 4.3x over IPVS.
 \end{table}
 
 
-\section{Limitations and future work}
-\label{sec:limitations}
+\section{Future directions of XDP}
+\label{sec:future}
 As we have shown above, XDP offers high performance and can be used to implement
 a variety of real-world use cases. However, this does not mean that XDP is a
 finished system. On the contrary, as part of the Linux kernel, XDP undergoes
 continuous improvement. Some of this development effort goes into softening the
 rough edges that are the inevitable result of XDP being incrementally
 incorporated into a general purpose operating system kernel. Other efforts
-continue to push the boundaries of XDP's capabilities. In this section we give
-an overview of some of these efforts.
+continue to push the boundaries of XDP's capabilities. In this section we
+discuss some of these efforts.
 
 \subsection{Limitations on eBPF programs}
 \label{sec:limit-ebpf-progr}
@@ -1190,21 +1179,16 @@ disallowing loops and limiting the maximum size of the program. And (b) ensuring
 the safety of memory accesses, which is done by the register state tracking
 explained in Section~\ref{sec:bpf-verifier}.
 
-The primary function of the verifier is to ensure the safety of the kernel from
-programs being loaded into it. As such, a conservative approach is taken, where
-the verifier will reject any program that it cannot prove is safe. This can lead
-to false negatives, where safe programs are needlessly rejected. In addition, as
-others have noted~\cite{miano2018creating}, the restrictions on the program
-structure imposed by the verifier, such as the lack of support for loops, have
-been more limited than strictly necessary, in the interest of ensuring safety.
-To improve upon this situation, there is an ongoing effort to reduce false
-negatives, i.e., cases where the verifier rejects programs that are actually
-safe to run. Furthermore, the error messages reported by the verifier have been
-made friendlier, to make it easier for developers to change their code to avoid
-verification errors. Support for function calls in eBPF has recently been added,
-the addition of support for bounded loops is planned, and efficiency
-improvements that will allow the verifier to operate on larger programs are
-being worked on.
+Since the primary function of the verifier is to ensure the safety of the
+kernel, a conservative approach is taken, and the verifier will reject any
+program that it cannot prove is safe. This can lead to false negatives, where
+safe programs are needlessly rejected; reducing such cases is an ongoing effort.
+The error messages reported by the verifier have been made friendlier, to make
+it easier for developers to change their code to fix verification errors when
+they do occur. Support for function calls in eBPF has recently been added,
+support for bounded loops is planned, and efficiency improvements of the
+verifier itself are being worked on, which will allow it to operate on larger
+programs.
 
 Another limitation of eBPF programs compared to user-space C programs is the
 lack of a standard library, including things like memory allocation, threading,
@@ -1215,8 +1199,7 @@ arriving packet), and partly by the helper functions exposed by the kernel.
 Finally, only one XDP program can be attached to each networking interface. This
 can be worked around by cooperation between programs, where the tail call
 functionality can be used to either dynamically dispatch to different programs
-depending on packet content, or to chain several programs together to operate in
-sequence.
+depending on packet content, or to chain several programs together.
 
 \subsection{User Experience and Debugging}
 \label{sec:user-exper-debugg}
@@ -1346,22 +1329,21 @@ dedicating resources exclusively to packet processing.
 We believe that these features make XDP a compelling alternative to
 all-or-nothing kernel bypass solutions. This belief is supported by XDP's
 adoption in a variety of real-world applications, some of which we have shown
-examples of above. Furthermore, the XDP system is still evolving, and we have
-outlined a number of interesting developments which will continue to improve it
-in the future.
+examples of. Furthermore, the XDP system is still evolving, and we have outlined
+a number of interesting developments which will continue to improve it in the
+future.
 
 \section*{Acknowledgements}
 \label{sec:acknowledgements}
-XDP has been under development by the Linux networking community for a number of
-years, and the authors would like to thank everyone who has been involved in
-this process. In particular, Alexei Starovoitov has been instrumental in the
-development of the eBPF virtual machine and verifier; Jakub Kicinski has been a
-driving force behind XDP hardware offloading and development of the bpftool
-utility; and Björn Töpel and Magnus Karlsson have been leading the AF\_XDP and
-userspace zero-copy efforts.
+XDP has been developed by the Linux networking community for a number of years,
+and the authors would like to thank everyone who has been involved. In
+particular, Alexei Starovoitov has been instrumental in the development of the
+eBPF VM and verifier; Jakub Kicinski has been a driving force behind XDP
+hardware offloading and the bpftool utility; and Björn Töpel and Magnus Karlsson
+have been leading the AF\_XDP and userspace zero-copy efforts.
 
-We also extend our thanks to the anonymous reviewers, and to our shepherd
-Srinivas Narayana, for their helpful comments on the paper.
+We also wish to extend our thanks to the anonymous reviewers, and to our
+shepherd Srinivas Narayana, for their helpful comments.
 
 
 \bibliographystyle{ACM-Reference-Format}
