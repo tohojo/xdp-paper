@@ -608,7 +608,7 @@ programs to load on the system.
     sends them back out the same interface. A packet counter is kept per IP
     protocol number. Adapted from xdp2\_kern.c, which is distributed with the
     kernel source code.}
-\begin{minted}[linenos,fontsize=\footnotesize,tabsize=3]{c}
+\begin{minted}[linenos,xleftmargin=9pt,numbersep=5pt,fontsize=\footnotesize,tabsize=2]{c}
 /* map used to count packets; key is IP protocol, value is pkt count */
 struct bpf_map_def SEC("maps") rxcnt = {
 	.type = BPF_MAP_TYPE_PERCPU_ARRAY,
