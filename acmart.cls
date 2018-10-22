@@ -1345,7 +1345,7 @@ Computing Machinery]
     acmcopyright,acmlicensed,rightsretained,%
     usgov,usgovmixed,cagov,cagovmixed,licensedusgovmixed,%
     licensedcagov,licensedcagovmixed,othergov,licensedothergov,%
-    iw3c2w3,iw3c2w3g}{%
+    iw3c2w3,iw3c2w3g,ccbysa}{%
   \@printpermissiontrue
   \@printcopyrighttrue
   \@acmownedtrue
@@ -1392,6 +1392,10 @@ Computing Machinery]
   \ifnum\acm@copyrightmode=14\relax % iw3c2w3g
    \@acmownedfalse
    \AtBeginDocument{\acmPrice{}}%
+  \fi
+  \ifnum\acm@copyrightmode=15\relax % ccbysa
+   \@acmownedfalse
+   \AtBeginDocument{\acmPrice{}}%
   \fi}
 \def\setcopyright#1{\setkeys{ACM@}{acmcopyrightmode=#1}}
 \setcopyright{acmcopyright}
@@ -1431,6 +1435,9 @@ Computing Machinery]
   \or % ic2w3wwwgoogle
   IW3C2 (International World Wide Web Conference Committee), published
   under Creative Commons CC-BY-NC-ND~4.0 License.
+  \or % ccbysa
+  Copyright held by the owner/author(s). Published under Creative Commons
+  CC-BY-SA~4.0 License.
   \fi}
 \def\@formatdoi#1{\url{https://doi.org/#1}}
 \def\@copyrightpermission{%
@@ -1555,6 +1562,14 @@ Computing Machinery]
    (CC-BY-NC-ND~4.0) license. Authors reserve their rights to
    disseminate the work on their personal and corporate Web sites with
    the appropriate attribution.
+ \or % ccbysa
+   This paper is published under the Creative Commons Attribution-ShareAlike~4.0
+   International (CC-BY-SA~4.0) license. You are free to share and adapt this
+   material in any medium or format, provided you give appropriate credit,
+   provide a link to the license, and indicate if any changes were made. In
+   addition, if you build upon the material you must distribute your contributions
+   under the same license as the original. See
+   \url{https://creativecommons.org/licenses/by-sa/4.0/} for details.
  \fi}
 \def\copyrightyear#1{\def\@copyrightyear{#1}}
 \copyrightyear{\@acmYear}
