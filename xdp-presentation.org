@@ -1,0 +1,267 @@
+#+TITLE: The eXpress Data Path
+#+AUTHOR: Toke Høiland-Jørgensen
+#+EMAIL: toke@toke.dk
+#+REVEAL_THEME: white
+#+REVEAL_TRANS: slide
+#+REVEAL_MARGIN: 0
+#+REVEAL_EXTRA_JS: { src: './reveal.js/js/custom-kau.js'}
+#+REVEAL_MATHJAX_URL: ./reveal.js/js/MathJax/MathJax.js?config=TeX-AMS-MML_HTMLorMML
+#+OPTIONS: reveal_center:nil reveal_control:t reveal_history:nil
+#+OPTIONS: reveal_width:1600 reveal_height:1000
+#+OPTIONS: ^:nil tags:nil toc:nil num:nil ':t
+
+* Outline
+:PROPERTIES:
+:reveal_extra_attr: class="mid-slide"
+:END:
+
+- Challenges with high-speed packet processing
+- XDP design
+- Performance evaluation
+- Example applications
+- Conclusion
+
+
+* High-Speed Packet Processing is Hard
+
+- Millions of packets per second
+  - 10 Gbps: 14.8Mpps / 67.5 ns per packet
+  - 100 Gbps: 148Mpps / 6.75 ns per packet
+- Operating system stacks are /*too slow*/ to keep up
+
+- Previous solutions
+  - Kernel bypass - move hardware to userspace
+    - Hard to integrate with the system
+
+  - Fast-path frame-to-userspace solutions (Netmap etc)
+    - Not as high performance, requires kernel mods
+
+* The Linux Approach: XDP
+[[file:figures/xdp-diagram-cut.svg]]
+
+** XDP: Benefits
+- Integrated with the kernel
+- Selectively use kernel stack features
+- Stable API
+- No packet re-injection needed
+- Transparent to the host
+- Dynamically re-programmable
+- Doesn't need a full CPU core
+
+** The eBPF virtual machine
+- In-kernel virtual machine
+- Extended version of BPF VM
+- JIT-compiles to most kernel architectures
+- In-kernel verifier ensures safety
+** The eBPF verifier
+
+** XDP program flow
+:PROPERTIES:
+:reveal_extra_attr: class="extra-slide"
+:END:
+
+#+ATTR_HTML: :class figure-bg :style height: 650px;
+[[file:figures/xdp-execution-diagram.svg]]
+
+#+BEGIN_NOTES
+ Execution flow of a typical XDP program. When a packet arrives, the program starts by parsing packet headers to extract the information it will react on. It then reads or updates metadata from one of several sources. Finally, a packet can be rewritten and a final verdict for the packet is determined. The program can alternate between packet parsing, metadata lookup and rewriting, all of which are optional. The final verdict is given in the form of a program return code.
+#+END_NOTES
+
+** Example XDP program
+
+#+REVEAL_HTML: <div class="tiny-col">
+#+begin_src C
+/* map used to count packets; key is IP protocol,
+   value is pkt count */
+struct bpf_map_def SEC("maps") rxcnt = {
+	.type = BPF_MAP_TYPE_PERCPU_ARRAY,
+	.key_size = sizeof(u32),
+	.value_size = sizeof(long),
+	.max_entries = 256,
+};
+
+/* swaps MAC addresses using direct packet data access */
+static void swap_src_dst_mac(void *data)
+{
+	unsigned short *p = data;
+	unsigned short dst[3];
+	dst[0] = p[0];
+	dst[1] = p[1];
+	dst[2] = p[2];
+	p[0]   = p[3];
+	p[1]   = p[4];
+	p[2]   = p[5];
+	p[3]   = dst[0];
+	p[4]   = dst[1];
+	p[5]   = dst[2];
+}
+
+static int parse_ipv4(void *data, u64 nh_off, void *data_end)
+{
+	struct iphdr *iph = data + nh_off;
+	if (iph + 1 > data_end)
+		return 0;
+	return iph->protocol;
+}
+
+#+END_src
+#+REVEAL_HTML: </div>
+#+REVEAL_HTML: <div class="tiny-col" style="position: relative; top: -4em;">
+#+BEGIN_src C
+
+SEC("xdp1") /* marks main eBPF program entry point */
+int xdp_prog1(struct xdp_md *ctx)
+{
+	void *data_end = (void *)(long)ctx->data_end;
+	void *data = (void *)(long)ctx->data;
+	struct ethhdr *eth = data; int rc = XDP_DROP;
+	long *value; u16 h_proto; u64 nh_off; u32 ipproto;
+
+	nh_off = sizeof(*eth);
+	if (data + nh_off > data_end)
+		return rc;
+
+	h_proto = eth->h_proto;
+
+	/* check VLAN tag; could be repeated to support double-tagged VLAN */
+	if (h_proto == htons(ETH_P_8021Q) || h_proto == htons(ETH_P_8021AD)) {
+		struct vlan_hdr *vhdr;
+
+		vhdr = data + nh_off;
+		nh_off += sizeof(struct vlan_hdr);
+		if (data + nh_off > data_end)
+			return rc;
+		h_proto = vhdr->h_vlan_encapsulated_proto;
+	}
+
+	if (h_proto == htons(ETH_P_IP))
+		ipproto = parse_ipv4(data, nh_off, data_end);
+	else if (h_proto == htons(ETH_P_IPV6))
+		ipproto = parse_ipv6(data, nh_off, data_end);
+	else
+		ipproto = 0;
+
+	/* lookup map element for ip protocol, used for packet counter */
+	value = bpf_map_lookup_elem(&rxcnt, &ipproto);
+	if (value)
+		*value += 1;
+
+	/* swap MAC addrs for UDP packets, transmit out this interface */
+	if (ipproto == IPPROTO_UDP) {
+		swap_src_dst_mac(data);
+		rc = XDP_TX;
+	}
+	return rc;
+}
+#+end_src
+#+REVEAL_HTML: </div>
+
+* Performance benchmarks
+
+- Benchmark against DPDK
+  - Establishes baseline performance
+  - Simple tests
+
+All tests are with /64 byte packets/ - measuring *Packets Per Second (PPS)*.
+
+** Packet drop performance
+:PROPERTIES:
+:reveal_extra_attr: class="extra-slide"
+:END:
+
+[[file:figures/drop-test.svg]]
+
+#+BEGIN_NOTES
+ Packet drop performance. DPDK uses one core for control tasks, so only 5 are available for packet processing.
+#+END_NOTES
+
+** CPU usage in drop test
+:PROPERTIES:
+:reveal_extra_attr: class="extra-slide"
+:END:
+
+[[file:figures/drop-cpu.svg]]
+
+#+BEGIN_NOTES
+ CPU usage in the drop scenario. Each line stops at the method's maximum processing capacity. The DPDK line continues at 100\% up to the maximum performance shown in Figure~\reffig:drop-test.
+#+END_NOTES
+
+** Packet forwarding throughput
+:PROPERTIES:
+:reveal_extra_attr: class="extra-slide"
+:END:
+
+[[file:figures/redirect-test.svg]]
+
+#+BEGIN_NOTES
+ Packet forwarding throughput. Sending and receiving on the same interface takes up more bandwidth on the same PCI port, which means we hit the PCI bus limit at 70 Mpps.
+#+END_NOTES
+
+
+* Application proof-of-concept
+
+- Shows feasibility of three applications:
+
+  - Software router
+  - DDoS protection system
+  - Layer-4 load balancer
+
+** Software routing performance
+:PROPERTIES:
+:reveal_extra_attr: class="extra-slide"
+:END:
+
+[[file:figures/router-fwd.svg]]
+
+#+BEGIN_NOTES
+ Software routing performance. Since the performance scales linearly with the number of cores, only the results for a single core are shown.
+#+END_NOTES
+
+** DDoS performance
+:PROPERTIES:
+:reveal_extra_attr: class="extra-slide"
+:END:
+
+[[file:figures/ddos-test.svg]]
+
+#+BEGIN_NOTES
+ DDoS performance. Number of TCP transactions per second as the level of attack traffic directed at the server increases.
+#+END_NOTES
+
+Modelled on Cloudflare DDoS protection architecture
+
+** Load balancer performance
+
+| CPU Cores    |   1 |    2 |    3 |    4 |    5 | 6     |
+|--------------+-----+------+------+------+------+-------|
+| XDP (Katran) | 5.2 | 10.1 | 14.6 | 19.5 | 23.4 | 29.3  |
+| Linux (IPVS) | 1.2 |  2.4 |  3.7 |  4.8 |  6.0 | 7.3   |
+
+Using the Katran load balancer (open sourced by Facebook).
+
+* Summary
+
+XDP:
+
+- Integrates programmable packet processing *in the kernel*
+- Combines /speed/ with /flexibility/
+- Is supported by the Linux kernel community
+- Is /*already used*/ in high-profile production use cases
+
+
+
+
+
+* Notes etc                                                        :noexport:
+
+# Local Variables:
+# org-reveal-title-slide: "<h1 class=\"title\">%t</h1><h2 class=\"subtitle\">Fast Programmable Packet Processing in the Operating System Kernel</h2>
+# <h2 class=\"author current\">Toke Høiland-Jørgensen (Karlstad University)</h2>
+# <h2 class=\"author\">Jesper Dangaard Brouer (Red Hat)</h2>
+# <h2 class=\"author\">Daniel Borkmann (Cilium.io)</h2>
+# <h2 class=\"author\">John Fastabend (Cilium.io)</h2>
+# <h2 class=\"author\">Tom Herbert (Quantonium Inc)</h2>
+# <h2 class=\"author\">David Ahern (Cumulus Networks)</h2>
+# <h2 class=\"author\">David Miller (Red Hat)</h2>
+# <h3>CoNEXT '18<br/>Heraklion, Greece, Dec 2018</h3>"
+# End:
