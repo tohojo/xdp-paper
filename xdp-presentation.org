@@ -21,46 +21,67 @@
 - Example applications
 - Conclusion
 
-
 * High-Speed Packet Processing is Hard
 
 - Millions of packets per second
   - 10 Gbps: 14.8Mpps / 67.5 ns per packet
   - 100 Gbps: 148Mpps / 6.75 ns per packet
-- Operating system stacks are /*too slow*/ to keep up
 
-- Previous solutions
+Operating system stacks are /*too slow*/ to keep up
+
+** Previous solutions
+
   - Kernel bypass - move hardware to userspace
-    - Hard to integrate with the system
+    - /High performance/, but /*hard to integrate*/ with the system
 
   - Fast-path frame-to-userspace solutions (Netmap etc)
-    - Not as high performance, requires kernel mods
+    - /Kernel in control/, but /*lower performance*/
 
-* The Linux Approach: XDP
-[[file:figures/xdp-diagram-cut.svg]]
+  - Custom in-kernel modules (e.g., Open vSwitch)
+    - /Avoids context switching/, but is a /*maintenance burden*/
 
-** XDP: Benefits
+XDP: Move processing *into the kernel* instead
+
+* XDP: Benefits
 - Integrated with the kernel
-- Selectively use kernel stack features
 - Stable API
 - No packet re-injection needed
 - Transparent to the host
 - Dynamically re-programmable
 - Doesn't need a full CPU core
+- May selectively use kernel stack features
 
-** The eBPF virtual machine
+** XDP: Overall design
+
+#+ATTR_HTML: :class figure-right :style height: 900px; position: absolute; top: 50px; right: 50px;
+[[file:figures/xdp-diagram-cut.svg]]
+
+- The XDP driver hook
+- The eBPF virtual machine
+- BPF maps
+- The eBPF verifier
+
+** The eBPF virtual machine                                       :noexport:
 - In-kernel virtual machine
-- Extended version of BPF VM
+- Extended version of BPF bytecode
 - JIT-compiles to most kernel architectures
 - In-kernel verifier ensures safety
-** The eBPF verifier
+
+** The eBPF verifier                                              :noexport:
+- Static analysis of programs /at load time/
+- Walks the instruction DAG to ensure:
+  - No loops
+  - No invalid instructions
+  - Only safe memory access
+
+Overall objective: *Protect the kernel*
 
 ** XDP program flow
 :PROPERTIES:
 :reveal_extra_attr: class="extra-slide"
 :END:
 
-#+ATTR_HTML: :class figure-bg :style height: 650px;
+#+ATTR_HTML: :class figure-bg :style position: relative; left: -2.5em;
 [[file:figures/xdp-execution-diagram.svg]]
 
 #+BEGIN_NOTES
@@ -106,7 +127,7 @@ static int parse_ipv4(void *data, u64 nh_off, void *data_end)
 
 #+END_src
 #+REVEAL_HTML: </div>
-#+REVEAL_HTML: <div class="tiny-col" style="position: relative; top: -4em;">
+#+REVEAL_HTML: <div class="tiny-col" style="position: relative; top: -3em;">
 #+BEGIN_src C
 
 SEC("xdp1") /* marks main eBPF program entry point */
@@ -161,6 +182,9 @@ int xdp_prog1(struct xdp_md *ctx)
 - Benchmark against DPDK
   - Establishes baseline performance
   - Simple tests
+    - Packet drop performance
+    - CPU usage
+    - Packet forwarding performance
 
 All tests are with /64 byte packets/ - measuring *Packets Per Second (PPS)*.
 
@@ -197,6 +221,49 @@ All tests are with /64 byte packets/ - measuring *Packets Per Second (PPS)*.
  Packet forwarding throughput. Sending and receiving on the same interface takes up more bandwidth on the same PCI port, which means we hit the PCI bus limit at 70 Mpps.
 #+END_NOTES
 
+** Packet forwarding latency
+
+#+REVEAL_HTML: <div class="spacer"></div>
+
+#+REVEAL_HTML: <table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+#+REVEAL_HTML: <thead>
+#+REVEAL_HTML: <tr>
+#+REVEAL_HTML: <th>&#xa0;</th>
+#+REVEAL_HTML: <th colspan="2" align="center">Average</th>
+#+REVEAL_HTML: <th colspan="2" align="center">Maximum</th>
+#+REVEAL_HTML: <th colspan="2" align="center">\(< 10 \mu s\)</th>
+#+REVEAL_HTML: </tr>
+#+REVEAL_HTML: <tr>
+#+REVEAL_HTML: <th>&#xa0;</th>
+#+REVEAL_HTML: <th>100 pps</th>
+#+REVEAL_HTML: <th>1 Mpps</th>
+#+REVEAL_HTML: <th>100 pps</th>
+#+REVEAL_HTML: <th>1 Mpps</th>
+#+REVEAL_HTML: <th>100 pps</th>
+#+REVEAL_HTML: <th>1 Mpps</th>
+#+REVEAL_HTML: </tr>
+#+REVEAL_HTML: </thead>
+#+REVEAL_HTML: <tbody>
+#+REVEAL_HTML: <tr>
+#+REVEAL_HTML: <td>XDP</td>
+#+REVEAL_HTML: <td>\(82 \mu s\)</td>
+#+REVEAL_HTML: <td>\(7 \mu s\)</td>
+#+REVEAL_HTML: <td>\(272 \mu s\)</td>
+#+REVEAL_HTML: <td>\(202 \mu s\)</td>
+#+REVEAL_HTML: <td>\(0 \%\)</td>
+#+REVEAL_HTML: <td>\(98.1 \%\)</td>
+#+REVEAL_HTML: </tr>
+#+REVEAL_HTML: <tr>
+#+REVEAL_HTML: <td>DPDK</td>
+#+REVEAL_HTML: <td>\(2 \mu s\)</td>
+#+REVEAL_HTML: <td>\(3 \mu s\)</td>
+#+REVEAL_HTML: <td>\(161 \mu s\)</td>
+#+REVEAL_HTML: <td>\(189 \mu s\)</td>
+#+REVEAL_HTML: <td>\(99.5 \%\)</td>
+#+REVEAL_HTML: <td>\(99.0 \%\)</td>
+#+REVEAL_HTML: </tr>
+#+REVEAL_HTML: </tbody>
+#+REVEAL_HTML: </table>
 
 * Application proof-of-concept
 
@@ -206,10 +273,13 @@ All tests are with /64 byte packets/ - measuring *Packets Per Second (PPS)*.
   - DDoS protection system
   - Layer-4 load balancer
 
+/*Not*/ a benchmark against state-of-the-art implementations
+
 ** Software routing performance
 :PROPERTIES:
 :reveal_extra_attr: class="extra-slide"
 :END:
+#+REVEAL_HTML: <div class="spacer"></div>
 
 [[file:figures/router-fwd.svg]]
 
@@ -217,40 +287,46 @@ All tests are with /64 byte packets/ - measuring *Packets Per Second (PPS)*.
  Software routing performance. Since the performance scales linearly with the number of cores, only the results for a single core are shown.
 #+END_NOTES
 
-** DDoS performance
+** DDoS protection
 :PROPERTIES:
 :reveal_extra_attr: class="extra-slide"
 :END:
 
 [[file:figures/ddos-test.svg]]
 
-#+BEGIN_NOTES
- DDoS performance. Number of TCP transactions per second as the level of attack traffic directed at the server increases.
-#+END_NOTES
-
-Modelled on Cloudflare DDoS protection architecture
-
 ** Load balancer performance
+
+#+REVEAL_HTML: <div class="spacer"></div>
+
 
 | CPU Cores    |   1 |    2 |    3 |    4 |    5 | 6     |
 |--------------+-----+------+------+------+------+-------|
 | XDP (Katran) | 5.2 | 10.1 | 14.6 | 19.5 | 23.4 | 29.3  |
 | Linux (IPVS) | 1.2 |  2.4 |  3.7 |  4.8 |  6.0 | 7.3   |
 
-Using the Katran load balancer (open sourced by Facebook).
+#+REVEAL_HTML: <div class="spacer"></div>
 
+#+REVEAL_HTML: <div class="small">
+Based on the Katran load balancer (open sourced by Facebook).
+#+REVEAL_HTML: </div>
 * Summary
 
 XDP:
 
-- Integrates programmable packet processing *in the kernel*
+- Integrates programmable packet processing *into the kernel*
 - Combines /speed/ with /flexibility/
 - Is supported by the Linux kernel community
 - Is /*already used*/ in high-profile production use cases
+* Acknowledgements
 
+XDP has been developed *over a number of years* by the /Linux networking
+community/. Thanks to everyone involved; in particular, to:
 
+- /*Alexei Starovoitov*/ for his work on the eBPF VM and verifier
+- /*Björn Töpel*/ and /*Magnus Karlsson*/ for their work on AF_XDP
 
-
+Also thanks to our anonymous reviewers, and to our shepherd Srinivas Narayana
+for their helpful comments on the paper
 
 * Notes etc                                                        :noexport:
 
