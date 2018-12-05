@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="602.65997mm"
+   height="108.85751mm"
+   viewBox="0 0 602.65997 108.85751"
+   version="1.1"
+   id="svg1667"
+   inkscape:version="0.92.2 2405546, 2018-03-11"
+   sodipodi:docname="slide-line.svg">
+  <defs
+     id="defs1661" />
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     inkscape:zoom="0.7"
+     inkscape:cx="230.42559"
+     inkscape:cy="362.21949"
+     inkscape:document-units="mm"
+     inkscape:current-layer="layer1"
+     showgrid="false"
+     fit-margin-top="0"
+     fit-margin-left="0"
+     fit-margin-right="0"
+     fit-margin-bottom="0"
+     inkscape:window-width="800"
+     inkscape:window-height="864"
+     inkscape:window-x="800"
+     inkscape:window-y="0"
+     inkscape:window-maximized="0" />
+  <metadata
+     id="metadata1664">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title></dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(297.55022,-136.73791)">
+    <polygon
+       transform="matrix(0.26458333,0,0,0.26458333,-346.92685,-38.768134)"
+       style="fill:#f9b000"
+       class="st2"
+       points="547.3,1188.76 623.08,1188.76 360.21,926.01 284.66,926.01 "
+       id="polygon954" />
+    <polygon
+       transform="matrix(0.26458333,0,0,0.26458333,-346.92685,-38.768134)"
+       style="fill:#f9b000"
+       class="st2"
+       points="334.15,792.35 334.15,812.16 345.02,802.26 "
+       id="polygon956" />
+    <path
+       inkscape:connector-curvature="0"
+       d="m -259.617,193.26898 v -11.55436 l -2.36802,-2.42623 2.18017,-2.23308 v -2.09286 -4.76514 l -3.21998,-3.29671 h -7.69673 l -3.04006,3.1115 v 9.41917 l -2.24367,2.29923 v 5.89756 4.50321 l -1.88383,4.78102 h 14.71348 z m -6.54579,0.52652 h -4.58258 v -1.50019 h 3.69358 l 2.32569,-2.3839 v -8.85296 h 1.47637 v 9.7499 z"
+       id="path958"
+       style="stroke-width:0.26458332" />
+    <polygon
+       transform="matrix(0.26458333,0,0,0.26458333,-346.92685,-38.768134)"
+       points="316.54,890.76 260.93,890.76 260.72,891.29 316.03,891.29 "
+       id="polygon960" />
+    <polygon
+       transform="matrix(0.26458333,0,0,0.26458333,-346.92685,-38.768134)"
+       style="fill:#f9b000"
+       class="st2"
+       points="342.72,888.63 342.62,879.29 333.85,879.29 324.78,888.63 "
+       id="polygon962" />
+    <polygon
+       transform="matrix(0.26458333,0,0,0.26458333,-346.92685,-38.768134)"
+       style="fill:#d39700"
+       class="st3"
+       points="360.21,926.01 344.15,909.94 268.6,909.94 284.66,926.01 "
+       id="polygon964" />
+    <polygon
+       transform="matrix(0.26458333,0,0,0.26458333,-346.92685,-38.768134)"
+       style="fill:#d39700"
+       class="st3"
+       points="268.6,909.94 344.15,909.94 344.14,909.93 268.59,909.93 "
+       id="polygon966" />
+    <g
+       transform="matrix(0.26633246,0,0,0.26458333,-334.45874,-38.768134)"
+       style="opacity:0.2;stroke-width:0.99671084"
+       class="st7"
+       id="g1008">
+      <g
+         id="g1006"
+         style="stroke-width:0.99671084">
+        <rect
+           style="fill:#003d56;stroke-width:0.99671084"
+           x="132.62"
+           y="909.94"
+           class="st6"
+           width="2268.99"
+           height="16.07"
+           id="rect1004" />
+      </g>
+    </g>
+    <rect
+       style="fill:#dadada;stroke-width:0.26458332"
+       x="-296.8147"
+       y="196.91168"
+       class="st1"
+       width="602.22675"
+       height="5.0747085"
+       id="rect1010" />
+  </g>
+</svg>
