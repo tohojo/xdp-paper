@@ -16,6 +16,12 @@ https://git.kernel.org/pub/scm/linux/kernel/git/hawk/net-next-xdp.git/log/?h=xdp
 
 The specific commit we have been using is [[https://git.kernel.org/pub/scm/linux/kernel/git/hawk/net-next-xdp.git/commit/?h=xdp_paper01&id=e641995a1e18f12fa3ffa4aac405dd8e9135e0e9][e641995a1e18f12fa3ffa4aac405dd8e9135e0e9]].
 
+** Slides
+The paper was presented at CoNEXT '18 on December 5th, 2018. The source for the
+presentation slides are included in [[file:xdp-presentation.org][xdp-presentation.org]], and can be exported
+using the org-reveal plugin for Emacs org-mode. A compiled version of the slides
+is in [[file:xdp-presentation.pdf][xdp-presenation.pdf]].
+
 ** Experimental setup
 
 The notes from our experiments are included in a series of .org files in the
@@ -24,7 +30,6 @@ DPDK. Some familiarity with Linux is probably an advantage for someone who wants
 to replicate the experiments; but if any information is missing from the notes,
 we consider that a bug. Please open an issue in the github repository for any
 such problems.
-
 
 ** Hardware
 As our main test machine, we use a workstation equipped with an Intel Xeon
