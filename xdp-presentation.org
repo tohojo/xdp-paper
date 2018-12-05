@@ -318,6 +318,8 @@ XDP:
 - Is supported by the Linux kernel community
 - Is /*already used*/ in high-profile production use cases
 
+See [[https://github.com/tohojo/xdp-paper]] for details
+
 #+ATTR_HTML: :style width: 150px; position: absolute; bottom: 50px; right: 50px;
 [[file:figures/artifacts_evaluated_reusable.jpg]]
 * Acknowledgements
