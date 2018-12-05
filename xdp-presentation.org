@@ -43,13 +43,13 @@ Operating system stacks are /*too slow*/ to keep up
 XDP: Move processing *into the kernel* instead
 
 * XDP: Benefits
-- Integrated with the kernel
+- Integrated with the kernel; driver retains control of hardware
+- Can selectively use kernel stack features
 - Stable API
 - No packet re-injection needed
 - Transparent to the host
 - Dynamically re-programmable
 - Doesn't need a full CPU core
-- May selectively use kernel stack features
 
 ** XDP: Overall design
 
@@ -307,7 +307,7 @@ All tests are with /64 byte packets/ - measuring *Packets Per Second (PPS)*.
 #+REVEAL_HTML: <div class="spacer"></div>
 
 #+REVEAL_HTML: <div class="small">
-Based on the Katran load balancer (open sourced by Facebook).
+Based on the [[https://github.com/facebookincubator/katran][Katran load balancer]] (open sourced by Facebook).
 #+REVEAL_HTML: </div>
 * Summary
 
