@@ -317,6 +317,9 @@ XDP:
 - Combines /speed/ with /flexibility/
 - Is supported by the Linux kernel community
 - Is /*already used*/ in high-profile production use cases
+
+#+ATTR_HTML: :style width: 150px; position: absolute; bottom: 50px; right: 50px;
+[[file:figures/artifacts_evaluated_reusable.jpg]]
 * Acknowledgements
 
 XDP has been developed *over a number of years* by the /Linux networking
