@@ -2,8 +2,8 @@
 
 This repository contains the =.tex= source code, datasets and experimental notes
 for the paper "The eXpress Data Path: Fast Programmable Packet Processing in the
-Operating System Kernel" which will be presented at ACM CoNEXT 2018 in
-December 2018.
+Operating System Kernel" which was presented at ACM CoNEXT 2018 on
+December 5th, 2018.
 
 The PDF version of the paper is also included in [[file:xdp-the-express-data-path.pdf][xdp-the-express-data-path.pdf]].
 
